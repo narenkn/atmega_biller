@@ -1,0 +1,2 @@
+
+CFLAGS += -DLCD_DPORT_SIZE=4
