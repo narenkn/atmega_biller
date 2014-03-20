@@ -1,20 +1,6 @@
 #ifndef BILLING_H
 #define BILLING_H
 
-/* Balanced to 20 bytes */
-#define ITEM_NAME_BYTEL        15
-typedef struct {
-  uint16_t  unused:2;
-  uint16_t  cost:13;
-  uint16_t  id:9;
-  uint16_t  has_serv_tax:1;
-  uint16_t  vat_sel:2;
-  uint16_t  discount:13;
-  uint8_t   name[ITEM_NAME_BYTEL];
-} item;
-#define  ITEM_BYTE_VALID_MASK   (1<<6)
-#define  ITEM_BYTE_DELETE_MASK  (1<<5)
-#define  ITEM_BYTE_ID_H_MASK    (1<<7)
 #define  ITEM_BYTE_ID_H_ARRANGE_SHIFT_NUM 1
 #define  ITEM_BYTE_ID_BYTE_OFFSET         2
 
@@ -70,7 +56,6 @@ typedef struct {
 } billing;
 
 /* constants */
-#define ITEM_SIZEOF       sizeof(item)
 #define SALE_INFO_SIZEOF  sizeof(sale_info)
 #define SALE_SIZEOF       sizeof(sale_item)
 

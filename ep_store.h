@@ -4,75 +4,51 @@
 #define HEADER_MAX_SZ       54
 #define SHOP_NAME_SZ        16
 #define FOOTER_MAX_SZ       24
-#define MOD_HIS_SZ          10
-#define MAX_DAYS_SALE       40
-#define EEPROM_MAX_SIGS      8
 
 #define USER_CHOICE_PRINT    (1<<0)
+#define EPS_MAX_VAT_CHOICE   8
+#define EPS_MAX_USERS        8
+#define EPS_MAX_UNAME        8
+#define ITEM_MAX             256
 
 /* Available : 1K : 1024 */
 struct ep_store_layout {
-  uint8_t   item_mod_his_ptr;       /*             1 */
-  item      item_mod_his[MOD_HIS_SZ]; /* 20*10=  200 */
-
   /* sale constants */
-  uint16_t  sale_start;             /*             2 */
-  uint16_t  sale_end;               /*             2 */
-  uint16_t  vat[4];                 /*             8 */
+  uint16_t  vat[EPS_MAX_VAT_CHOICE];/*   8 * 2 =  16 */
   uint16_t  service_tax;            /*             2 */
+  uint16_t  cess;                   /*             2 */
 
-  /* item constants
-     max items = 64*8 = 512
-   */
-  uint16_t  item_last_modified;     /*             2 */
-  uint16_t  item_count;             /*             2 */ /* */
+  /* Sale options */
+  uint8_t   denomination_text[6];   /*             6 */ /* 26 */
 
-  /* */
-  uint16_t   passwd;                /*             2 */
-
-  /* User choices */
-  uint8_t   user_choice;            /*             1 */
+  /* User options */
+  uint8_t   users[EPS_MAX_USERS][EPS_MAX_UNAME];/*64 */
+  uint16_t  passwds[EPS_MAX_USERS]; /*            16 */
+  uint16_t  round_off;              /*             2 */ /* 108 */
 
   /* banners */
   uint8_t   shop_name [SHOP_NAME_SZ];  /*         16 */
   uint8_t   prn_header[HEADER_MAX_SZ]; /*         54 */
-  uint8_t   prn_footer[FOOTER_MAX_SZ]; /*         24 */ /* */
+  uint8_t   prn_footer[FOOTER_MAX_SZ]; /*         24 */
+};                                  /* Total  =  202 */
 
-  /* Store date and start id sale array */
-  uint16_t  sale_start;
-  uint16_t  sale_end;
-  uint16_t  dmy[MAX_DAYS_SALE];        /*          2 */
-  uint16_t  sales_idx[MAX_DAYS_SALE];  /*         96 */
-  uint16_t  next_sale_idx;             /*          2 */
-  uint16_t  num_sale_idx_free;         /*          2 */
-
-  /* Store signature to depend on EEPROM_DATA */
-  uint8_t   eeprom_idx;                   /*       1 */
-  uint16_t  eeprom_sig[EEPROM_MAX_SIGS];  /*      16 */
-};                                  /* Total  =  500 */
-
-#define EEPROM_DATA               (*((struct ep_store_layout *)0))
-#define EEPROM_STORE_READ         eepromReadBytes
-#define EEPROM_STORE_WRITE_NoSig  eepromWriteBytes
-#define EEPROM_STORE_WRITE(A, B, C) { 					\
-    eepromWriteBytes(A, B, C);						\
-    EEPROM_STORE_WRITE_Sig						\
-  }
-#define EEPROM_MAX_ADDR        (EEPROM_SIZE*EEPROM_HOWMANY)
-
-#define EEPROM_STORE_WRITE_Sig {					\
-    uint16_t ui1;	uint8_t ui2, eeprom_idx;			\
-    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.eeprom_idx), (uint8_t *)&eeprom_idx, sizeof(uint8_t)); \
-    CRC16_Init();							\
-    for (ui1=0; ui1<(uint16_t)&(EEPROM_DATA.eeprom_sig[0]); ui1++) {	\
-      EEPROM_STORE_READ(ui1, &ui2, sizeof(uint8_t));			\
-      CRC16_Update(ui2);						\
-    }									\
-    ui1 = CRC16_High; ui1 <<= 8; ui1 |= CRC16_Low;			\
-    EEPROM_STORE_WRITE_NoSig((uint16_t)&(EEPROM_DATA.eeprom_sig[eeprom_idx]), (uint8_t *)&ui1, sizeof(uint16_t)); \
-}
+/* Balanced to 64 bytes */
+#define ITEM_NAME_BYTEL        18
+#define ITEM_NAME_UNI_BYTEL    38
+typedef struct {
+  uint16_t  has_serv_tax:1;                  /*  2 */
+  uint16_t  has_cess:1;
+  uint16_t  vat_sel:3;
+  uint16_t  valid:1;
+  uint16_t  unused:10;
+  uint16_t  cost;                            /*  2 */
+  uint16_t  discount;                        /*  2 */
+  uint16_t  id;                              /*  2 */
+  uint8_t   name[ITEM_NAME_BYTEL];           /* 18 */
+  uint8_t   name_uni[ITEM_NAME_UNI_BYTEL];   /* 38 */
+} item;
+#define ITEM_SIZEOF sizeof(item)
 
 void ep_store_init(void);
-void sale_index_it(sale_info *si, uint16_t ptr);
 
 #endif

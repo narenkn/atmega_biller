@@ -1,52 +1,34 @@
-//*************************************************************
-//*** FUNCTIONS FOR EEPROM READ/WRITE ON I2C COMMUNICATION  ***
-//*************************************************************
-//Controller		: ATmega32 (Clock: 8 Mhz-internal)
-//Compiler			: AVR-GCC (winAVR with AVRStudio-4)
-//Project Version	: DL_1.0
-//Author			: CC Dharmani, Chennai (India)
-//			  		  www.dharmanitech.com
-//Date				: 10 May 2011
-//*************************************************************
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include "rtc.h"
-#include "uart.h"
 #include "i2c.h"
+#include "rtc.h"
+
+uint8_t time[9]; 	//xx:xx:xx;
+uint8_t date[11];	//xx/xx/xxxx;
+uint8_t day;
+uint8_t rtc_register[7];
 
 //***************************************************************************
 //Function to set initial address of the RTC for subsequent reading / writing
 //***************************************************************************
-uint8_t RTC_setStartAddress(void)
+uint8_t
+RTC_setStartAddress(void)
 {
-  uint8_t errorStatus;
+  if (i2c_start()) {
+    i2c_stop();
+    return 1;
+  } 
    
-  errorStatus = i2c_start();
-  if(errorStatus == 1)
-    {
-      //transmitString_F(PSTR("RTC start1 failed.."));
-      i2c_stop();
-      return 1;
-    } 
+  if (i2c_sendAddress(DS1307_W)) {
+    i2c_stop();
+    return 1;
+  } 
    
-  errorStatus = i2c_sendAddress(DS1307_W);
-   
-  if(errorStatus == 1)
-    {
-      //transmitString_F(PSTR("RTC sendAddress1 failed.."));
-      i2c_stop();
-      return 1;
-    } 
-   
-  errorStatus = i2c_sendData(0x00);
-  if(errorStatus == 1)
-    {
-      //transmitString_F(PSTR("RTC write-2 failed.."));
-      i2c_stop();
-      return 1;
-    } 
+  if (i2c_sendData(0x00)) {
+    i2c_stop();
+    return 1;
+  } 
 
   i2c_stop();
   return 0;
@@ -55,9 +37,9 @@ uint8_t RTC_setStartAddress(void)
 //***********************************************************************
 //Function to read RTC registers and store them in buffer rtc_register[]
 //***********************************************************************    
-uint8_t RTC_read(void)
+uint8_t
+RTC_read(void)
 {
-
   uint8_t errorStatus, i, data;
   
   errorStatus = i2c_start();
@@ -172,69 +154,10 @@ uint8_t RTC_getDate(void)
 }  
   
 //******************************************************************
-//Function to display time on LCD and send it to PC (thru UART)
-//****************************************************************** 
-uint8_t RTC_displayTime(void)
-{
-  uint8_t error;
-  error = RTC_getTime();
-  if(error) return 1;
-  
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Time:"));
-  transmitString(time);
-
-  return 0;
-}
-
-//******************************************************************
-//Function to display date on LCD and send it to PC (UART)
-//****************************************************************** 
-uint8_t RTC_displayDate(void)
-{
-  uint8_t error;
-  error = RTC_getDate();
-  if(error) return 1;
-  
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Date:")); 
-  transmitString(date);  
-  RTC_displayDay();  
-  
-  return 0; 
-}
-
-//******************************************************************
-//Function to get the string for day 
-//****************************************************************** 
-void RTC_displayDay(void)
-{
-  transmitString_F((uint8_t *)PSTR("    Day: "));
-  
-  switch(DAY)
-    {
-    case 0:transmitString_F((uint8_t *)PSTR("Sunday"));
-      break; 
-    case 1:transmitString_F((uint8_t *)PSTR("Monday"));
-      break; 
-    case 2:transmitString_F((uint8_t *)PSTR("Tuesday"));
-      break; 
-    case 3:transmitString_F((uint8_t *)PSTR("Wednesday"));
-      break; 
-    case 4:transmitString_F((uint8_t *)PSTR("Thursday"));
-      break; 		  
-    case 5:transmitString_F((uint8_t *)PSTR("Friday"));
-      break; 		  
-    case 6:transmitString_F((uint8_t *)PSTR("Saturday"));
-      break; 
-    default:	transmitString_F((uint8_t *)PSTR("Unknown"));  
-    }
-}	  		  
-		  		     	  
-//******************************************************************
 //Function to update buffer rtc_register[] for next writing to RTC
 //****************************************************************** 
-void RTC_updateRegisters(void)
+void
+RTC_updateRegisters(void)
 {
   SECONDS = ((time[6] & 0x07) << 4) | (time[7] & 0x0f);
   MINUTES = ((time[3] & 0x07) << 4) | (time[4] & 0x0f);
@@ -245,11 +168,11 @@ void RTC_updateRegisters(void)
   YEAR = ((date[8] & 0x0f) << 4) | (date[9] & 0x0f);
 }  
 
-
 //******************************************************************
 //Function to write new time in the RTC 
 //******************************************************************   
-uint8_t RTC_writeTime(void)
+uint8_t
+RTC_writeTime(void)
 {
   uint8_t errorStatus, i;
   
@@ -297,7 +220,8 @@ uint8_t RTC_writeTime(void)
 //******************************************************************
 //Function to write new date in the RTC
 //******************************************************************   
-uint8_t RTC_writeDate(void)
+uint8_t
+RTC_writeDate(void)
 {
   uint8_t errorStatus, i;
   
@@ -342,235 +266,51 @@ uint8_t RTC_writeDate(void)
 }
   
 //******************************************************************
-//Function to update RTC time by entering it at hyper terminal
-//******************************************************************   
-uint8_t RTC_updateTime(void)
-{
-  uint8_t data;
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Enter Time in 24h format(hh:mm:ss):")); 
-  
-  data = receiveByte(); 	   	  	  				//receive hours
-  transmitByte(data);
-  if(data < 0x30 || data > 0x32)
-    goto TIME_ERROR;
-	   
-  time[0]= data;
-	 
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto TIME_ERROR;
-	 
-  time[1]= data;
-	
-  transmitByte(':');
-	
-  if(((time[1] & 0x0f) + ((time[0] & 0x03)*10)) > 23)
-    goto TIME_ERROR;
-	 
-  data = receiveByte();			   			  //receive minutes
-  transmitByte(data);
-  if(data < 0x30 || data > 0x35)
-    goto TIME_ERROR;
-	   
-  time[3]= data; 
-	
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto TIME_ERROR;
-	   
-  time[4]= data; 
-	
-  transmitByte(':');
-	
-  data = receiveByte();			   			  //receive seconds
-  transmitByte(data);
-  if(data < 0x30 || data > 0x35)
-    goto TIME_ERROR;
-	   
-  time[6]= data; 
-	
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto TIME_ERROR;
-	   
-  time[7]= data; 
-	
-	 	  
-  RTC_updateRegisters(); 
-  data = RTC_writeTime();
-
-  TX_NEWLINE;
-  if(data == 0)
-    {     
-      transmitString_F((uint8_t *)PSTR("Time Updated sucessfully!")); 
-      return 0;
-    }	
-  else 
-    { 
-      transmitString_F((uint8_t *)PSTR("Time Update Failed.."));
-      return 1;
-    }
- TIME_ERROR:
-
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Invalid Entry..")); 
-  return 1;
-}  
-  
-  
-//******************************************************************
-//Function to update RTC date by entering it at hyper terminal
-//******************************************************************   
-uint8_t RTC_updateDate(void)
-{
-  uint8_t data;
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Enter Date (dd/mm/yy):")); 
-  
-  data = receiveByte(); 	   				  		//receive date
-  transmitByte(data); 	   	  	  				
-  if(data < 0x30 || data > 0x33)
-    goto DATE_ERROR;
-	   
-  date[0]= data;
-	 
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto DATE_ERROR;
-	   
-  date[1]= data;
-	
-  if(((date[1] & 0x0f) + ((date[0] & 0x03)*10)) > 31)
-    goto DATE_ERROR;
-  transmitByte('/');
-	
-  date[2] = '/';
-	   
-	
-  data = receiveByte();			   			  //receive month
-  transmitByte(data);
-  if(data < 0x30 || data > 0x31)
-    goto DATE_ERROR;
-	  
-  date[3]= data; 
-	
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto DATE_ERROR;
-	  
-  date[4] = data; 
-	
-  if(((date[4] & 0x0f) + ((date[3] & 0x03)*10)) > 12)
-    goto DATE_ERROR;
-  transmitByte('/');
-	   
-	
-  date[5] = '/';
-	
-  date[6] = '2'; 	   	   	  	  //year is 20xx
-  date[7] = '0';
-	
-  data = receiveByte();			   			 
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto DATE_ERROR;
-	   
-  date[8]= data; 
-	
-  data = receiveByte();
-  transmitByte(data);
-  if(data < 0x30 || data > 0x39)
-    goto DATE_ERROR;
-	   
-  date[9]= data; 
-	
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Enter Day (Sunday:0, Monday:1...) (0-6):")); 
-	
-  data = receiveByte();				   //receive Day of the week
-  transmitByte(data);
-  if(data < 0x30 || data > 0x36)
-    goto DATE_ERROR;
-	   
-  date[10] = data & 0x0f;
-		 	  
-  RTC_updateRegisters(); 
-  data = RTC_writeDate();
-
-  TX_NEWLINE;
-  if(data == 0)
-    {
-     
-      transmitString_F((uint8_t *)PSTR("Date Updated sucessfully!")); 
-      return 0;
-    }	  
-  else
-    {
-      transmitString_F((uint8_t *)PSTR("Date Update Failed.."));
-      return 1;
-    }
-
- DATE_ERROR:
-
-  TX_NEWLINE;
-  transmitString_F((uint8_t *)PSTR("Invalid Entry..")); 
-  return 1;
-}  
-
-
-
-//******************************************************************
 //Function to get RTC date & time in FAT32 format
 //******************************************************************   
-uint8_t getDateTime_FAT(void)
+uint32_t
+get_fattime (void)
 {
-  
-  uint8_t mth, dt, hr, min, sec, error; 
-  unsigned int yr;
+  uint8_t ui1;
+  uint32_t dtFat;
 
-  error = RTC_read();
-  if(error) return 1;
+  /* init with 1/1/1981 */
+  dtFat = 0x02108000;
 
-  yr = (YEAR & 0xf0) >> 4;
-  yr = (yr * 10)+(YEAR & 0x0f);
-  yr = yr+2000;
-  yr = yr - 1980;
+  if (RTC_read()) /* may not be the latest time */
+    return dtFat;
 
-  dateFAT = yr;
+  dtFat = (YEAR & 0xf0) >> 4;
+  dtFat = (dtFat * 10) + (YEAR & 0x0f);
+  dtFat = dtFat+20;
 
-  mth = (MONTH & 0xf0) >> 4;
-  mth = (mth * 10)+(MONTH & 0x0f);
+  ui1 = (MONTH & 0xf0) >> 4;
+  ui1 = (ui1 * 10) + (MONTH & 0x0f);
+  dtFat <<= 4;
+  dtFat |= ui1;
 
-  dateFAT = (dateFAT << 4) | mth;
+  ui1 = (DATE & 0xf0) >> 4;
+  ui1 = (ui1 * 10) + (DATE & 0x0f);
+  dtFat <<= 5;
+  dtFat |= ui1;
 
-  dt = (DATE & 0xf0) >> 4;
-  dt = (dt * 10)+(DATE & 0x0f);
+  ui1 = (HOURS & 0xf0) >> 4;
+  ui1 = (ui1 * 10) + (HOURS & 0x0f);
+  dtFat <<= 5;
+  dtFat |= ui1;
 
-  dateFAT = (dateFAT << 5) | dt;
+  ui1 = (MINUTES & 0xf0) >> 4;
+  ui1 = (ui1 * 10) + (MINUTES & 0x0f);
+  dtFat <<= 6;
+  dtFat |= ui1;
 
+  /* FAT32 fromat accepts dates with 2sec resolution
+     (e.g. value 5 => 10sec) */
+  ui1 = (SECONDS & 0xf0) >> 4;
+  ui1 = (ui1 * 10) + (SECONDS & 0x0f);
+  ui1 >>= 1;
+  dtFat <<= 5;
+  dtFat |= ui1;
 
-  hr = (HOURS & 0xf0) >> 4;
-  hr = (hr * 10)+(HOURS & 0x0f);
-
-  timeFAT = hr;
-
-  min = (MINUTES & 0xf0) >> 4;
-  min = (min * 10)+(MINUTES & 0x0f);
-
-  timeFAT = (timeFAT << 6) | min;
-
-  sec = (SECONDS & 0xf0) >> 4;
-  sec = (sec * 10)+(SECONDS & 0x0f);
-  sec = sec / 2;    //FAT32 fromat accepts dates with 2sec resolution (e.g. value 5 => 10sec)
-
-  timeFAT = (timeFAT << 5) | sec;
-
-   
-  return 0;
+  return dtFat;
 }

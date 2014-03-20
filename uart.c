@@ -28,6 +28,20 @@ void uart0_init(void)
   UBRRL = 0x19; //set baud rate lo
   UBRRH = 0x00; //set baud rate hi
   UCSRB = 0x18;
+
+#if 0
+#if F_CPU <= 1000000UL
+  /*
+   * Note [4]
+   * Slow system clock, double Baud rate to improve rate error.
+   */
+  UCSRA = _BV(U2X);
+  UBRR = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
+#else
+  UBRR = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
+#endif
+  UCSRB = _BV(TXEN);		/* tx enable */
+#endif
 }
 
 //**************************************************
