@@ -267,6 +267,8 @@ RTC_writeDate(void)
   
 //******************************************************************
 //Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
 //******************************************************************   
 uint32_t
 get_fattime (void)

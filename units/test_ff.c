@@ -37,7 +37,6 @@ int main (void)
 
 /*---------------------------------------------------------*/
 /* User Provided RTC Function called by FatFs module       */
-
 DWORD get_fattime (void)
 {
   /* Returns current time packed into a DWORD variable */

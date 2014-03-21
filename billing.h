@@ -1,62 +1,56 @@
 #ifndef BILLING_H
 #define BILLING_H
 
-#define  ITEM_BYTE_ID_H_ARRANGE_SHIFT_NUM 1
-#define  ITEM_BYTE_ID_BYTE_OFFSET         2
-
-/* 2 bytes */
 typedef struct {
-  uint16_t   item_id:9;
-  uint16_t   unused:3;
-  uint16_t   num_sale:4;
-} sale_item;
+  uint16_t   ep_ptr;   /* pointer to EEPROM */
+  uint16_t   quantity; /* include 3 decimals */
+  /* Option to hot override */
+  uint16_t   cost;
+  uint16_t   discount;
+  uint8_t    unused1;
+  uint8_t    unused:2;
+  uint8_t    has_serv_tax:1;
+  uint8_t    has_cess1:1;
+  uint8_t    has_cess2:1;
+  uint8_t    vat_sel:3;
+} sale_item; /* 10 bytes */
 
 /* 3 bytes */
-#define  SALE_INFO_ITEMS_NBITS     4
-#define  SALE_INFO_DELETED      0x80
-#define  SALE_INFO_MODIFIED     0x40
-typedef struct _sale_info {
-  uint16_t  n_items:SALE_INFO_ITEMS_NBITS;
+#define  SALE_INFO_ITEMS_NBITS    5
+#define  SALE_INFO_DELETED      0x8
+#define  SALE_INFO_MODIFIED     0x4
+typedef struct {
+  uint8_t   n_items:SALE_INFO_ITEMS_NBITS;
+  uint8_t   property:3;
+  uint8_t   unused1;
+
+  uint16_t  date_yy:7;
+  uint16_t  date_mm:4;
+  uint16_t  date_dd:5;
 
   uint16_t  time_hh:5;
   uint16_t  time_mm:6;
-
-  uint16_t  date_dd:5;
-  uint16_t  date_mm:4;
-  uint8_t   property;
-} sale_info;
-//#define SALE_INFO_P             ((struct sale_info *)0)
-#define SALE_INFO               (*((sale_info *)0))
-//#define SALE_INFO                   ((__code sale_info *)0x10)
+  uint16_t  time_ss:5;
+} sale_info;  /* 6 bytes */
 #define SALE_INFO_BYTE_NITEM_MASK   0xF0
 #define SALE_INFO_BYTE_NITEM_SHIFT  4
 
 typedef struct {
-  sale_info info;                        /*         4 */
-  sale_item items[MAX_ITEMS_IN_BILL]     /* 2*16 = 32 */
-} sale;                                  /* Tot  = 36 */
-
-typedef struct {
-  uint8_t   vat_sel:2;
-  uint8_t   has_serv_tax:1;
-  uint8_t   unused:5;
-} bill_info;
+  sale_info info;                        /*           6 */
+  sale_item items[MAX_ITEMS_IN_BILL];    /* 32*10 = 320 */
+  uint32_t  taxable_total;
+  uint32_t  non_taxable_total;
+  uint32_t  cess1_total;
+  uint32_t  cess2_total;
+  uint32_t  final_discount;
+  uint32_t  final_total;
+} sale;                                  /* Tot   = 350 */
 
 /* */
 #define MAX_ITEMS_IN_BILL  (1<<SALE_INFO_ITEMS_NBITS)
-#define BILLING_PRINT      (1<<0)
-typedef struct {
-  sale_info info;                        /*         4 */
-  sale_item items[MAX_ITEMS_IN_BILL];    /* 2*16 = 32 */
-  bill_info bi[MAX_ITEMS_IN_BILL];       /* 1*16 = 16 */
-  item      temp;                        /*        19 */
-  uint16_t  ui1, ui3, ui5, ui7;          /* 2*4  =  8 */
-  uint8_t   ui2, ui4, ui6, flags;        /*         3 */
-  uint16_t  ui9, ui11, ui13, ui15;       /* 2*4  =  8 */
-} billing;
 
 /* constants */
 #define SALE_INFO_SIZEOF  sizeof(sale_info)
-#define SALE_SIZEOF       sizeof(sale_item)
+#define SALE_ITEM_SIZEOF  sizeof(sale_item)
 
 #endif
