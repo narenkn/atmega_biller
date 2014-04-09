@@ -15,8 +15,13 @@
 
 #define  ERROR_CODE		0x7e
 
-#define  DS1307_W		0xd0
-#define  DS1307_R		0xd1
+#define EEPROM_CTRL_WRITE 0xA0
+#define EEPROM_CTRL_READ  0xA1
+#define TIMER_CTRL_WRITE  0xD0
+#define TIMER_CTRL_READ   0xD1
+/* FIXME : Remove duplicate definitions */
+#define DS1307_W	  TIMER_CTRL_WRITE
+#define DS1307_R	  TIMER_CTRL_READ
 
 void     i2c_init(void);
 uint8_t  i2c_start(void);
