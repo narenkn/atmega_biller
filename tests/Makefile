@@ -5,8 +5,8 @@
 ## General Flags
 PROJECT = 
 MCU = atmega32
-SOURCE = test_lcd.c
-TARGET = $(SOURCE:.c=.elf)
+SOURCE := buzzer.c
+TARGET = $(SOURCE:.c=)
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
@@ -44,7 +44,7 @@ LINKONLYOBJECTS =
 include ../make.proj
 
 ## Build
-all: $(TARGET) $(TARGET).hex $(TARGET).eep $(TARGET).lss size
+all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
 ## Compile
 VPATH := ..
@@ -52,21 +52,21 @@ VPATH := ..
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
-$(TARGET): $(OBJECTS)
-	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
+$(TARGET).elf: $(OBJECTS)
+	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET).elf
 
-%.hex: $(TARGET)
+%.hex: $(TARGET).elf
 	avr-objcopy -O ihex $(HEX_FLASH_FLAGS)  $< $@
 
-%.eep: $(TARGET)
+%.eep: $(TARGET).elf
 	-avr-objcopy $(HEX_EEPROM_FLAGS) -O ihex $< $@ || exit 0
 
-%.lss: $(TARGET)
+%.lss: $(TARGET).elf
 	avr-objdump -h -S $< > $@
 
-size: ${TARGET}
+size: $(TARGET).elf
 	@echo
-	@avr-size -C --mcu=${MCU} ${TARGET}
+	@avr-size -C --mcu=$(MCU) $(TARGET).elf
 
 ## Clean target
 .PHONY: clean
