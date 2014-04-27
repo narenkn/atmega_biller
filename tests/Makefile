@@ -10,7 +10,7 @@ TARGET = $(SOURCE:.c=)
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
-COMMON = -mmcu=$(MCU) -I..
+COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)

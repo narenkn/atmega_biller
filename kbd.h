@@ -2,8 +2,8 @@
 #define KBD_H
 
 /* Keypad Connections */
-#define KBD_PS2_CLK      P3_2
-#define KBD_PS2_DATA     P3_3
+#define KBD_PS2_CLK      ((PORTD >> 2)&1)
+#define KBD_PS2_DATA     ((PORTD >> 3)&1)
 #define KBD_NODRIVE      DDRC &= ~(0x3C)
 #define KBD_R0_EN        KBD_NODRIVE; DDRC |= 0x04
 #define KBD_R1_EN        KBD_NODRIVE; DDRC |= 0x08

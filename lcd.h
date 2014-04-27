@@ -15,6 +15,8 @@
 #define LCD_en_low   PORTC &= 0x7F
 #define LCD_rs_high  PORTC |= 0x40
 #define LCD_rs_low   PORTC &= 0xBF
+#define LCD_bl_off   PORTD &= ~0x10
+#define LCD_bl_on    PORTD |= 0x10
 
 #define LCD_PROP_NOECHO_L2  (1<<0)
 #define LCD_PROP_DIRTY      (1<<1)

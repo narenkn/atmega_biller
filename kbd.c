@@ -26,6 +26,15 @@ keyChars[] PROGMEM = {
   '9', 'y', 'z', '(', '-', 'Y', 'Z', '=', '>',
 };
 
+uint8_t kbdStatus = 0;
+#define ps2ShiftHit (1<<0)
+#define ps2CtrlHit  (1<<1)
+#define ps2AltHit   (1<<2)
+#define ps2CapsHit  (1<<3)
+#define LENOF_DR 3
+uint8_t kbdDr[LENOF_DR];
+uint8_t kbdTransL = 0;
+
 void
 KbdInit(void)
 {
@@ -121,7 +130,7 @@ KbdIsShiftPressed(void)
 {
   uint8_t shift;
 
-  shift = ps2ShiftHit ? KBD_SHIFT : 0;
+  shift = (kbdStatus & ps2ShiftHit) ? KBD_SHIFT : 0;
 
   KBD_R1_EN;
   KBD_RISE_DELAY(0x4);
@@ -155,15 +164,7 @@ ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_LEFT, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
 
-uint8_t kbdStatus = 0;
-#define ps2ShiftHit (1<<0)
-#define ps2CtrlHit  (1<<1)
-#define ps2AltHit   (1<<2)
-#define ps2CapsHit  (1<<3)
-#define LENOF_DR 3
-uint8_t kbdDr[LENOF_DR];
-uint8_t kbdTransL = 0;
-
+void
 ISR(INT0_vect)
 {             /* Data come with Clock from Device to MCU together */
   static uint8_t KeyData, bitC = 0, drC;

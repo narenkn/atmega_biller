@@ -11,7 +11,6 @@ uint8_t *lcd_buf_p;
 void
 LCD_init(void)
 {
-
   /* Set IO directions */
   DDRD |= 0x10;
   DDRA |= 0x0F;
