@@ -8,7 +8,8 @@
 # define LCD_PORT(val)  P1 = val
 #elif 4 == LCD_DPORT_SIZE
 # define LCD_PORT(val)       \
-  PORTA = (PORTA & 0xF0) | (val & 0xF)
+  PORTA &= ~0xF;	     \
+  PORTA |= (val & 0xF)
 #endif
 #define LCD_en_high  PORTC |= 0x80
 #define LCD_en_low   PORTC &= 0x7F
@@ -21,6 +22,8 @@
 #ifdef  UNIT_TEST
 
 uint8_t _lcd_idx = 0;
+
+# error "Unit testing env not yet setup"
 
 # define LCD_CMD_DISON_CURON_BLINKON
 # define LCD_CMD_CLRSCR        { uint8_t ui1; for (ui1=0; ui1<(LCD_MAX_ROW*LCD_MAX_COL); ui1++) { lcd_buf[0][ui1] = ' '; } _lcd_idx = 0; }
@@ -80,31 +83,42 @@ uint8_t _lcd_idx = 0;
 # define LCD_CMD_2LINE_5x7     0x28   /* Use 2 lines and 5×7 matrix */
 
 # define LCD_wrnib(var)	\
-  LCD_PORT(var);	\
+  PORTA = var;		\
+  _delay_us(100);	\
   LCD_rs_high;		\
+  _delay_us(10);	\
   LCD_en_high;		\
+  _delay_us(10);	\
   LCD_en_low
+
+# define LCD_wrchar(var)\
+  LCD_wrnib(var>>4);	\
+  _delay_us(100);	\
+  LCD_wrnib(var);	\
+  _delay_us(100)
 
 # define LCD_cmd(var)   \
   LCD_PORT(var>>4);	\
+  _delay_us(100);	\
   LCD_rs_low;		\
+  _delay_us(10);		\
   LCD_en_high;		\
+  _delay_us(10);		\
   LCD_en_low;		\
+  _delay_us(10);		\
   LCD_PORT(var);	\
+  _delay_us(100);	\
   LCD_rs_low;		\
+  _delay_us(10);		\
   LCD_en_high;		\
+  _delay_us(10);		\
   LCD_en_low;		\
-  _delay_ms(2)
+  _delay_us(100)
 
 # define LCD_idle_drive \
   LCD_PORT(0);		\
   LCD_rs_low;		\
   LCD_en_low
-
-# define LCD_wrchar(var)\
-  LCD_wrnib(var>>4);	\
-  LCD_wrnib(var);	\
-  _delay_ms(2)
 
 #endif
 

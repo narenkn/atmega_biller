@@ -49,12 +49,14 @@ class Atmega32:
   def Release(self):
     self.RawOut(0x0);
     self.def_val = 0x8;
-    self.RawOut(0x0);
+    self.RawOut(0x8);
+    self.p.Out32(self.cnt_reg, 0x0);
 
   def __init__(self, dr):
     self.error = 0;
     self.dat_reg = dr;
     self.sta_reg = dr+1;
+    self.cnt_reg = dr+2;
     self.def_val = 0x8;
     self.RawOut(0);
 
@@ -72,7 +74,7 @@ class Atmega32:
     self.Out(0x00);
     ## 3. Check for ack before proceeding
     if (0x53 != in_val):
-      print "Error: Couldn't communicate with device, check cable";
+      print "Error: Couldn't communicate with device(0x%x), check cable" % in_val;
       return;
     else:
       print "Info: Detected device connected...";
@@ -157,19 +159,16 @@ class Atmega32:
         if error: print "x",;
         else: print ".",;
     print "Complete";
-##    ## 8. Write lock bits
-##    print "Info: Protecting the memory...";
-##    self.Out(0xAC); self.Out(0xE0); self.Out(0x00); self.Out(0x00);
-##    self.Out(0xAC); self.Out(0xE1); self.Out(0x00); self.Out(0x00);
-##    self.Out(0xAC); self.Out(0xE2); self.Out(0x00); self.Out(0x00);
-##    self.Out(0xAC); self.Out(0xE3); self.Out(0x00); self.Out(0x00);
+    ## 8. Write lock bits
+##    print "Info: Protecting the memory...",;
+##    self.Out(0xAC); self.Out(0xE0); self.Out(0x00); self.Out(0xCC);
 ##    ## 8b. Read & check lock bits
-##    self.Out(0x24); self.Out(0x00); self.Out(0x00); in_val = self.Out(0x00);
-##    if (0x1C != (in_val&0x1C)):
-##      print "Failure to protect the memory...";
-##      return;
+##    self.Out(0x58); self.Out(0x00); self.Out(0x00); in_val = self.Out(0x00);
+##    if (0x0C != (in_val&0x3F)):
+##      print " : Failed (Exp:0x0C Obt:0x%x)" % (in_val&0x3F);
+##      self.error += 1;
 ##    else:
-##      print "Info: Protected memory...";
+##      print " : Done";
 
 if "__main__" == __name__:
   ## Constants
@@ -226,10 +225,13 @@ if "__main__" == __name__:
         exit (4);
       ## 
       if REC_DATA == record_type:
-        if not dev.pages[page]:
-          any_page_valid = True;
-          dev.pages[page] = [0xFF] * dev.PAGE_SIZE;
         for i in range(9, len(l)-3, 2):
+          if address >= dev.PAGE_SIZE:
+            page += 1;
+            address = 0;
+          if not dev.pages[page]:
+            any_page_valid = True;
+            dev.pages[page] = [0xFF] * dev.PAGE_SIZE;
           dev.pages[page][address] = int(l[i:(i+2)], 16);
 ##          print "%d = 0x%x" % (address, int(l[i:(i+2)], 16));
           address += 1;

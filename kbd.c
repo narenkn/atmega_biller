@@ -11,8 +11,8 @@ uint8_t KbdDataAvail;
 #define KBD_RISE_DELAY(N) \
   _delay_ms(N)
 
-const PROGMEM uint8_t
-keyChars[] = {
+const uint8_t
+keyChars[] PROGMEM = {
   /* KCHAR_ROWS x KCHAR_COLS */
   '0', ' ', '.', ',', ')', '+', '?', '_', ':',
   '1', 'a', 'b', 'c', '!', 'A', 'B', 'C', '~',
@@ -91,7 +91,7 @@ KbdScan(void)
       key_sc *= KCHAR_COLS;
       if (KbdData & KBD_SHIFT) key_sc += KCHAR_SHIFT_SZ;
       key_sc += (KbdData>>4) & 0x7;
-      KbdData = keyChars[key_sc];
+      KbdData = pgm_read_byte(&(keyChars[key_sc]));
     } else if (13 == key_sc) {
       KbdData = ASCII_ENTER;
     } else if (10 == key_sc) {
@@ -131,8 +131,8 @@ KbdIsShiftPressed(void)
   return shift;
 }
 
-const PROGMEM uint8_t
-ps2code2ascii[] = {
+const uint8_t
+ps2code2ascii[] PROGMEM = {
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, '`', ASCII_UNDEF, /* 0-15 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, '1', ASCII_UNDEF, 'q', ASCII_UNDEF, 'z', 's', 'a', 'w', '2', ASCII_UNDEF, /* 16-31 */
   ASCII_UNDEF, 'c', 'x', 'd', 'e', '4', '3', ASCII_UNDEF, ' ', ASCII_UNDEF, 'v', 'f', 't', 'r', '5', ASCII_UNDEF, /* 32-47 */
@@ -143,8 +143,8 @@ ps2code2ascii[] = {
   '0', '.', '2', '5', '6', '8', ASCII_UNDEF, ASCII_NUMLK, ASCII_UNDEF, '+', '3', '-', '*', '9', ASCII_PRNSCRN, ASCII_UNDEF, /* 112-127 */
 };
 
-const PROGMEM uint8_t
-ps2code2asciiE0[] = {
+const uint8_t
+ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 0-15 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 16-31 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 32-47 */
@@ -154,3 +154,93 @@ ps2code2asciiE0[] = {
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_LEFT, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 96-111 */
   ASCII_UNDEF, ASCII_LEFT, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
+
+uint8_t kbdStatus = 0;
+#define ps2ShiftHit (1<<0)
+#define ps2CtrlHit  (1<<1)
+#define ps2AltHit   (1<<2)
+#define ps2CapsHit  (1<<3)
+#define LENOF_DR 3
+uint8_t kbdDr[LENOF_DR];
+uint8_t kbdTransL = 0;
+
+ISR(INT0_vect)
+{             /* Data come with Clock from Device to MCU together */
+  static uint8_t KeyData, bitC = 0, drC;
+
+  /* ------------------------------------- */
+  bitC++;
+  if (1 == bitC) {
+    KeyData = 0;
+    drC = 0;
+    kbdTransL = 2;
+  } else if (10 == bitC) {
+    /* FIXME: Check parity and blink an LED */
+  } else if (11 == bitC) {
+    bitC = 0;
+  } else {
+    KeyData >>= 1;
+    KeyData |= (((uint8_t)KBD_PS2_DATA)<<7);
+  }
+
+  if (0 != bitC)
+    return;
+  else if (drC < LENOF_DR) {
+    kbdDr[drC] = KeyData;
+  }
+  drC++;
+ 
+  /* --------------------------------------- */
+  if (kbdDr[0] == 0xE0) {
+    kbdTransL = 2;    /* E0 XX */
+    if (kbdDr[1] == 0x12) {    /* E0 12 E0 7C */
+      kbdTransL = 4;
+    }
+    if (kbdDr[1] == 0xF0) {
+      kbdTransL = 3;    /* E0 F0 XX */
+      if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
+	kbdTransL = 6;
+      }
+    }
+  } else if (kbdDr[0] == 0xF0) {
+    kbdTransL = 2;    /* F0 XX */
+    if (2 == drC) { /* Break of normal keys */
+      if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
+	kbdStatus &= ~ps2ShiftHit;
+      else if (0x14 == kbdDr[0])
+	kbdStatus &= ~ps2CtrlHit;
+      else if (0x11 == kbdDr[0])
+	kbdStatus &= ~ps2AltHit;
+      else {
+	KeyData = pgm_read_byte(&(ps2code2ascii[kbdDr[0]]));
+	if (ASCII_NUMLK == KeyData) {
+	  /* FIXME: Switch TOGGLE the light */
+	} else if (ASCII_UNDEF != KeyData) {
+	  KbdData = KeyData;
+	  KbdDataAvail = 1;
+	}
+      }
+    }
+  } else if (0xE1 == kbdDr[0]) {
+    kbdTransL = 8;
+  } else {
+    /* Make code received, generally no action except for sticky keys */
+    kbdTransL = 1;
+    if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
+      kbdStatus |= ps2ShiftHit;
+    else if (0x14 == kbdDr[0])
+      kbdStatus |= ps2CtrlHit;
+    else if (0x11 == kbdDr[0])
+      kbdStatus |= ps2AltHit;
+    /* else if (0xFA == kbdDr[0]) ACKNOWLEDGEMENT FROM KBD */
+  }
+
+  /* --------------------------------------- */
+  if (drC == kbdTransL) {
+    if (3 == drC) {
+      KbdData = pgm_read_byte(&(ps2code2ascii[KeyData]));
+      KbdDataAvail = 1;
+    }
+    drC = 0;
+  }
+}

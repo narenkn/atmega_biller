@@ -13,9 +13,9 @@ LCD_init(void)
 {
 
   /* Set IO directions */
+  DDRD |= 0x10;
   DDRA |= 0x0F;
   DDRC |= 0xC0;
-
 
 #if 4 == LCD_DPORT_SIZE
   _delay_ms(100);
@@ -43,10 +43,13 @@ LCD_init(void)
 
   /* Clear LCD */
   LCD_cmd(LCD_CMD_CLRSCR);
+  LCD_cmd(LCD_CMD_CLRSCR);
+  LCD_cmd(LCD_CMD_CLRSCR);
   LCD_CLRSCR;
   _delay_ms(100);
 
   /* Entry mode, auto increment with no shift */
+  LCD_cmd(LCD_CMD_INC_CUR);
   LCD_cmd(LCD_CMD_INC_CUR);
   _delay_ms(100);
 
