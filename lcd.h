@@ -86,41 +86,42 @@ uint8_t _lcd_idx = 0;
 
 # define LCD_wrnib(var)	\
   PORTA = var;		\
-  _delay_us(100);	\
+  _delay_us(50);	\
   LCD_rs_high;		\
-  _delay_us(10);	\
+  _delay_us(50);	\
   LCD_en_high;		\
-  _delay_us(10);	\
+  _delay_us(50);	\
   LCD_en_low
 
 # define LCD_wrchar(var)\
   LCD_wrnib(var>>4);	\
-  _delay_us(100);	\
+  _delay_us(50);	\
   LCD_wrnib(var);	\
-  _delay_us(100)
+  _delay_us(50)
 
 # define LCD_cmd(var)   \
   LCD_PORT(var>>4);	\
-  _delay_us(100);	\
+  _delay_us(50);	\
   LCD_rs_low;		\
-  _delay_us(10);		\
+  _delay_us(50);	\
   LCD_en_high;		\
-  _delay_us(10);		\
+  _delay_us(50);	\
   LCD_en_low;		\
-  _delay_us(10);		\
+  _delay_us(50);	\
   LCD_PORT(var);	\
-  _delay_us(100);	\
+  _delay_us(50);	\
   LCD_rs_low;		\
-  _delay_us(10);		\
+  _delay_us(50);	\
   LCD_en_high;		\
-  _delay_us(10);		\
+  _delay_us(50);	\
   LCD_en_low;		\
-  _delay_us(100)
+  _delay_us(50)
 
 # define LCD_idle_drive \
   LCD_PORT(0);		\
   LCD_rs_low;		\
-  LCD_en_low
+  LCD_en_low;		\
+  _delay_us(100)
 
 #endif
 

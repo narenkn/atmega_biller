@@ -5,11 +5,11 @@
 
 #include "kbd.h"
 
-uint8_t KbdData;
-uint8_t KbdDataAvail;
+volatile uint8_t KbdData;
+volatile uint8_t KbdDataAvail;
 
 #define KBD_RISE_DELAY(N) \
-  _delay_ms(N)
+  _delay_us(N)
 
 const uint8_t
 keyChars[] PROGMEM = {
@@ -39,10 +39,10 @@ void
 KbdInit(void)
 {
   /* IO config */
-  DDRA &= ~(0xF0); /* in */
+  DDRA &= 0x0F;    /* in */
   DDRC |= 0x3C;    /* out */
-  PORTA |= 0xF0; /* enable internal pull-ups */
-  PORTC &= ~(0x3C0);  /* Drive 0 if enabled */
+//  PORTA |= 0xF0; /* enable internal pull-ups */
+  PORTC &= ~0x3C;  /* Drive 1 if enabled */
 
   /* No data yet */
   KbdData = 0xFF;
@@ -62,35 +62,46 @@ KbdScan(void)
      R1C1 R1C2 R1C3 R1C4
      R2C1 R2C2 R2C3 R2C4
   */
-
+  lcd_buf_p = &(lcd_buf[0][10]);
+  LCD_PUT_UINT8X(PINA);
+  LCD_PUT_UINT8X(PINC);
+  lcd_buf_p[0] = '0'+(gTimer0%10);
+  lcd_buf_p++;
+#if 0
   do {
     KBD_R1_EN;
-    KBD_RISE_DELAY(0x4);
-    if (KBD_C3_VAL==0) { shift = KBD_SHIFT; }
-    if (KBD_C0_VAL==0) { while(KBD_C0_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 5; gTimer0 = 0; break; }
-    if (KBD_C1_VAL==0) { while(KBD_C1_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 6; gTimer0 = 0; break; }
-    if (KBD_C2_VAL==0) { while(KBD_C2_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 7; gTimer0 = 0; break; }
+    KBD_RISE_DELAY(50);
+    if (0 != KBD_C3_VAL) { shift = KBD_SHIFT; }
+    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 5; gTimer0 = 0; break; }
+    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 6; gTimer0 = 0; break; }
+    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 7; gTimer0 = 0; break; }
     KBD_R3_EN;
-    KBD_RISE_DELAY(0x4);
-    if (KBD_C0_VAL==0) { while(KBD_C0_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 12; gTimer0 = 0; break; }
-    if (KBD_C1_VAL==0) { while(KBD_C1_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 1;  gTimer0 = 0;  break; }
-    if (KBD_C2_VAL==0) { while(KBD_C2_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 13; gTimer0 = 0; break; }
-    if (KBD_C3_VAL==0) { while(KBD_C3_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 14; gTimer0 = 0; break; }
+    KBD_RISE_DELAY(50);
+    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 12; gTimer0 = 0; break; }
+    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 1;  gTimer0 = 0;  break; }
+    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 13; gTimer0 = 0; break; }
+    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 14; gTimer0 = 0; break; }
     KBD_R0_EN;
-    KBD_RISE_DELAY(0x4);
-    if (KBD_C0_VAL==0) { while(KBD_C0_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 2;  gTimer0 = 0; break; }
-    if (KBD_C1_VAL==0) { while(KBD_C1_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 3;  gTimer0 = 0; break; }
-    if (KBD_C2_VAL==0) { while(KBD_C2_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 4;  gTimer0 = 0; break; }
-    if (KBD_C3_VAL==0) { while(KBD_C3_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 11; gTimer0 = 0; break; }
+    KBD_RISE_DELAY(50);
+    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 2;  gTimer0 = 0; break; }
+    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 3;  gTimer0 = 0; break; }
+    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 4;  gTimer0 = 0; break; }
+    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 11; gTimer0 = 0; break; }
     KBD_R2_EN;
-    KBD_RISE_DELAY(0x4);
-    if (KBD_C0_VAL==0) { while(KBD_C0_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 8;  gTimer0 = 0; break; }
-    if (KBD_C1_VAL==0) { while(KBD_C1_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 9;  gTimer0 = 0; break; }
-    if (KBD_C2_VAL==0) { while(KBD_C2_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 10; gTimer0 = 0; break; }
-    if (KBD_C3_VAL==0) { while(KBD_C3_VAL==0) { KBD_RISE_DELAY(0x4); } scan_code = 14; gTimer0 = 0; break; }
+    KBD_RISE_DELAY(50);
+    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 8;  gTimer0 = 0; break; }
+    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 9;  gTimer0 = 0; break; }
+    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 10; gTimer0 = 0; break; }
+    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 14; gTimer0 = 0; break; }
   } while (0);
   KBD_NODRIVE;
-
+  if (0 != scan_code) {
+    KbdData = scan_code;
+    KbdDataAvail = 1;
+  }
+#endif
+  
+#if 0
   /* enough time elapsed after last key hit */
   if ((gTimer0 > 0x8) && (0xFF != KbdData)) {
     uint8_t key_sc = KbdData & 0xF;
@@ -119,9 +130,10 @@ KbdScan(void)
     scan_code --;
     KbdData = shift | scan_code;
   }
+#endif
 
   /* Don't let timer counter go past a value */
-  if (0 ==  (gTimer0 & 0x80))
+//  if (0 ==  (gTimer0 & 0x80))
     gTimer0++;
 }
 
@@ -243,5 +255,13 @@ ISR(INT0_vect)
       KbdDataAvail = 1;
     }
     drC = 0;
+  }
+}
+
+void
+KbdGetCh()
+{
+  while (0 == KbdDataAvail) {
+    
   }
 }

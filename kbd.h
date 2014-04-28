@@ -48,8 +48,8 @@
 void    KbdInit(void);
 void    KbdScan(void);
 uint8_t KbdIsShiftPressed(void);
-extern uint8_t KbdData;
-extern uint8_t KbdDataAvail;
+extern volatile uint8_t KbdData;
+extern volatile uint8_t KbdDataAvail;
 extern const PROGMEM uint8_t ps2code2ascii[];
 extern const PROGMEM uint8_t ps2code2asciiE0[];
 extern const PROGMEM uint8_t keyChars[];
