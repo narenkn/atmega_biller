@@ -64,7 +64,7 @@ class Atmega32:
     self.Reset();
     self.RawOut(0x0);
 
-  def ProgEn(self):
+  def ProgEn(self, options):
     ## 1. Reset
     self.Reset();
     ## 2. Get acknowledgement of programming
@@ -102,6 +102,54 @@ class Atmega32:
       return;
     else:
       print "Info: Compatible device...";
+    ## Flash program
+    if options.program_flash:
+      print "Info: Programming Flash : ", ;
+      ## Write low byte
+      self.Out(0xAC);
+      self.Out(0xA0);
+      self.Out(0x0);
+      self.Out(0xFF);
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      ## Write high byte
+      self.Out(0xAC);
+      self.Out(0xA8);
+      self.Out(0x0);
+      self.Out(0x89);
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      ## Read back & verify : low byte
+      self.Out(0x50);
+      self.Out(0x0);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      if 0xFF != in_val:
+        self.error += 1;
+        print "Failed (0xFF Vs 0x%x)" % in_val;
+      ## Read back & verify : high byte
+      self.Out(0x58);
+      self.Out(0x08);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      if 0x89 != in_val:
+        self.error += 1;
+        print "Failed (0x89 Vs 0x%x)" % in_val;
+      if self.error:
+        print "Failed";
+      else:
+        print "Done";
+      return;
     ## 5. Chip erase
     self.Out(0xAC);
     self.Out(0x80);
@@ -188,10 +236,23 @@ if "__main__" == __name__:
                   help="Default program file");
   parser.add_option("-p", "--lpt_addr", dest="lpt_addr", default=0x3BC,
                   help="Parallel port address on the device (def:0x3BC)");
+  parser.add_option("-r", "--release_bus", dest="release_bus", default=False,
+                  action="store_true", help="release the drive");
+  parser.add_option("-F", "--program_flash", dest="program_flash", default=False,
+                  action="store_true", help="release the drive");
   (options, args) = parser.parse_args()
 
   dev = Atmega32(options.lpt_addr);
   dev.pages = [None]*dev.NUM_PAGES;
+
+  dev.error = 0;
+
+  ##
+  if options.release_bus:
+    print "Causing reset & releasing the bus";
+    dev.Reset();
+    dev.Release();
+    exit(dev.error);
 
   ##
   f = open(options.ihex);
@@ -248,7 +309,7 @@ if "__main__" == __name__:
   ## Only program if valid lines are available in file
   if any_page_valid:
     dev.error = 0;
-    dev.ProgEn();
+    dev.ProgEn(options);
     dev.Release();
     if dev.error: print "Programming Finished with %d errors" % dev.error;
   else:

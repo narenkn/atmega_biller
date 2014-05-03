@@ -85,7 +85,7 @@ uint8_t _lcd_idx = 0;
 # define LCD_CMD_2LINE_5x7     0x28   /* Use 2 lines and 5×7 matrix */
 
 # define LCD_wrnib(var)	\
-  PORTA = var;		\
+  LCD_PORT(var);	\
   _delay_us(50);	\
   LCD_rs_high;		\
   _delay_us(50);	\
@@ -170,10 +170,8 @@ uint8_t _lcd_idx = 0;
   assert(lcd_buf_p <= (((uint8_t *)lcd_buf)+32));	\
 }
 
-#define LCD_POS(x, y) {			\
-  lcd_buf_p = lcd_buf[x];		\
-  lcd_buf_p += y;			\
-}
+#define LCD_POS(x, y)				\
+  lcd_buf_p = &(lcd_buf[x][y])
 
 #define LCD_SCROLL {			\
   uint8_t ui1_t;				\
@@ -206,6 +204,23 @@ uint8_t _lcd_idx = 0;
 
 #define LCD_PUT_UINT8X(ch) {			\
   uint8_t ui2_a = (ch>>4) & 0xF;			\
+  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
+  lcd_buf_p++;					\
+  ui2_a = ch & 0xF;				\
+  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
+  lcd_buf_p++;					\
+  lcd_buf_prop |= LCD_PROP_DIRTY;		\
+  assert(lcd_buf_p <= (((uint8_t *)lcd_buf)+32));	\
+}
+
+#define LCD_PUT_UINT16X(ch) {			\
+  uint8_t ui2_a = (ch>>12) & 0xF;			\
+  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
+  lcd_buf_p++;					\
+  ui2_a = (ch>>8) & 0xF;				\
+  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
+  lcd_buf_p++;					\
+  ui2_a = (ch>>4) & 0xF;				\
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
   lcd_buf_p++;					\
   ui2_a = ch & 0xF;				\

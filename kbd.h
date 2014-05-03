@@ -2,18 +2,32 @@
 #define KBD_H
 
 /* Keypad Connections */
-#define KBD_PS2_CLK      ((PORTD >> 2)&1)
-#define KBD_PS2_DATA     ((PORTD >> 3)&1)
-#define KBD_NODRIVE      DDRC &= ~(0x3C)
-#define KBD_R0_EN        KBD_NODRIVE; DDRC |= 0x04
-#define KBD_R1_EN        KBD_NODRIVE; DDRC |= 0x08
-#define KBD_R2_EN        KBD_NODRIVE; DDRC |= 0x10
-#define KBD_R3_EN        KBD_NODRIVE; DDRC |= 0x20
-#define KBD_C0_VAL       (PINA & 0x10)
-#define KBD_C1_VAL       (PINA & 0x20)
-#define KBD_C2_VAL       (PINA & 0x40)
-#define KBD_C3_VAL       (PINA & 0x80)
-
+#define KBD_PS2_CLK      ((PIND >> 2)&1)
+#define KBD_PS2_CLK_NS   (PIND & 0x4)
+#define KBD_PS2_DATA     ((PIND >> 3)&1)
+#if 1
+# define KBD_NODRIVE      DDRC &= ~(0x3C)
+# define KBD_DRIVE        DDRC |= 0x3C; DDRA &= ~0xF0/*; PORTA |= 0xF0*/
+# define KBD_R0_EN        PORTC &= ~0x3C; PORTC |= 0x04
+# define KBD_R1_EN        PORTC &= ~0x3C; PORTC |= 0x08
+# define KBD_R2_EN        PORTC &= ~0x3C; PORTC |= 0x10
+# define KBD_R3_EN        PORTC &= ~0x3C; PORTC |= 0x20
+# define KBD_C0_VAL       (PINA & 0x10)
+# define KBD_C1_VAL       (PINA & 0x20)
+# define KBD_C2_VAL       (PINA & 0x40)
+# define KBD_C3_VAL       (PINA & 0x80)
+#else
+# define KBD_NODRIVE      DDRA &= ~(0xF0)
+# define KBD_DRIVE        DDRA |= 0xF0; DDRC &= ~0x3C; PORTC &= ~0x3C
+# define KBD_R0_EN        PORTA &= ~0xF0; PORTA |= 0x10
+# define KBD_R1_EN        PORTA &= ~0xF0; PORTA |= 0x20
+# define KBD_R2_EN        PORTA &= ~0xF0; PORTA |= 0x40
+# define KBD_R3_EN        PORTA &= ~0xF0; PORTA |= 0x80
+# define KBD_C0_VAL       (PINC & 0x4)
+# define KBD_C1_VAL       (PINC & 0x8)
+# define KBD_C2_VAL       (PINC & 0x10)
+# define KBD_C3_VAL       (PINC & 0x20)
+#endif
 /* Key definitions */
 #define ASCII_UNDEF      0
 #define ASCII_ENTER      0xA0
