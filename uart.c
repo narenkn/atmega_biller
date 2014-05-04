@@ -22,24 +22,33 @@
 //**************************************************
 void uart0_init(void)
 {
+#if 1
   UCSRB = 0x00; //disable while setting baud rate
   UCSRA = 0x00;
   UCSRC = (1 << URSEL) | 0x06;
   UBRRL = 0x19; //set baud rate lo
   UBRRH = 0x00; //set baud rate hi
   UCSRB = 0x18;
+#endif
 
 #if 0
+  uint16_t ui1;
+
+  UCSRB = 0x00;
+  UCSRA = 0x00;
 #if F_CPU <= 1000000UL
   /*
    * Note [4]
    * Slow system clock, double Baud rate to improve rate error.
    */
   UCSRA = _BV(U2X);
-  UBRR = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
+  ui1 = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
 #else
-  UBRR = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
+  ui1 = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
 #endif
+  UCSRC = (1 << URSEL) | 0x06;
+  UBRRL = ui1;
+  UBRRH = ui1 >> 8;
   UCSRB = _BV(TXEN);		/* tx enable */
 #endif
 }
