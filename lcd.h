@@ -243,5 +243,6 @@ extern uint8_t lcd_buf_prop;
 extern uint8_t *lcd_buf_p;
 extern uint8_t lcd_buf[LCD_MAX_ROW][LCD_MAX_COL];
 extern void LCD_init(void);
+extern void LCD_refresh(void);
 
 #endif

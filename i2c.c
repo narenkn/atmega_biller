@@ -9,13 +9,10 @@
 //Date				: 10 May 2011
 //************************************************************
 
-#include <avr/io.h>
-#include <util/twi.h>
 #include "i2c.h"
-#include "uart.h"
 
 //************************************************
-//TWI initialize
+// TWI initialize
 // bit rate:18 (freq: 100Khz @16MHz)
 //************************************************
 void
@@ -72,6 +69,7 @@ i2c_repeatStart(void)
   else
     return(1);
 }
+
 //**************************************************
 //Function to transmit address of the slave
 //*************************************************
@@ -152,6 +150,7 @@ i2c_receiveData_NACK(void)
   data = TWDR;
   return(data);
 }
+
 //**************************************************
 //Function to end the i2c communication
 //*************************************************   	
@@ -199,85 +198,81 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
    * Note [8]
    * First cycle: master transmitter mode
    */
-  restart:
+ restart:
   if (n++ >= MAX_ITER)
     return -1;
-  begin:
+ begin:
 
   TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN); /* send start condition */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_REP_START:		/* OK, but should not happen */
-    case TW_START:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_REP_START:		/* OK, but should not happen */
+  case TW_START:
+    break;
 
-    case TW_MT_ARB_LOST:	/* Note [9] */
-      goto begin;
+  case TW_MT_ARB_LOST:	/* Note [9] */
+    goto begin;
 
-    default:
-      return -1;		/* error: not in start condition */
-				/* NB: do /not/ send stop condition */
-    }
+  default:
+    return -1;		/* error: not in start condition */
+    /* NB: do /not/ send stop condition */
+  }
 
   /* Note [10] */
   /* send SLA+W */
   TWDR = sla | TW_WRITE;
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MT_SLA_ACK:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_SLA_ACK:
+    break;
 
-    case TW_MT_SLA_NACK:	/* nack during select: device busy writing */
-				/* Note [11] */
-      goto restart;
+  case TW_MT_SLA_NACK:	/* nack during select: device busy writing */
+    /* Note [11] */
+    goto restart;
 
-    case TW_MT_ARB_LOST:	/* re-arbitrate */
-      goto begin;
+  case TW_MT_ARB_LOST:	/* re-arbitrate */
+    goto begin;
 
-    default:
-      goto error;		/* must send stop condition */
-    }
+  default:
+    goto error;		/* must send stop condition */
+  }
 
 #ifdef WORD_ADDRESS_16BIT
   TWDR = (eeaddr >> 8);		/* 16-bit word address device, send high 8 bits of addr */
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MT_DATA_ACK:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_DATA_ACK:
+    break;
 
-    case TW_MT_DATA_NACK:
-      goto quit;
+  case TW_MT_DATA_NACK:
+    goto quit;
 
-    case TW_MT_ARB_LOST:
-      goto begin;
+  case TW_MT_ARB_LOST:
+    goto begin;
 
-    default:
-      goto error;		/* must send stop condition */
-    }
+  default:
+    goto error;		/* must send stop condition */
+  }
 #endif
 
   TWDR = eeaddr;		/* low 8 bits of addr */
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
-  while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MT_DATA_ACK:
-      break;
+  while ((TWCR & _BV(TWINT)) == 0); /* wait for transmission */
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_DATA_ACK:
+    break;
 
-    case TW_MT_DATA_NACK:
-      goto quit;
+  case TW_MT_DATA_NACK:
+    goto quit;
 
-    case TW_MT_ARB_LOST:
-      goto begin;
+  case TW_MT_ARB_LOST:
+    goto begin;
 
-    default:
-      goto error;		/* must send stop condition */
-    }
+  default:
+    goto error;		/* must send stop condition */
+  }
 
   /*
    * Note [12]
@@ -285,70 +280,66 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
    */
   TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN); /* send (rep.) start condition */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_START:		/* OK, but should not happen */
-    case TW_REP_START:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_START:		/* OK, but should not happen */
+  case TW_REP_START:
+    break;
 
-    case TW_MT_ARB_LOST:
-      goto begin;
+  case TW_MT_ARB_LOST:
+    goto begin;
 
-    default:
-      goto error;
-    }
+  default:
+    goto error;
+  }
 
   /* send SLA+R */
   TWDR = sla | TW_READ;
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MR_SLA_ACK:
+  switch ((twst = TW_STATUS)) {
+  case TW_MR_SLA_ACK:
+    break;
+
+  case TW_MR_SLA_NACK:
+    goto quit;
+
+  case TW_MR_ARB_LOST:
+    goto begin;
+
+  default:
+    goto error;
+  }
+
+  for (twcr = _BV(TWINT) | _BV(TWEN) | _BV(TWEA) /* Note [13] */;
+       len > 0;
+       len--) {
+    if (len == 1)
+      twcr = _BV(TWINT) | _BV(TWEN); /* send NAK this time */
+    TWCR = twcr;		/* clear int to start transmission */
+    while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
+    switch ((twst = TW_STATUS)) {
+    case TW_MR_DATA_NACK:
+      len = 0;		/* force end of loop */
+      /* FALLTHROUGH */
+    case TW_MR_DATA_ACK:
+      *buf++ = TWDR;
+      rv++;
+      if(twst == TW_MR_DATA_NACK) goto quit;
       break;
-
-    case TW_MR_SLA_NACK:
-      goto quit;
-
-    case TW_MR_ARB_LOST:
-      goto begin;
 
     default:
       goto error;
     }
+  }
 
-  for (twcr = _BV(TWINT) | _BV(TWEN) | _BV(TWEA) /* Note [13] */;
-       len > 0;
-       len--)
-    {
-      if (len == 1)
-	twcr = _BV(TWINT) | _BV(TWEN); /* send NAK this time */
-      TWCR = twcr;		/* clear int to start transmission */
-      while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-      switch ((twst = TW_STATUS))
-	{
-	case TW_MR_DATA_NACK:
-	  len = 0;		/* force end of loop */
-	  /* FALLTHROUGH */
-	case TW_MR_DATA_ACK:
-	  *buf++ = TWDR;
-	  rv++;
-	  if(twst == TW_MR_DATA_NACK) goto quit;
-	  break;
+ error:
+  rv = -1;
 
-	default:
-	  goto error;
-	}
-    }
-  quit:
+ quit:
   /* Note [14] */
   TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN); /* send stop condition */
 
   return rv;
-
-  error:
-  rv = -1;
-  goto quit;
 }
 
 /*
@@ -364,7 +355,7 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
  * for the smaller devices, and 16-byte pages for the larger devices,
  * while other vendors generally use 16-byte pages.  We thus use the
  * smallest common denominator of 8 bytes per page, declared by the
- * macro PAGE_SIZE above.
+ * macro EEPROM_PAGE_SIZE above.
  *
  * The function simply returns after writing one page, returning the
  * actual number of data byte written.  It is up to the caller to
@@ -377,10 +368,10 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
   uint16_t rv = 0;
   uint16_t endaddr;
 
-  if (eeaddr + len <= (eeaddr | (PAGE_SIZE - 1)))
+  if (eeaddr + len <= (eeaddr | (EEPROM_PAGE_SIZE - 1)))
     endaddr = eeaddr + len;
   else
-    endaddr = (eeaddr | (PAGE_SIZE - 1)) + 1;
+    endaddr = (eeaddr | (EEPROM_PAGE_SIZE - 1)) + 1;
   len = endaddr - eeaddr;
 
 #ifndef WORD_ADDRESS_16BIT
@@ -391,111 +382,105 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
   sla = TWI_SLA_24CXX;
 #endif
 
-  restart:
+ restart:
   if (n++ >= MAX_ITER)
     return -1;
-  begin:
+ begin:
 
   /* Note [15] */
   TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN); /* send start condition */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_REP_START:		/* OK, but should not happen */
-    case TW_START:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_REP_START:		/* OK, but should not happen */
+  case TW_START:
+    break;
 
-    case TW_MT_ARB_LOST:
-      goto begin;
+  case TW_MT_ARB_LOST:
+    goto begin;
 
-    default:
-      return -1;		/* error: not in start condition */
-				/* NB: do /not/ send stop condition */
-    }
+  default:
+    return -1;		/* error: not in start condition */
+    /* NB: do /not/ send stop condition */
+  }
 
   /* send SLA+W */
   TWDR = sla | TW_WRITE;
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MT_SLA_ACK:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_SLA_ACK:
+    break;
 
-    case TW_MT_SLA_NACK:	/* nack during select: device busy writing */
-      goto restart;
+  case TW_MT_SLA_NACK:	/* nack during select: device busy writing */
+    goto restart;
 
-    case TW_MT_ARB_LOST:	/* re-arbitrate */
-      goto begin;
+  case TW_MT_ARB_LOST:	/* re-arbitrate */
+    goto begin;
 
-    default:
-      goto error;		/* must send stop condition */
-    }
+  default:
+    goto error;		/* must send stop condition */
+  }
 
 #ifdef WORD_ADDRESS_16BIT
   TWDR = (eeaddr>>8);		/* 16 bit word address device, send high 8 bits of addr */
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
-    case TW_MT_DATA_ACK:
-      break;
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_DATA_ACK:
+    break;
 
-    case TW_MT_DATA_NACK:
-      goto quit;
+  case TW_MT_DATA_NACK:
+    goto quit;
 
-    case TW_MT_ARB_LOST:
-      goto begin;
+  case TW_MT_ARB_LOST:
+    goto begin;
 
-    default:
-      goto error;		/* must send stop condition */
-    }
+  default:
+    goto error;		/* must send stop condition */
+  }
 #endif
 
   TWDR = eeaddr;		/* low 8 bits of addr */
   TWCR = _BV(TWINT) | _BV(TWEN); /* clear interrupt to start transmission */
   while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-  switch ((twst = TW_STATUS))
-    {
+  switch ((twst = TW_STATUS)) {
+  case TW_MT_DATA_ACK:
+    break;
+
+  case TW_MT_DATA_NACK:
+    goto quit;
+
+  case TW_MT_ARB_LOST:
+    goto begin;
+
+  default:
+    goto error;		/* must send stop condition */
+  }
+
+  for (; len > 0; len--) {
+    TWDR = *buf++;
+    TWCR = _BV(TWINT) | _BV(TWEN); /* start transmission */
+    while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
+    switch ((twst = TW_STATUS)) {
+    case TW_MT_DATA_NACK:
+      goto error;		/* device write protected -- Note [16] */
+
     case TW_MT_DATA_ACK:
+      rv++;
       break;
 
-    case TW_MT_DATA_NACK:
-      goto quit;
-
-    case TW_MT_ARB_LOST:
-      goto begin;
-
     default:
-      goto error;		/* must send stop condition */
+      goto error;
     }
+  }
 
-  for (; len > 0; len--)
-    {
-      TWDR = *buf++;
-      TWCR = _BV(TWINT) | _BV(TWEN); /* start transmission */
-      while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
-      switch ((twst = TW_STATUS))
-	{
-	case TW_MT_DATA_NACK:
-	  goto error;		/* device write protected -- Note [16] */
+ error:
+  rv = -1;
 
-	case TW_MT_DATA_ACK:
-	  rv++;
-	  break;
-
-	default:
-	  goto error;
-	}
-    }
-  quit:
+ quit:
   TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN); /* send stop condition */
 
   return rv;
-
-  error:
-  rv = -1;
-  goto quit;
 }
 
 /*
@@ -508,25 +493,27 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 {
   uint16_t rv, total;
 
+  assert(0 == (len%4));
+
   total = 0;
-  do
-    {
+  do {
 #if DEBUG
-      printf("Calling ee24xx_write_page(%d, %d, %p)",
-	     eeaddr, len, buf);
+    printf("Calling ee24xx_write_page(%d, %d, %p)",
+	   eeaddr, len, buf);
 #endif
-      rv = ee24xx_write_page(eeaddr, buf, len);
+    rv = ee24xx_write_page(eeaddr, buf, len);
 #if DEBUG
-      printf(" => %d\n", rv);
+    printf(" => %d\n", rv);
 #endif
-      if (rv == -1)
-	return -1;
-      eeaddr += rv;
-      len -= rv;
-      buf += rv;
-      total += rv;
-    }
-  while (len > 0);
+    if (rv == -1)
+      return -1;
+    eeaddr += rv;
+    len -= rv;
+    buf += rv;
+    total += rv;
+    LCD_POS(1, 12);
+    LCD_PUT_UINT16X(len);
+  } while (len > 0);
 
   return total;
 }

@@ -54,3 +54,30 @@ LCD_init(void)
 
   lcd_buf_prop = 0;
 }
+
+void
+LCD_refresh(void)
+{
+  uint8_t ui2, *ui3_p;
+
+  /**************************************************/
+  /*****************   LCD   ************************/
+  /**************************************************/
+  /* Display on LCD */
+  LCD_cmd(LCD_CMD_CUR_10);
+  ui3_p = (uint8_t*) lcd_buf;
+  for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
+    LCD_wrchar(ui3_p[0]);
+    ui3_p++;
+  }
+
+  LCD_cmd(LCD_CMD_CUR_20);
+  for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
+    if ((lcd_buf_prop & LCD_PROP_NOECHO_L2) && (' ' != ui3_p[0])) {
+      LCD_wrchar('*');
+    } else {
+      LCD_wrchar(ui3_p[0]);
+    }
+    ui3_p++;
+  }
+}

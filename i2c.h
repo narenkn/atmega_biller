@@ -15,13 +15,11 @@
 
 #define  ERROR_CODE		0x7e
 
-#define EEPROM_CTRL_WRITE 0xA0
-#define EEPROM_CTRL_READ  0xA1
 #define TIMER_CTRL_WRITE  0xD0
 #define TIMER_CTRL_READ   0xD1
 /* FIXME : Remove duplicate definitions */
-#define DS1307_W	  TIMER_CTRL_WRITE
-#define DS1307_R	  TIMER_CTRL_READ
+//#define DS1307_W	  TIMER_CTRL_WRITE
+//#define DS1307_R	  TIMER_CTRL_READ
 
 void     i2c_init(void);
 uint8_t  i2c_start(void);
@@ -74,7 +72,7 @@ uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
  * Larger EEPROM devices (from 24C32) have 16-bit address
  * Define or undefine according to the used device
  */
-#define WORD_ADDRESS_16BIT
+#undef WORD_ADDRESS_16BIT
 
 /*
  * Maximal number of iterations to wait for a device to respond for a
@@ -96,7 +94,7 @@ uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
  * Note that the page size must be a power of two, this simplifies the
  * page boundary calculations below.
  */
-#define PAGE_SIZE 8
+#define EEPROM_PAGE_SIZE 128
 
 /*
  * Saved TWI status register, for error messages only.  We need to

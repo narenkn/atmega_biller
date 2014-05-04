@@ -317,50 +317,9 @@
 
 #include "main.h"
 
-ISR(TIMER0_OVF_vect)
-{
-  uint8_t ui2, *ui3_p;
-  static uint8_t count;
-
-  /* Increment our variable */
-  count++;
-//  if (count < 10) {
-//    return;
-//  }
-//  count = 0;
-
-  /**************************************************/
-  /*****************   LCD   ************************/
-  /**************************************************/
-  /* Display on LCD */
-  LCD_cmd(LCD_CMD_CUR_10);
-  ui3_p = (uint8_t*) lcd_buf;
-  for (ui2=0; ui2<LCD_MAX_COL-1; ui2++) {
-    LCD_wrchar(ui3_p[0]);
-    ui3_p++;
-  }
-  LCD_wrchar(('0'+(count%10)));
-  LCD_cmd(LCD_CMD_CUR_20);
-  for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
-    if ((lcd_buf_prop & LCD_PROP_NOECHO_L2) && (' ' != ui3_p[0])) {
-      LCD_wrchar('*');
-    } else {
-      LCD_wrchar(ui3_p[0]);
-    }
-    ui3_p++;
-  }
-}
-
 void
 main_init(void)
 {
-  /* Prescaler = FCPU/1024 */
-  TCCR0 |= (1<<CS02)|(1<<CS00);
-
-  /* Enable Overflow & Init T0 */
-  TIMSK |= (1<<TOIE0);
-  TCNT0=0;
-
   /* Set pin mode & enable pullup */
   DDRD &= ~((1<<PD2)|(1<<PD3));
 //  PORTD |= (1<<PD2) | (1<<PD3);
