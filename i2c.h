@@ -15,11 +15,55 @@
 
 #define  ERROR_CODE		0x7e
 
-#define TIMER_CTRL_WRITE  0xD0
-#define TIMER_CTRL_READ   0xD1
-/* FIXME : Remove duplicate definitions */
-//#define DS1307_W	  TIMER_CTRL_WRITE
-//#define DS1307_R	  TIMER_CTRL_READ
+#define TIMER_CTRL_WRITE        0xD0
+#define TIMER_CTRL_READ         0xD1
+
+#define TIMER_ADDR_SEC             0
+#define TIMER_ADDR_MIN             1
+#define TIMER_ADDR_HOUR            2
+#define TIMER_ADDR_DATE            4
+#define TIMER_ADDR_MONTH           5
+#define TIMER_ADDR_YEAR            6
+
+#define timerDateSet(year, month, date) \
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_DATE);			\
+  i2c_sendData(date);					\
+  i2c_sendData(month);					\
+  i2c_sendData(year);					\
+  i2c_stop()
+
+#define timerDateGet(ymd)				\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_DATE);			\
+  i2c_repeatStart();					\
+  i2c_sendAddress(TIMER_CTRL_READ);			\
+  ymd[2] = i2c_receiveData_ACK();			\
+  ymd[1] = i2c_receiveData_ACK();			\
+  ymd[0] = i2c_receiveData_NACK();			\
+  i2c_stop()
+
+#define timerTimeSet(hour, min)				\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_SEC);				\
+  i2c_sendData(0);					\
+  i2c_sendData(min);					\
+  i2c_sendData(hour);					\
+  i2c_stop()
+
+#define timerTimeGet(hm)				\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_SEC);				\
+  i2c_repeatStart();					\
+  i2c_sendAddress(TIMER_CTRL_READ);			\
+  hm[2] = i2c_receiveData_ACK();			\
+  hm[1] = i2c_receiveData_ACK();			\
+  hm[0] = i2c_receiveData_NACK();			\
+  i2c_stop()
 
 void     i2c_init(void);
 uint8_t  i2c_start(void);

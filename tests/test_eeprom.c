@@ -14,6 +14,7 @@
 int
 main()
 {
+  _delay_ms(1000);
   LCD_init();
   i2c_init();
 

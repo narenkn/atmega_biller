@@ -18,12 +18,13 @@
 void
 i2c_init(void)
 {
-#if 0
+#if 1
   TWCR= 0x00; //disable twi
   TWBR= 0x12; //set bit rate
   TWSR= 0x00; //set prescale
   //TWCR= 0x44; //enable twi
 #endif
+#if 0
   /* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescaler = 1 */
 #if defined(TWPS0)
   /* has prescaler (mega128 & newer) */
@@ -34,6 +35,7 @@ i2c_init(void)
   TWBR = 10;			/* smallest TWBR value, see note [5] */
 #else
   TWBR = (F_CPU / 100000UL - 16) / 2;
+#endif
 #endif
 }
 
@@ -60,7 +62,6 @@ i2c_start(void)
 uint8_t
 i2c_repeatStart(void)
 {
- 
   TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); 		//Send START condition
   while (!(TWCR & (1<<TWINT)));   		//Wait for TWINT flag set. This indicates that the
   //START condition has been transmitted
@@ -77,12 +78,12 @@ uint8_t
 i2c_sendAddress(uint8_t address)
 {
   uint8_t STATUS;
-   
+
   if((address & 0x01) == 0) 
     STATUS = MT_SLA_ACK;
   else
     STATUS = MR_SLA_ACK; 
-   
+
   TWDR = address; 
   TWCR = (1<<TWINT)|(1<<TWEN);	   //Load SLA_W into TWDR Register. Clear TWINT bit
   //in TWCR to start transmission of address
