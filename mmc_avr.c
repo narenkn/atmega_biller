@@ -7,10 +7,10 @@
 
 
 /* Port controls  (Platform dependent) */
-#define CS_LOW()	PORTB &= ~1			/* CS=low */
-#define	CS_HIGH()	PORTB |= 1			/* CS=high */
-#define SOCKINS		(!(PINB & 0x10))	/* Card detected.   yes:true, no:false, default:true */
-#define SOCKWP		(PINB & 0x20)		/* Write protected. yes:true, no:false, default:false */
+#define CS_LOW()	PORTB &= ~0x10			/* CS=low */
+#define	CS_HIGH()	PORTB |= 0x10			/* CS=high */
+#define SOCKINS		(1)	/* Card detected.   yes:true, no:false, default:true */
+#define SOCKWP		(0)		/* Write protected. yes:true, no:false, default:false */
 #define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (F_CPU / 64) */
 #define	FCLK_FAST()	SPCR = 0x50		/* Set fast clock (F_CPU / 2) */
 
