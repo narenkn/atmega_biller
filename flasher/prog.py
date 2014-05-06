@@ -193,7 +193,7 @@ class Atmega32:
           self.Out((addr>>1)&0xFF);
           bo = self.Out(0x0);
           if bo != self.pages[i][j]:
-            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j]);
+##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j]);
             error = True;
             self.error += 1;
           self.Out(0x28);
@@ -201,7 +201,7 @@ class Atmega32:
           self.Out((addr>>1)&0xFF);
           bo = self.Out(0x0);
           if bo != self.pages[i][j+1]:
-            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j+1]);
+##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j+1]);
             error = True;
             self.error += 1;
         if error: print "x",;

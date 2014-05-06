@@ -8,15 +8,14 @@
 # define LCD_PORT(val)  P1 = val
 #elif 4 == LCD_DPORT_SIZE
 # define LCD_PORT(val)       \
-  PORTA &= ~0xF;	     \
-  PORTA |= (val & 0xF)
+  PORTA = (PORTA & ~0xF) | ((val) & 0xF)
 #endif
 #define LCD_en_high  PORTC |= 0x80
-#define LCD_en_low   PORTC &= 0x7F
+#define LCD_en_low   PORTC &= ~0x80
 #define LCD_rs_high  PORTC |= 0x40
-#define LCD_rs_low   PORTC &= 0xBF
-#define LCD_bl_off   PORTD &= ~0x10
+#define LCD_rs_low   PORTC &= ~0x40
 #define LCD_bl_on    PORTD |= 0x10
+#define LCD_bl_off   PORTD &= ~0x10
 
 #define LCD_PROP_NOECHO_L2  (1<<0)
 #define LCD_PROP_DIRTY      (1<<1)

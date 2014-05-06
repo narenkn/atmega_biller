@@ -34,6 +34,9 @@ main(void)
     ui1 = PINC;
     LCD_POS(0, 11);
     LCD_PUT_UINT8X(ui1);
+    LCD_PUTCH(' ');
+    ui1 = PINA;
+    LCD_PUT_UINT8X(ui1);
     LCD_refresh();
     _delay_ms(10);
   }

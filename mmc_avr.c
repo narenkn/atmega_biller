@@ -76,8 +76,8 @@ void power_on (void)
 //naren		for (Timer1 = 2; Timer1; );	/* Wait for 20ms */
 //naren	}
 
-	PORTB |= 0b00000101;	/* Configure SCK/MOSI/CS as output */
-	DDRB  |= 0b00000111;
+	PORTB |= 0b10110000;	/* Configure SCK/MOSI/CS as output */
+	DDRB  |= 0b10110000;
 
 	SPCR = 0x52;			/* Enable SPI function in mode 0 */
 	SPSR = 0x01;			/* SPI 2x mode */
@@ -88,9 +88,9 @@ void power_off (void)
 {
 	SPCR = 0;				/* Disable SPI function */
 
-	DDRB  &= ~0b00110111;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
-	PORTB &= ~0b00000111;
-	PORTB |=  0b00110000;
+	DDRB  &= ~0b11110000;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
+//naren	PORTB &= ~0b00000111;
+//naren	PORTB |=  0b00110000;
 
 //naren	{	/* Remove this block if no socket power control */
 //naren		PORTE |= _BV(7);		/* Socket power off (PE7=high) */
@@ -154,7 +154,6 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 {
 	BYTE d;
 
-
 	Timer2 = wt / 10;
 	do
 		d = xchg_spi(0xFF);
@@ -207,7 +206,6 @@ int rcvr_datablock (
 {
 	BYTE token;
 
-
 	Timer1 = 20;
 	do {							/* Wait for data packet in timeout of 200ms */
 		token = xchg_spi(0xFF);
@@ -235,7 +233,6 @@ int xmit_datablock (
 )
 {
 	BYTE resp;
-
 
 	if (!wait_ready(500)) return 0;
 
@@ -266,7 +263,6 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 )
 {
 	BYTE n, res;
-
 
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
 		cmd &= 0x7F;
@@ -319,7 +315,6 @@ DSTATUS disk_initialize (
 )
 {
 	BYTE n, cmd, ty, ocr[4];
-
 
 	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
 	power_off();						/* Turn off the socket power to reset the card */
@@ -473,7 +468,6 @@ DRESULT disk_ioctl (
 	BYTE n, csd[16], *ptr = buff;
 	DWORD *dp, st, ed, csize;
 
-
 	if (pdrv) return RES_PARERR;
 
 	res = RES_ERROR;
@@ -590,7 +584,6 @@ DRESULT disk_ioctl (
 void disk_timerproc (void)
 {
 	BYTE n, s;
-
 
 	n = Timer1;				/* 100Hz decrement timer */
 	if (n) Timer1 = --n;
