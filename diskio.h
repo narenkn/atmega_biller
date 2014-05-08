@@ -38,6 +38,7 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
+#define CHANGE_SD(_sdid) mmc_sdid = _sdid
 
 /* Disk Status Bits (DSTATUS) */
 

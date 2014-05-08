@@ -58,11 +58,17 @@ BYTE CardType;			/* Card type flags */
    cluster size of 512
    # clusters = 128K / 512 = 256
  */
-#define SD_SIZE (1<<17)
+#define SD_SIZE (1<<18)
 #define SD_SECTOR_SIZE (1<<9)
 #define SD_NUM_SECTORS (1<<8)
 
-static uint8_t SD_MEM[SD_NUM_SECTORS][SD_SECTOR_SIZE];
+static uint8_t sdid = 0;
+void
+change_sd(uint8_t _sdid)
+{
+  sdid = _sdid;
+}
+static uint8_t SD_MEM[2][SD_NUM_SECTORS][SD_SECTOR_SIZE];
 
 /*--------------------------------------------------------------------------
 
@@ -78,6 +84,7 @@ DSTATUS disk_initialize (
 	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
+  //  printf("disk_initialize: drive %d\n", pdrv);
   Stat &= ~STA_NOINIT;		/* Clear STA_NOINIT */
   return Stat;
 }
@@ -90,8 +97,9 @@ DSTATUS disk_status (
 	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
-	if (pdrv) return STA_NOINIT;	/* Supports only single drive */
-	return Stat;
+  //  printf("disk_status %d:\n", pdrv);
+  if (pdrv) return STA_NOINIT;	/* Supports only single drive */
+  return Stat;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -104,9 +112,9 @@ DRESULT disk_read (
 	UINT count			/* Sector count (1..128) */
 )
 {
-  //  printf("Read to sector:%d, count:%d\n", sector, count);
+  //  printf("disk_read %d: sector:%d, count:%d\n", pdrv, sector, count);
   for (; count>0; count--) {
-    memcpy(buff, SD_MEM[sector], SD_SECTOR_SIZE);
+    memcpy(buff, SD_MEM[sdid][sector], SD_SECTOR_SIZE);
   }
   return count ? RES_ERROR : RES_OK;
 }
@@ -125,9 +133,9 @@ DRESULT disk_write (
 	UINT count			/* Sector count (1..128) */
 )
 {
-  //  printf("Write to sector:%d, count:%d\n", sector, count);
+  //  printf("disk_write %d: sector:%d, count:%d\n", pdrv, sector, count);
   for (; count>0; count--) {
-    memcpy(SD_MEM[sector], buff, SD_SECTOR_SIZE);
+    memcpy(SD_MEM[sdid][sector], buff, SD_SECTOR_SIZE);
   }
   return count ? RES_ERROR : RES_OK;
 }

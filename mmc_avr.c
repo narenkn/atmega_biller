@@ -7,8 +7,8 @@
 
 
 /* Port controls  (Platform dependent) */
-#define CS_LOW()	PORTB &= ~0x10			/* CS=low */
-#define	CS_HIGH()	PORTB |= 0x10			/* CS=high */
+#define CS_LOW()	PORTB &= ~((0 = mmc_sdid) ? 0x10 : 0x2)			/* CS=low */
+#define	CS_HIGH()	PORTB |= ((0 = mmc_sdid) ? 0x10 : 0x2)			/* CS=high */
 #define SOCKINS		(1)	/* Card detected.   yes:true, no:false, default:true */
 #define SOCKWP		(0)		/* Write protected. yes:true, no:false, default:false */
 #define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (F_CPU / 64) */
@@ -53,6 +53,7 @@ BYTE Timer1, Timer2;	/* 100Hz decrement timer */
 static
 BYTE CardType;			/* Card type flags */
 
+BYTE mmc_sdid = 0;
 
 /*-----------------------------------------------------------------------*/
 /* Power Control  (Platform dependent)                                   */
@@ -76,8 +77,8 @@ void power_on (void)
 //naren		for (Timer1 = 2; Timer1; );	/* Wait for 20ms */
 //naren	}
 
-	PORTB |= 0b10110000;	/* Configure SCK/MOSI/CS as output */
-	DDRB  |= 0b10110000;
+	PORTB |= 0b10110010;	/* Configure SCK/MOSI/CS as output */
+	DDRB  |= 0b10110010;
 
 	SPCR = 0x52;			/* Enable SPI function in mode 0 */
 	SPSR = 0x01;			/* SPI 2x mode */
@@ -88,9 +89,8 @@ void power_off (void)
 {
 	SPCR = 0;				/* Disable SPI function */
 
-	DDRB  &= ~0b11110000;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
-//naren	PORTB &= ~0b00000111;
-//naren	PORTB |=  0b00110000;
+	DDRB  &= ~0b11110010;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
+	PORTB &= ~0b11110010;
 
 //naren	{	/* Remove this block if no socket power control */
 //naren		PORTE |= _BV(7);		/* Socket power off (PE7=high) */
