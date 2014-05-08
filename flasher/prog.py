@@ -109,7 +109,7 @@ class Atmega32:
       self.Out(0xAC);
       self.Out(0xA0);
       self.Out(0x0);
-      self.Out(0xFF);
+      self.Out(options.flb);
       ## Just wait for some time
       for j in range(300):
         addr = (j<<7);
@@ -121,7 +121,7 @@ class Atmega32:
       self.Out(0xAC);
       self.Out(0xA8);
       self.Out(0x0);
-      self.Out(0x89);
+      self.Out(options.fhb);
       ## Just wait for some time
       for j in range(300):
         addr = (j<<7);
@@ -134,7 +134,7 @@ class Atmega32:
       self.Out(0x0);
       self.Out(0x0);
       in_val = self.Out(0x0);
-      if 0xFF != in_val:
+      if options.flb != in_val:
         self.error += 1;
         print "Failed (0xFF Vs 0x%x)" % in_val;
       ## Read back & verify : high byte
@@ -142,7 +142,7 @@ class Atmega32:
       self.Out(0x08);
       self.Out(0x0);
       in_val = self.Out(0x0);
-      if 0x89 != in_val:
+      if options.fhb != in_val:
         self.error += 1;
         print "Failed (0x89 Vs 0x%x)" % in_val;
       if self.error:
@@ -236,6 +236,10 @@ if "__main__" == __name__:
                   help="Default program file");
   parser.add_option("-p", "--lpt_addr", dest="lpt_addr", default=0x3BC,
                   help="Parallel port address on the device (def:0x3BC)");
+  parser.add_option("", "--flb", dest="flb", default=0xFF, type="int",
+                  help="Flash low byte value");
+  parser.add_option("", "--fhb", dest="fhb", default=0x89, type="int",
+                  help="Flash high byte value");
   parser.add_option("-r", "--release_bus", dest="release_bus", default=False,
                   action="store_true", help="release the drive");
   parser.add_option("-F", "--program_flash", dest="program_flash", default=False,

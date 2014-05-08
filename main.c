@@ -15,7 +15,11 @@ main_init(void)
   /* Enable Int0 on falling edge */
   GICR = 1<<INT0;
   MCUCR |= 1<<ISC01 | 0<<ISC00;
- 
+
+  /* For Fat32 */
+  DDRB  |= 0xB2;
+  PORTB |= 0xF2;
+
   /* Enable Global Interrupts */
   sei();
 }
