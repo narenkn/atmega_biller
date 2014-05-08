@@ -35,7 +35,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = fat32.o i2c.o main.o rtc.o sdcard.o spi.o uart.o adc.o 
+OBJECTS = ff.o i2c.o main.o rtc.o spi.o uart.o adc.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 

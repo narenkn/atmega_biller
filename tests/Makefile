@@ -10,10 +10,10 @@ TARGET = $(SOURCE:.c=)
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
-COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN
+COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DERROR\(...\)=
 
 ## Compile options common for all C compilation units.
-CFLAGS = $(COMMON)
+CFLAGS = $(COMMON) $(CLINE_ARG)
 CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
@@ -48,8 +48,11 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
 ## Compile
 VPATH := ..
-.o: .c
+%.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+%.o: %.cpp
+	$(CXX) $(INCLUDES) -Dnaren $(CXXFLAGS) -c  $<
 
 ##Link
 $(TARGET).elf: $(OBJECTS)
