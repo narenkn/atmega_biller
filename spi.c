@@ -13,15 +13,17 @@
 #include <avr/io.h>
 #include "spi.h"
 
-//SPI initialize for SD card
-//clock rate: 125Khz
-void spi_init(void)
+/* SPI initialize for SD card */
+/* clock rate: 125Khz */
+void
+spi_init(void)
 {
   SPCR = 0x52; //setup SPI: Master mode, MSB first, SCK phase low, SCK idle low
   SPSR = 0x00;
 }
 
-uint8_t SPI_transmit(uint8_t data)
+uint8_t
+SPI_transmit(uint8_t data)
 {
   // Start transmission
   SPDR = data;
@@ -33,7 +35,8 @@ uint8_t SPI_transmit(uint8_t data)
   return(data);
 }
 
-uint8_t SPI_receive(void)
+uint8_t
+SPI_receive(void)
 {
   uint8_t data;
   // Wait for reception complete
@@ -45,5 +48,3 @@ uint8_t SPI_receive(void)
   // Return data register
   return data;
 }
-
-//******** END ****** www.dharmanitech.com *****
