@@ -81,14 +81,14 @@
 #define XP 21   // can be a digital pin, this is A3
 
 #else
-#define TFT_RST_LOW  {DDRD |= 0x10;PORTD &=~ 0x10;} //Added by Vassilis Serasidis (18 Oct 2013)
-#define TFT_RST_HIGH {DDRD |= 0x10;PORTD |=  0x10;} //Added by Vassilis Serasidis (18 Oct 2013)
-#define TFT_CS_LOW  {DDRD |= 0x20;PORTD &=~ 0x20;}
-#define TFT_CS_HIGH {DDRD |= 0x20;PORTD |=  0x20;}
-#define TFT_DC_LOW  {DDRD |= 0x40;PORTD &=~ 0x40;}
-#define TFT_DC_HIGH {DDRD |= 0x40;PORTD |=  0x40;}
-#define TFT_BL_OFF  {DDRD |= 0x80;PORTD &=~ 0x80;}
-#define TFT_BL_ON   {DDRD |= 0x80;PORTD |=  0x80;}
+#define TFT_RST_LOW  {DDRB |= 0x1;PORTB &= ~0x1;} //Added by Vassilis Serasidis (18 Oct 2013)
+#define TFT_RST_HIGH {DDRB |= 0x1;PORTB |=  0x1;} //Added by Vassilis Serasidis (18 Oct 2013)
+#define TFT_CS_LOW  {DDRB |= 0x8;PORTB &= ~0x8;}
+#define TFT_CS_HIGH {DDRB |= 0x8;PORTB |=  0x8;}
+#define TFT_DC_LOW  {DDRB |= 0x2;PORTB &= ~0x2;}
+#define TFT_DC_HIGH {DDRB |= 0x2;PORTB |=  0x2;}
+#define TFT_BL_OFF  {DDRD |= 0x10;PORTD &= ~0x10;}
+#define TFT_BL_ON   {DDRD |= 0x10;PORTD |=  0x10;}
 
 #define YP A2   // must be an analog pin, use "An" notation!
 #define XM A1   // must be an analog pin, use "An" notation!

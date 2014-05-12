@@ -242,6 +242,8 @@ if "__main__" == __name__:
                   help="Flash high byte value");
   parser.add_option("-r", "--release_bus", dest="release_bus", default=False,
                   action="store_true", help="release the drive");
+  parser.add_option("-D", "--defaults", dest="defaults", default=False,
+                  action="store_true", help="Use reset values wherever applicable");
   parser.add_option("-F", "--program_flash", dest="program_flash", default=False,
                   action="store_true", help="release the drive");
   (options, args) = parser.parse_args()
@@ -263,6 +265,12 @@ if "__main__" == __name__:
   if not f:
     print "Error: Failed opening file";
     exit (1);
+
+  ##
+  if options.defaults:
+    options.flb = 0xE1;
+    options.fhb = 0x99;
+    print "Using default flash values";
 
   ## Process file
   any_page_valid = False;
