@@ -156,6 +156,86 @@ INT8U drawNumber(long long_num,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor
 INT8U drawFloat(float floatNumber,INT8U decimal,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
 INT8U drawFloat1(float floatNumber,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
 
+#define ILI9340_TFTWIDTH  240
+#define ILI9340_TFTHEIGHT 320
+
+#define ILI9340_NOP     0x00
+#define ILI9340_SWRESET 0x01
+#define ILI9340_RDDID   0x04
+#define ILI9340_RDDST   0x09
+
+#define ILI9340_SLPIN   0x10
+#define ILI9340_SLPOUT  0x11
+#define ILI9340_PTLON   0x12
+#define ILI9340_NORON   0x13
+
+#define ILI9340_RDMODE  0x0A
+#define ILI9340_RDMADCTL  0x0B
+#define ILI9340_RDPIXFMT  0x0C
+#define ILI9340_RDIMGFMT  0x0A
+#define ILI9340_RDSELFDIAG  0x0F
+
+#define ILI9340_INVOFF  0x20
+#define ILI9340_INVON   0x21
+#define ILI9340_GAMMASET 0x26
+#define ILI9340_DISPOFF 0x28
+#define ILI9340_DISPON  0x29
+
+#define ILI9340_CASET   0x2A
+#define ILI9340_PASET   0x2B
+#define ILI9340_RAMWR   0x2C
+#define ILI9340_RAMRD   0x2E
+
+#define ILI9340_PTLAR   0x30
+#define ILI9340_MADCTL  0x36
+
+
+#define ILI9340_MADCTL_MY  0x80
+#define ILI9340_MADCTL_MX  0x40
+#define ILI9340_MADCTL_MV  0x20
+#define ILI9340_MADCTL_ML  0x10
+#define ILI9340_MADCTL_RGB 0x00
+#define ILI9340_MADCTL_BGR 0x08
+#define ILI9340_MADCTL_MH  0x04
+
+#define ILI9340_PIXFMT  0x3A
+
+#define ILI9340_FRMCTR1 0xB1
+#define ILI9340_FRMCTR2 0xB2
+#define ILI9340_FRMCTR3 0xB3
+#define ILI9340_INVCTR  0xB4
+#define ILI9340_DFUNCTR 0xB6
+
+#define ILI9340_PWCTR1  0xC0
+#define ILI9340_PWCTR2  0xC1
+#define ILI9340_PWCTR3  0xC2
+#define ILI9340_PWCTR4  0xC3
+#define ILI9340_PWCTR5  0xC4
+#define ILI9340_VMCTR1  0xC5
+#define ILI9340_VMCTR2  0xC7
+
+#define ILI9340_RDID1   0xDA
+#define ILI9340_RDID2   0xDB
+#define ILI9340_RDID3   0xDC
+#define ILI9340_RDID4   0xDD
+
+#define ILI9340_GMCTRP1 0xE0
+#define ILI9340_GMCTRN1 0xE1
+/*
+#define ILI9340_PWCTR6  0xFC
+
+*/
+
+// Color definitions
+#define	ILI9340_BLACK   0x0000
+#define	ILI9340_BLUE    0x001F
+#define	ILI9340_RED     0xF800
+#define	ILI9340_GREEN   0x07E0
+#define ILI9340_CYAN    0x07FF
+#define ILI9340_MAGENTA 0xF81F
+#define ILI9340_YELLOW  0xFFE0  
+#define ILI9340_WHITE   0xFFFF
+
 #endif
 
 /*********************************************************************************************************
@@ -250,11 +330,48 @@ INT8U Read_Register(INT8U Addr, INT8U xParameter)
     return data;
 }
 
-void TFTinit (void)
+void
+Address_set(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y2)
+{  
+  sendCMD(0x2a);
+  WRITE_DATA(x1>>8);
+  WRITE_DATA(x1);
+  WRITE_DATA(x2>>8);
+  WRITE_DATA(x2);
+  
+  sendCMD(0x2b);
+  WRITE_DATA(y1>>8);
+  WRITE_DATA(y1);
+  WRITE_DATA(y2>>8);
+  WRITE_DATA(y2);
+
+  sendCMD(0x2C);
+}
+
+void
+LCD_Clear(uint16_t Color)
 {
-	TFT_RST_LOW; //Added by Vassilis Serasidis (18 Oct 2013)
-	_delay_ms(200);  //Added by Vassilis Serasidis (18 Oct 2013)
-	TFT_RST_HIGH; //Added by Vassilis Serasidis (18 Oct 2013)
+  uint8_t VH,VL;
+  uint16_t i,j;
+  VH=Color>>8;
+  VL=Color;	
+  Address_set(0,0,ILI9340_TFTWIDTH-1,ILI9340_TFTHEIGHT-1);
+  for(i=0;i<ILI9340_TFTWIDTH;i++) {
+    for (j=0;j<ILI9340_TFTHEIGHT;j++) {
+      WRITE_DATA(VH);
+      WRITE_DATA(VL);	
+    }
+  }
+}
+
+void
+TFTinit (void)
+{
+  TFT_RST_HIGH;
+  _delay_ms(200);
+  TFT_RST_LOW; //Added by Vassilis Serasidis (18 Oct 2013)
+  _delay_ms(200);  //Added by Vassilis Serasidis (18 Oct 2013)
+  TFT_RST_HIGH; //Added by Vassilis Serasidis (18 Oct 2013)
     spi_init(); 
     TFT_CS_HIGH;
     TFT_DC_HIGH;
@@ -267,108 +384,213 @@ void TFTinit (void)
     sendCMD(0x01);
     _delay_ms(200);
 
-    sendCMD(0xCF);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x8B);
-    WRITE_DATA(0X30);
+//    sendCMD(0xCF);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x8B);
+//    WRITE_DATA(0X30);
+//
+//    sendCMD(0xED);
+//    WRITE_DATA(0x67);
+//    WRITE_DATA(0x03);
+//    WRITE_DATA(0X12);
+//    WRITE_DATA(0X81);
+//
+//    sendCMD(0xE8);
+//    WRITE_DATA(0x85);
+//    WRITE_DATA(0x10);
+//    WRITE_DATA(0x7A);
+//
+//    sendCMD(0xCB);
+//    WRITE_DATA(0x39);
+//    WRITE_DATA(0x2C);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x34);
+//    WRITE_DATA(0x02);
+//
+//    sendCMD(0xF7);
+//    WRITE_DATA(0x20);
+//
+//    sendCMD(0xEA);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x00);
+//
+//    sendCMD(0xC0);                                                      /* Power control                */
+//    WRITE_DATA(0x1B);                                                   /* VRH[5:0]                     */
+//
+//    sendCMD(0xC1);                                                      /* Power control                */
+//    WRITE_DATA(0x10);                                                   /* SAP[2:0];BT[3:0]             */
+//
+//    sendCMD(0xC5);                                                      /* VCM control                  */
+//    WRITE_DATA(0x3F);
+//    WRITE_DATA(0x3C);
+//
+//    sendCMD(0xC7);                                                      /* VCM control2                 */
+//    WRITE_DATA(0XB7);
+//
+//    sendCMD(0x36);                                                      /* Memory Access Control        */
+//    WRITE_DATA(0x08);
+//
+//    sendCMD(0x3A);
+//    WRITE_DATA(0x55);
+//
+//    sendCMD(0xB1);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x1B);
+//
+//    sendCMD(0xB6);                                                      /* Display Function Control     */
+//    WRITE_DATA(0x0A);
+//    WRITE_DATA(0xA2);
+//
+//
+//    sendCMD(0xF2);                                                      /* 3Gamma Function Disable      */
+//    WRITE_DATA(0x00);
+//
+//    sendCMD(0x26);                                                      /* Gamma curve selected         */
+//    WRITE_DATA(0x01);
+//
+//    sendCMD(0xE0);                                                      /* Set Gamma                    */
+//    WRITE_DATA(0x0F);
+//    WRITE_DATA(0x2A);
+//    WRITE_DATA(0x28);
+//    WRITE_DATA(0x08);
+//    WRITE_DATA(0x0E);
+//    WRITE_DATA(0x08);
+//    WRITE_DATA(0x54);
+//    WRITE_DATA(0XA9);
+//    WRITE_DATA(0x43);
+//    WRITE_DATA(0x0A);
+//    WRITE_DATA(0x0F);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x00);
+//
+//    sendCMD(0XE1);                                                      /* Set Gamma                    */
+//    WRITE_DATA(0x00);
+//    WRITE_DATA(0x15);
+//    WRITE_DATA(0x17);
+//    WRITE_DATA(0x07);
+//    WRITE_DATA(0x11);
+//    WRITE_DATA(0x06);
+//    WRITE_DATA(0x2B);
+//    WRITE_DATA(0x56);
+//    WRITE_DATA(0x3C);
+//    WRITE_DATA(0x05);
+//    WRITE_DATA(0x10);
+//    WRITE_DATA(0x0F);
+//    WRITE_DATA(0x3F);
+//    WRITE_DATA(0x3F);
+//    WRITE_DATA(0x0F);
+//
+//    sendCMD(0x11);                                                      /* Exit Sleep                   */
+//    _delay_ms(120);
+//    sendCMD(0x29);                                                      /* Display on                   */
+//    fillScreen1();
 
-    sendCMD(0xED);
-    WRITE_DATA(0x67);
-    WRITE_DATA(0x03);
-    WRITE_DATA(0X12);
-    WRITE_DATA(0X81);
+	sendCMD(0xCB);  
+        WRITE_DATA(0x39); 
+        WRITE_DATA(0x2C); 
+        WRITE_DATA(0x00); 
+        WRITE_DATA(0x34); 
+        WRITE_DATA(0x02); 
 
-    sendCMD(0xE8);
-    WRITE_DATA(0x85);
-    WRITE_DATA(0x10);
-    WRITE_DATA(0x7A);
+        sendCMD(0xCF);  
+        WRITE_DATA(0x00); 
+        WRITE_DATA(0XC1); 
+        WRITE_DATA(0X30); 
+ 
+        sendCMD(0xE8);  
+        WRITE_DATA(0x85); 
+        WRITE_DATA(0x00); 
+        WRITE_DATA(0x78); 
+ 
+        sendCMD(0xEA);  
+        WRITE_DATA(0x00); 
+        WRITE_DATA(0x00); 
+ 
+        sendCMD(0xED);  
+        WRITE_DATA(0x64); 
+        WRITE_DATA(0x03); 
+        WRITE_DATA(0X12); 
+        WRITE_DATA(0X81); 
 
-    sendCMD(0xCB);
-    WRITE_DATA(0x39);
-    WRITE_DATA(0x2C);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x34);
-    WRITE_DATA(0x02);
+        sendCMD(0xF7);  
+        WRITE_DATA(0x20); 
+  
+        sendCMD(0xC0);    //Power control 
+        WRITE_DATA(0x23);   //VRH[5:0] 
+ 
+        sendCMD(0xC1);    //Power control 
+        WRITE_DATA(0x10);   //SAP[2:0];BT[3:0] 
+ 
+        sendCMD(0xC5);    //VCM control 
+        WRITE_DATA(0x3e); //对比度调节
+        WRITE_DATA(0x28); 
+ 
+        sendCMD(0xC7);    //VCM control2 
+        WRITE_DATA(0x86);  //--
+ 
+        sendCMD(0x36);    // Memory Access Control 
+        WRITE_DATA(0x48); //C8	   //48 68竖屏//28 E8 横屏
 
-    sendCMD(0xF7);
-    WRITE_DATA(0x20);
+        sendCMD(0x3A);    
+        WRITE_DATA(0x55); 
 
-    sendCMD(0xEA);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x00);
+        sendCMD(0xB1);    
+        WRITE_DATA(0x00);  
+        WRITE_DATA(0x18); 
+ 
+        sendCMD(0xB6);    // Display Function Control 
+        WRITE_DATA(0x08); 
+        WRITE_DATA(0x82);
+        WRITE_DATA(0x27);  
+ 
+        sendCMD(0xF2);    // 3Gamma Function Disable 
+        WRITE_DATA(0x00); 
+ 
+        sendCMD(0x26);    //Gamma curve selected 
+        WRITE_DATA(0x01); 
+ 
+        sendCMD(0xE0);    //Set Gamma 
+        WRITE_DATA(0x0F); 
+        WRITE_DATA(0x31); 
+        WRITE_DATA(0x2B); 
+        WRITE_DATA(0x0C); 
+        WRITE_DATA(0x0E); 
+        WRITE_DATA(0x08); 
+        WRITE_DATA(0x4E); 
+        WRITE_DATA(0xF1); 
+        WRITE_DATA(0x37); 
+        WRITE_DATA(0x07); 
+        WRITE_DATA(0x10); 
+        WRITE_DATA(0x03); 
+        WRITE_DATA(0x0E); 
+        WRITE_DATA(0x09); 
+        WRITE_DATA(0x00); 
 
-    sendCMD(0xC0);                                                      /* Power control                */
-    WRITE_DATA(0x1B);                                                   /* VRH[5:0]                     */
+        sendCMD(0XE1);    //Set Gamma 
+        WRITE_DATA(0x00); 
+        WRITE_DATA(0x0E); 
+        WRITE_DATA(0x14); 
+        WRITE_DATA(0x03); 
+        WRITE_DATA(0x11); 
+        WRITE_DATA(0x07); 
+        WRITE_DATA(0x31); 
+        WRITE_DATA(0xC1); 
+        WRITE_DATA(0x48); 
+        WRITE_DATA(0x08); 
+        WRITE_DATA(0x0F); 
+        WRITE_DATA(0x0C); 
+        WRITE_DATA(0x31); 
+        WRITE_DATA(0x36); 
+        WRITE_DATA(0x0F); 
+ 
+        sendCMD(0x11);    //Exit Sleep 
+        _delay_ms(120); 
+				
+        sendCMD(0x29);    //Display on 
+        sendCMD(0x2c); 
 
-    sendCMD(0xC1);                                                      /* Power control                */
-    WRITE_DATA(0x10);                                                   /* SAP[2:0];BT[3:0]             */
-
-    sendCMD(0xC5);                                                      /* VCM control                  */
-    WRITE_DATA(0x3F);
-    WRITE_DATA(0x3C);
-
-    sendCMD(0xC7);                                                      /* VCM control2                 */
-    WRITE_DATA(0XB7);
-
-    sendCMD(0x36);                                                      /* Memory Access Control        */
-    WRITE_DATA(0x08);
-
-    sendCMD(0x3A);
-    WRITE_DATA(0x55);
-
-    sendCMD(0xB1);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x1B);
-
-    sendCMD(0xB6);                                                      /* Display Function Control     */
-    WRITE_DATA(0x0A);
-    WRITE_DATA(0xA2);
-
-
-    sendCMD(0xF2);                                                      /* 3Gamma Function Disable      */
-    WRITE_DATA(0x00);
-
-    sendCMD(0x26);                                                      /* Gamma curve selected         */
-    WRITE_DATA(0x01);
-
-    sendCMD(0xE0);                                                      /* Set Gamma                    */
-    WRITE_DATA(0x0F);
-    WRITE_DATA(0x2A);
-    WRITE_DATA(0x28);
-    WRITE_DATA(0x08);
-    WRITE_DATA(0x0E);
-    WRITE_DATA(0x08);
-    WRITE_DATA(0x54);
-    WRITE_DATA(0XA9);
-    WRITE_DATA(0x43);
-    WRITE_DATA(0x0A);
-    WRITE_DATA(0x0F);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x00);
-
-    sendCMD(0XE1);                                                      /* Set Gamma                    */
-    WRITE_DATA(0x00);
-    WRITE_DATA(0x15);
-    WRITE_DATA(0x17);
-    WRITE_DATA(0x07);
-    WRITE_DATA(0x11);
-    WRITE_DATA(0x06);
-    WRITE_DATA(0x2B);
-    WRITE_DATA(0x56);
-    WRITE_DATA(0x3C);
-    WRITE_DATA(0x05);
-    WRITE_DATA(0x10);
-    WRITE_DATA(0x0F);
-    WRITE_DATA(0x3F);
-    WRITE_DATA(0x3F);
-    WRITE_DATA(0x0F);
-
-    sendCMD(0x11);                                                      /* Exit Sleep                   */
-    _delay_ms(120);
-    sendCMD(0x29);                                                      /* Display on                   */
-    fillScreen1();
 }
 
 INT8U readID(void)
@@ -378,6 +600,7 @@ INT8U readID(void)
     INT8U ID[3] = {0x00, 0x93, 0x41};
     INT8U ToF=1;
     for(i=0;i<3;i++)
+
     {
         data[i]=Read_Register(0xd3,i+1);
         if(data[i] != ID[i])
@@ -470,10 +693,10 @@ void fillScreen1(void)
     TFT_CS_LOW;
     for(INT16U i=0; i<38400; i++)
     {
-        SPI_transmit(0);
-        SPI_transmit(0);
-        SPI_transmit(0);
-        SPI_transmit(0);
+        sendData(RED);
+        sendData(RED);
+        sendData(RED);
+        sendData(RED);
     }
     TFT_CS_HIGH;
 }
@@ -504,6 +727,10 @@ void drawChar( INT8U ascii, INT16U poX, INT16U poY,INT16U size, INT16U fgcolor)
     }
     for (int i =0; i<FONT_X; i++ ) {
         INT8U temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+	LCD_POS(1, 14);
+	LCD_PUT_UINT8X(temp);
+	LCD_refresh();
+	_delay_ms(1000);
         for(INT8U f=0;f<8;f++)
         {
             if((temp>>f)&0x01)
@@ -801,7 +1028,8 @@ main()
 {
   _delay_ms(1000);
   LCD_init();
-  _delay_ms(5000);
+  TFT_BL_ON;
+  _delay_ms(1000);
   LCD_WR_LINE(0, 0, "Hello Naren W2");
   LCD_WR_LINE(1, 0, "Hello Naren W3");
   LCD_refresh();
@@ -811,13 +1039,18 @@ main()
 
   _delay_ms(1000);
   TFTinit();
-  TFT_BL_ON;
   _delay_ms(1000);
+  LCD_WR_LINE(1, 0, "Hello Naren W4");
+  LCD_refresh();
+  LCD_Clear(RED);
+  LCD_WR_LINE(1, 0, "Hello Naren W5");
+  LCD_refresh();
+  _delay_ms(5000);
   do {
     LCD_WR_LINE(1, 0, "What the suck!");
     LCD_refresh();
-    drawString("Hello",0,180,3,CYAN);       // draw string: "hello", (0, 180), size: 3, color: CYAN
-    drawString("World!!",60,220,4,WHITE);    // draw string: "world!!", (80, 230), size: 4, color: WHITE
+    drawString("Hello",0,0,3,CYAN);       // draw string: "hello", (0, 180), size: 3, color: CYAN
+    drawString("World!!",50,50,4,WHITE);    // draw string: "world!!", (80, 230), size: 4, color: WHITE
   } while (0);
 
   uint8_t ui1;
@@ -845,28 +1078,30 @@ main()
   TFT_RST_LOW; //Added by Vassilis Serasidis (18 Oct 2013)
   _delay_ms(200);  //Added by Vassilis Serasidis (18 Oct 2013)
   TFT_RST_HIGH; //Added by Vassilis Serasidis (18 Oct 2013)
-  spi_init(); 
+  TFTinit(); 
   TFT_CS_HIGH;
   TFT_DC_HIGH;
 
   TFT_BL_ON;
   uint8_t i, ui1;
   while (1) {
-  for(i=0;i<3;i++) {
-    sendCMD(0xd9);                                                      /* ext command                  */
-    WRITE_DATA(0x10+i+1);                                        /* 0x11 is the first Parameter  */
-    TFT_DC_LOW;
-    TFT_CS_LOW;
-    SPI_transmit(0xd3);
-    TFT_DC_HIGH;
-    ui1 = SPI_transmit(0);
-    TFT_CS_HIGH;
+    LCD_WR_LINE(0, 0, "Loop ");
+    LCD_PUT_UINT8X(i);
+    for(i=0;i<3;i++) {
+      sendCMD(0xd9);                                                      /* ext command                  */
+      WRITE_DATA(0x10+i+1);                                        /* 0x11 is the first Parameter  */
+      TFT_DC_LOW;
+      TFT_CS_LOW;
+      SPI_transmit(0xd3);
+      TFT_DC_HIGH;
+      ui1 = SPI_transmit(0);
+      TFT_CS_HIGH;
 
-    LCD_POS(1, 14);
-    LCD_PUT_UINT8X(ui1);
-    LCD_refresh();
-    _delay_ms(1000);
-  }
+      LCD_POS(1, 14);
+      LCD_PUT_UINT8X(ui1);
+      LCD_refresh();
+      _delay_ms(1000);
+    }
   }
 }
 #endif

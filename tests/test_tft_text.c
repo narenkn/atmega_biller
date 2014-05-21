@@ -2,11 +2,12 @@
     drawChar(INT8U ascii,INT16U poX, INT16U poY,INT16U size, INT16U fgcolor);
     drawString(char *string,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
 */
-
+#define assert(...)
 #include <stdint.h>
 #include <font.c>
 #include <TFTv2.cpp>
 #include <spi.c>
+#include <lcd.c>
 
 void
 setup()
@@ -31,11 +32,36 @@ void loop()
 int
 main()
 {
-  TFT_BL_ON;
+  uint8_t ui1, ui2;
+  _delay_ms(1000);
+  TFT_RST_HIGH;
   _delay_ms(1000);
   TFT_RST_LOW;
   _delay_ms(5000);
   TFT_RST_HIGH;
-  setup();
-  while(1) {}
+  _delay_ms(1000);
+
+  _delay_ms(1000);
+  LCD_init();
+  LCD_WR_LINE(1, 0, "Hello Hi W3");
+  LCD_refresh();
+  _delay_ms(2000);
+
+  DDRB |=  (1<<4) | (1<<5) | (1<<7);
+  DDRB &=  ~(1<<6);
+
+  TFT_BL_ON;
+  spi_init();
+//  setup();
+  ui1=0; ui2=0;
+  while(1) {
+    Tft.drawChar('S',ui1,ui2,1,0xF0F0);
+    ui1++;
+    ui2++;
+
+    LCD_POS(1, 14);
+    LCD_PUT_UINT8X(ui1);
+    LCD_refresh();
+    _delay_ms(1000);
+  }
 }
