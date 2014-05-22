@@ -1,5 +1,5 @@
-#ifndef LCD_H
-#define LCD_H
+#ifndef LCD__H
+#define LCD__H
 
 #define LCD_MAX_ROW            2
 #define LCD_MAX_COL           16
