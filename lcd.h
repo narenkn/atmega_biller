@@ -24,8 +24,6 @@
 
 uint8_t _lcd_idx = 0;
 
-# error "Unit testing env not yet setup"
-
 # define LCD_CMD_DISON_CURON_BLINKON
 # define LCD_CMD_CLRSCR        { uint8_t ui1; for (ui1=0; ui1<(LCD_MAX_ROW*LCD_MAX_COL); ui1++) { lcd_buf[0][ui1] = ' '; } _lcd_idx = 0; }
 # define LCD_CMD_HOME          _lcd_idx = 0
@@ -44,6 +42,26 @@ uint8_t _lcd_idx = 0;
 # define LCD_wrchar(var) \
   putchar(var)
 
+#define LCD_CLRSCR		      \
+  printf("----------------------\n"); \
+  putchar('\n')
+
+#define LCD_WR_LINE(x, y, str) printf("%d:%d:'%s'\n", x, y, str)
+#define LCD_WR_LINE_N(x, y, str, len) { 		\
+  uint8_t _ui;						\
+  printf("%d:%d:'", x, y);				\
+  for (_ui=0; _ui<len; _ui++)				\
+    putchar(str[_ui]);					\
+  printf("'\n");					\
+  }
+#define LCD_WR(str) printf("str::'%s'\n", str)
+#define LCD_WR_N(str, len) {				\
+  uint8_t _ui;						\
+  printf("str::'");					\
+  for (_ui=0; _ui<len; _ui++)				\
+    putchar(str[_ui]);					\
+  printf("'\n");					\
+  }
 #else
 
 # define LCD_CMD_DISON_CURON_BLINKON 0x0F /* LCD ON, Cursor ON, Cursor blinking ON */
@@ -121,8 +139,6 @@ uint8_t _lcd_idx = 0;
   LCD_rs_low;		\
   LCD_en_low;		\
   _delay_us(100)
-
-#endif
 
 #endif
 
@@ -237,6 +253,8 @@ uint8_t _lcd_idx = 0;
 }
 
 #define LCD_ALERT(str) LCD_WR_LINE(0, 0, str)
+
+#endif
 
 extern uint8_t lcd_buf_prop;
 extern uint8_t *lcd_buf_p;

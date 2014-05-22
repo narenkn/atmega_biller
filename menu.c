@@ -1,18 +1,7 @@
 #include <stdint.h>
-#include <avr/io.h>
 #include <stdlib.h>
-#include <util/delay.h>
-#include <util/twi.h>
+#include <avr/pgmspace.h>
 
-#include "assert.h"
-#include "billing.h"
-#include "ep_store.h"
-#include "i2c.h"
-#include "lcd.h"
-#include "flash.h"
-#include "kbd.h"
-#include "main.h"
-#include "printer.h"
 #include "menu.h"
 
 #define ROW_JOIN
@@ -103,9 +92,8 @@ const uint8_t MENU_MAX PROGMEM = MENU_ITEMS;
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
-uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
-
-menu_arg_t arg1, arg2;
+static uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
+static menu_arg_t arg1, arg2;
 uint8_t bufSS[BUFSS_SIZE];
 uint8_t    menu_error;
 
@@ -305,35 +293,35 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     assert(0);
 }
 
-//// Not unit tested
-///* Helper routine to obtain choice from user */
-//uint8_t
-//menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
-//{
-//  uint8_t ret = 0;
-//
-//  do {
-//    assert(ret < max_idx);
-//
-//    LCD_WR_LINE_N(1, 0, quest, MENU_PROMPT_LEN);
-//    LCD_WR(": ");
-//    LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
-//
-//    KBD_GET_KEY;
-//
-//    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
-//      ret = ((max_idx-1)==ret) ? 0 : ret+1;
-//    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
-//      ret = (0==ret) ? max_idx-1 : ret-1;
-//    } else if (ASCII_ENTER == KbdData) {
-//      KBD_RESET_KEY;
-//      return ret;
-//    }
-//    KBD_RESET_KEY;
-//  } while (1);
-//  assert (0);
-//}
-//
+// Not unit tested
+/* Helper routine to obtain choice from user */
+uint8_t
+menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
+{
+  uint8_t ret = 0;
+
+  do {
+    assert(ret < max_idx);
+
+    LCD_WR_LINE_N(1, 0, quest, MENU_PROMPT_LEN);
+    LCD_WR(": ");
+    LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
+
+    KBD_GET_KEY;
+
+    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+      ret = ((max_idx-1)==ret) ? 0 : ret+1;
+    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+      ret = (0==ret) ? max_idx-1 : ret-1;
+    } else if (ASCII_ENTER == KbdData) {
+      KBD_RESET_KEY;
+      return ret;
+    }
+    KBD_RESET_KEY;
+  } while (1);
+  assert (0);
+}
+
 //// Not unit tested
 ///* Set others passwd : only admin can do this */
 //void

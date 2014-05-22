@@ -69,9 +69,9 @@ typedef struct {
 
 /* EEPROM constants */
 #define EEPROM_DEVICE_SIZE      ((uint32_t)(1<<10<<6))
-#define EEPROM_NUM_DEVICES      1
+#define EEPROM_NUM_DEVICES      2
 /* 0:8-bits; 1:16-bits; 2:32-bits */
-#define EEPROM_ADDR_LSB_IGNORE  0
+#define EEPROM_ADDR_LSB_IGNORE  1
 
 /* */
 #define EEPROM_ADDR_INVALID     0xFFFF

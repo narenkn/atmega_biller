@@ -1,8 +1,8 @@
 
 #include "kbd.h"
 
-uint8_t KbdData;
-uint8_t KbdDataAvail;
+volatile uint8_t KbdData;
+volatile uint8_t KbdDataAvail;
 
 uint16_t test_key_idx = -1;
 uint8_t test_key_arr_idx = 0;
@@ -14,7 +14,7 @@ uint8_t *test_key[NUM_TEST_KEY_ARR];
 #define KBD_KEY(N)                  N
 
 /* This should be kept in sync with original kbd.c */
-__code const uint8_t keyChars[] = {
+uint8_t keyChars[] = {
   /* KCHAR_ROWS x KCHAR_COLS */
   '0', ' ', '.', ',', ')', '+', '?', '_', ':',
   '1', 'a', 'b', 'c', '!', 'A', 'B', 'C', '~',
@@ -58,7 +58,7 @@ KbdGetCh(void)
     } else
       return;
   }
-  assert(test_key_idx<=FLASH_SECTOR_SIZE);
+  assert(test_key_idx<=TEST_KEY_ARR_SIZE);
   if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) { /* completed */
     assert (((uint16_t)-1) != test_key_idx);
     KbdData = ASCII_ENTER;
