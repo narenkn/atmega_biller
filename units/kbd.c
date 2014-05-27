@@ -55,6 +55,7 @@ KbdGetCh(void)
       }
       test_key[NUM_TEST_KEY_ARR-1] = NULL;
       test_key_arr_idx--;
+      test_key_idx = 0;
     } else
       return;
   }

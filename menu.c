@@ -139,7 +139,6 @@ uint8_t menu_str1[] PROGMEM =
 /* */
 static uint8_t MenuMode = MENU_MRESET;
 
-// Not unit tested
 /* Helper routine to obtain input from user */
 void
 menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
@@ -293,7 +292,6 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     assert(0);
 }
 
-// Not unit tested
 /* Helper routine to obtain choice from user */
 uint8_t
 menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
@@ -379,21 +377,21 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //{
 //  menu_unimplemented();
 //}
-//
+
+void
+menu_Init(void)
+{
+  MenuMode = MENU_MRESET;
+
+  if (ITEM_SIZEOF > BUFSS_SIZE)
+    ERROR("item should be smaller");
+  
+  assert(1 == sizeof(uint8_t));
+  assert(sizeof(billing) <= BUFSS_SIZE);
+  assert(ITEM_SIZEOF < (1<<8));
+}
+
 //#if 0
-//void
-//menu_Init(void)
-//{
-//  MenuMode = MENU_MRESET;
-//
-//  if (ITEM_SIZEOF > BUFSS_SIZE)
-//    ERROR("item should be smaller");
-//  
-//  assert(1 == sizeof(uint8_t));
-//  assert(sizeof(billing) <= BUFSS_SIZE);
-//  assert(ITEM_SIZEOF < (1<<8));
-//}
-//
 //void
 //menu_Billing(uint8_t mode)
 //{
