@@ -1,57 +1,50 @@
-void
-error(void)
-{
+#include <stddef.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
 
-  printf("error: TWI status %#x\n", twst);
-  exit(0);
-}
+#include <assert.c>
 
-FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE);
+#include <avr/pgmspace.h>
 
-void
+#define TEST_KEY_ARR_SIZE 128
+
+#include "lcd.c"
+#include "kbd.c"
+#include "ep_store.c"
+#include "menu.c"
+
+int
 main(void)
 {
-  uint16_t a;
-  int rv;
-  uint8_t b[16];
+  uint8_t a;
+  uint8_t b[64] = "The quick brown fox jumps over the lazy dog.";
+  uint8_t c[64];
   uint8_t x;
+  time_t t;
+  uint32_t srand_t;
 
   ep_store_init();
 
-  stdout = &mystdout;
+  srand_t = time(&t);
+  srand(srand_t);
 
-  for (a = 0; a < 256;)
-    {
-      printf("%#04x: ", a);
-      rv = ee24xx_read_bytes(a, 16, b);
-      if (rv <= 0)
-	error();
-      if (rv < 16)
-	printf("warning: short read %d\n", rv);
-      a += rv;
-      for (x = 0; x < rv; x++)
-	printf("%02x ", b[x]);
-      putchar('\n');
-    }
-#define EE_WRITE(addr, str) ee24xx_write_bytes(addr, sizeof(str)-1, str)
-  rv = EE_WRITE(55, "The quick brown fox jumps over the lazy dog.");
-  if (rv < 0)
-    error();
-  printf("Wrote %d bytes.\n", rv);
-  for (a = 0; a < 256;)
-    {
-      printf("%#04x: ", a);
-      rv = ee24xx_read_bytes(a, 16, b);
-      if (rv <= 0)
-	error();
-      if (rv < 16)
-	printf("warning: short read %d\n", rv);
-      a += rv;
-      for (x = 0; x < rv; x++)
-	printf("%02x ", b[x]);
-      putchar('\n');
-    }
+  /* Test eeprom_*_byte routines */
+  for (a = 1; a; a++) {
+    eeprom_update_byte((uint8_t *)a, rand());
+  }
+  srand(srand_t);
+  for (a = 1; a; a++) {
+    x = eeprom_read_byte((uint8_t *)a);
+    assert ((rand() & 0xFF) == x);
+  }
 
-  printf("done.\n");
+  /* Test eeprom_*_block routines */
+  eeprom_update_block(b, 100, 45);
+  eeprom_read_block(c, 100, 45);
+  assert(0 == strncmp(b, c, 44));
 
+  return 0;
 }

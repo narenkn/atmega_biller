@@ -38,9 +38,9 @@ struct ep_store_layout {
   uint16_t  shop_name_len;             /*          2 */
   uint16_t  prn_header_len;            /*          2 */
   uint16_t  prn_footer_len;            /*          2 */
-  uint8_t   shop_name [SHOP_NAME_SZ];  /*         16 */ /* 204 */
-  uint8_t   prn_header[HEADER_MAX_SZ]; /*         54 */
-  uint8_t   prn_footer[FOOTER_MAX_SZ]; /*         24 */
+  uint8_t   shop_name [SHOP_NAME_SZ_MAX];  /*         16 */ /* 204 */
+  uint8_t   prn_header[HEADER_MAX_SZ_MAX]; /*         54 */
+  uint8_t   prn_footer[FOOTER_MAX_SZ_MAX]; /*         24 */
 };                                  /* Total  =  282 */
 
 /* Balanced to 64 bytes */

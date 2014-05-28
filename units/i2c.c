@@ -7,7 +7,7 @@
 uint8_t i2c_ymd[3], i2c_hm[2];
 
 #define NIBBLE_PACK(A, B) ((A<<4)|B)
-#define EPROM_SIZE (1<<12)
+#define EPROM_SIZE ((1<<12)<<2)
 uint8_t i2c_bytes[EEPROM_SIZE];
 
 void

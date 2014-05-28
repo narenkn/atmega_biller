@@ -377,20 +377,20 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //{
 //  menu_unimplemented();
 //}
-
-void
-menu_Init(void)
-{
-  MenuMode = MENU_MRESET;
-
-  if (ITEM_SIZEOF > BUFSS_SIZE)
-    ERROR("item should be smaller");
-  
-  assert(1 == sizeof(uint8_t));
-  assert(sizeof(billing) <= BUFSS_SIZE);
-  assert(ITEM_SIZEOF < (1<<8));
-}
-
+//
+//void
+//menu_Init(void)
+//{
+//  MenuMode = MENU_MRESET;
+//
+//  if (ITEM_SIZEOF > BUFSS_SIZE)
+//    ERROR("item should be smaller");
+//  
+//  assert(1 == sizeof(uint8_t));
+//  assert(sizeof(billing) <= BUFSS_SIZE);
+//  assert(ITEM_SIZEOF < (1<<8));
+//}
+//
 //#if 0
 //void
 //menu_Billing(uint8_t mode)

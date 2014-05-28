@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <util/delay.h>
 #include <util/twi.h>
+#include <avr/eeprom.h>
 
 #include "assert.h"
 #include "ep_store.h"
+
+struct ep_store_layout EEMEM ep_store;
 
 /*
  * Do all the startup-time peripheral initializations: TWI clock.
