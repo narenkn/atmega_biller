@@ -12,3 +12,4 @@ TARGETS = $(subst .c, , $(SOURCES))
 $(TARGETS):
 
 test_% : test_%.c %.c
+	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@

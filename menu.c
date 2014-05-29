@@ -6,6 +6,7 @@
 
 #define ROW_JOIN
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A) A
 #define MENU_FUNC(A)
@@ -17,6 +18,7 @@ const uint8_t *menu_names PROGMEM = MENU_ITEMS;
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
@@ -24,6 +26,7 @@ typedef void (*menu_func_t)(uint8_t mode);
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -37,11 +40,13 @@ const uint8_t menu_args[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -55,11 +60,13 @@ const uint8_t menu_prompts[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A) A
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -73,11 +80,13 @@ const uint8_t menu_mode[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN +
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A) 1
@@ -89,6 +98,7 @@ const uint8_t MENU_MAX PROGMEM = MENU_ITEMS;
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
@@ -1161,83 +1171,108 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //   */
 //  menu_unimplemented();
 //}
-//
-//#define ROW_JOIN ,
-//#define COL_JOIN
-//#define MENU_MODE(A)
-//#define MENU_NAME(A)
-//#define MENU_FUNC(A) A
-//#define ARG1(A, B)
-//#define ARG2(A, B)
-//menu_func_t menu_handlers[] = {
-//  MENU_ITEMS
-//};
-//#undef  ARG2
-//#undef  ARG1
-//#undef  MENU_FUNC
-//#undef  MENU_NAME
-//#undef  MENU_MODE
-//#undef  ROW_JOIN
-//#undef  COL_JOIN
-//
-//void
-//menu_main(void)
-//{
-//  uint8_t menu_selected;
-//
-//  /* initialize */
-//  menu_selected = 0;
-//
-//menu_main_start:
-//  assert(KBD_NOT_HIT); /* ensures kbd for user-inputs */
-//
-//  /* Check if the new assignment is mode appropriate */
-//  if ( (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) ||
-//       (menu_selected >= MENU_MAX) ) {
-//    menu_selected = 0;
-//  }
-//
-//  /* Wait until get command from user */
-//  EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
-//  LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
-//  LCD_WR_LINE_N(1, 0, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
-//
-//  KBD_GET_KEY;
-//
-//  if (ASCII_ENTER == KbdData) {
-//    KBD_RESET_KEY;
-//    arg1.valid = MENU_ITEM_NONE;
-//    LCD_CLRSCR;
-//    menu_getopt(menu_prompt_str+((menu_prompts[menu_selected<<1])<<2), &arg1, menu_args[(menu_selected<<1)]);
-//    assert (KBD_HIT);
-//    KBD_RESET_KEY;
-//    arg2.valid = MENU_ITEM_NONE;
-//    LCD_CLRSCR;
-//    menu_getopt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])<<2), &arg2, menu_args[((menu_selected<<1)+1)]);
-//    (menu_handlers[menu_selected])(menu_mode[menu_selected]);
-//  } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
-//    menu_selected = (0 == menu_selected) ? MENU_MAX : menu_selected-1;
-//  } else if ((ASCII_RIGHT == KbdData) || (ASCII_UP == KbdData)) {
-//    menu_selected = (menu_selected >= (MENU_MAX-1)) ? 0 : menu_selected+1;
-//  } else if (ASCII_PRNSCRN == KbdData) {
-//    /* FIXME : Would this occur? */
-//  } else if ((KbdData >= '0') && (KbdData <= '9')) {
-//    /* could be hotkey for menu */
-//    menu_selected *= 10;
-//    menu_selected += KbdData-'0';
-//    /* handle out of bounds */
-//    if (menu_selected >= MENU_MAX)
-//      menu_selected = KbdData-'0';
-//  }
-//
-//  /* Clear Key press */
-//  assert (KBD_HIT);
-//  KBD_RESET_KEY;
-//
-//  /* Forever stuck in this maze.. can't ever get out */
-//  goto menu_main_start;
-//}
-//
+
+#define ROW_JOIN ,
+#define COL_JOIN
+#define MENU_HIER(A)
+#define MENU_MODE(A)
+#define MENU_NAME(A)
+#define MENU_FUNC(A) A
+#define ARG1(A, B)
+#define ARG2(A, B)
+menu_func_t menu_handlers[] = {
+  MENU_ITEMS
+};
+#undef  ARG2
+#undef  ARG1
+#undef  MENU_FUNC
+#undef  MENU_NAME
+#undef  MENU_MODE
+#undef  MENU_HIER
+#undef  ROW_JOIN
+#undef  COL_JOIN
+
+#define ROW_JOIN ,
+#define COL_JOIN
+#define MENU_HIER(A) A
+#define MENU_MODE(A)
+#define MENU_NAME(A)
+#define MENU_FUNC(A)
+#define ARG1(A, B)
+#define ARG2(A, B)
+menu_func_t menu_hier[] = {
+  MENU_ITEMS
+};
+#undef  ARG2
+#undef  ARG1
+#undef  MENU_FUNC
+#undef  MENU_NAME
+#undef  MENU_MODE
+#undef  MENU_HIER
+#undef  ROW_JOIN
+#undef  COL_JOIN
+
+void
+menu_main(void)
+{
+  uint8_t menu_selected, menu_hier;
+
+  /* initialize */
+  menu_selected = 0;
+  menu_hier = 0;
+
+menu_main_start:
+  assert(KBD_NOT_HIT); /* ensures kbd for user-inputs */
+
+  /* First select a Menu */
+
+  /* Check if the new assignment is mode appropriate */
+  if ( (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) ||
+       (menu_selected >= MENU_MAX) ) {
+    menu_selected = 0;
+  }
+
+  /* Wait until get command from user */
+  EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
+  LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
+  LCD_WR_LINE_N(1, 0, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
+
+  KBD_GET_KEY;
+
+  if (ASCII_ENTER == KbdData) {
+    KBD_RESET_KEY;
+    arg1.valid = MENU_ITEM_NONE;
+    LCD_CLRSCR;
+    menu_getopt(menu_prompt_str+((menu_prompts[menu_selected<<1])<<2), &arg1, menu_args[(menu_selected<<1)]);
+    assert (KBD_HIT);
+    KBD_RESET_KEY;
+    arg2.valid = MENU_ITEM_NONE;
+    LCD_CLRSCR;
+    menu_getopt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])<<2), &arg2, menu_args[((menu_selected<<1)+1)]);
+    (menu_handlers[menu_selected])(menu_mode[menu_selected]);
+  } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+    menu_selected = (0 == menu_selected) ? MENU_MAX : menu_selected-1;
+  } else if ((ASCII_RIGHT == KbdData) || (ASCII_UP == KbdData)) {
+    menu_selected = (menu_selected >= (MENU_MAX-1)) ? 0 : menu_selected+1;
+  } else if (ASCII_PRNSCRN == KbdData) {
+    /* FIXME : Would this occur? */
+  } else if ((KbdData >= '0') && (KbdData <= '9')) {
+    /* could be hotkey for menu */
+    menu_selected *= 10;
+    menu_selected += KbdData-'0';
+    /* handle out of bounds */
+    if (menu_selected >= MENU_MAX)
+      menu_selected = KbdData-'0';
+  }
+
+  /* Clear Key press */
+  assert (KBD_HIT);
+  KBD_RESET_KEY;
+
+  /* Forever stuck in this maze.. can't ever get out */
+  goto menu_main_start;
+}
+
 ///* Sales are easily accessable from table */
 //void
 //menu_sale_add(uint8_t *sale)
