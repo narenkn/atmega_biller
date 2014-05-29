@@ -2,7 +2,7 @@
 /* Foolproof FatFs sample project for AVR              (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 #include "ffconf.h"
-#include "ff.c"
+#include "../ff.c"
 #include "mmc_avr.c"
 
 FATFS FatFs1;
