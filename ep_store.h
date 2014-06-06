@@ -20,7 +20,7 @@ struct ep_store_layout {
   /* Sale options */
   uint8_t   denomination_text[20];     /*         20 */ /* 42 */
   uint16_t  round_off;                 /*          2 */
-  /* bits [31:4] : Unused
+  /* bits [15:4] : Unused
      bits [3:0] : Printing
        value 0b0000 : don't ask, 0b00xx : copies without confirmation,
        0b01xx : confirm before print xx copies
@@ -41,7 +41,7 @@ struct ep_store_layout {
   uint8_t   shop_name [SHOP_NAME_SZ_MAX];  /*         16 */ /* 204 */
   uint8_t   prn_header[HEADER_MAX_SZ_MAX]; /*         54 */
   uint8_t   prn_footer[FOOTER_MAX_SZ_MAX]; /*         24 */
-};                                  /* Total  =  282 */
+} __attribute__((packed));              /* Total  =  282 */
 
 /* Balanced to 64 bytes */
 #define ITEM_NAME_BYTEL        12
@@ -64,7 +64,7 @@ typedef struct {
   uint8_t   name_in_unicode:1;               /*  1 */
   uint8_t   is_biller_item:1;
   uint8_t   unused:6;
-} item;                         /* Total     :  64 */
+} __attribute__((packed)) item; /* Total     :  64 */
 #define ITEM_SIZEOF sizeof(item)
 
 /* EEPROM constants */

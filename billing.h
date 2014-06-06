@@ -13,7 +13,7 @@ typedef struct {
   uint8_t    has_cess1:1;
   uint8_t    has_cess2:1;
   uint8_t    vat_sel:3;
-} sale_item; /* 10 bytes */
+} __attribute__((packed)) sale_item; /* 10 bytes */
 
 /* 3 bytes */
 #define  SALE_INFO_ITEMS_NBITS    5
@@ -31,7 +31,7 @@ typedef struct {
   uint16_t  time_hh:5;
   uint16_t  time_mm:6;
   uint16_t  time_ss:5;
-} sale_info;  /* 6 bytes */
+} __attribute__((packed)) sale_info;  /* 6 bytes */
 #define SALE_INFO_BYTE_NITEM_MASK   0xF0
 #define SALE_INFO_BYTE_NITEM_SHIFT  4
 
@@ -47,7 +47,7 @@ typedef struct {
   uint32_t  cess2_total;                 /*           4 */
   uint32_t  final_discount;              /*           4 */
   uint32_t  final_total;                 /*           4 */
-} sale;                                  /* Tot   = 350 */
+} __attribute__((packed)) sale;                                  /* Tot   = 350 */
 
 /* constants */
 #define SALE_INFO_SIZEOF  sizeof(sale_info)
