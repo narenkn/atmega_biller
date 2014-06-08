@@ -448,7 +448,6 @@ Lcd_Init(void)
   LCD_refresh();
 
   sendCMD(0xCB);  
-  return;
   WRITE_DATA(0x39); 
   WRITE_DATA(0x2C); 
   WRITE_DATA(0x00); 
@@ -808,9 +807,9 @@ main()
   uint8_t ui1;
 
   _delay_ms(1000);
-  spi_init(); 
   DDRB |=  (1<<4) | (1<<5) | (1<<7);
   DDRB &=  ~(1<<6);
+  spi_init(); 
   TFT_BL_ON;
   _delay_ms(1000);
 
@@ -818,6 +817,7 @@ main()
   _delay_ms(1000);
   LCD_WR_LINE(0, 0, "Starting...");
   LCD_refresh();
+  _delay_ms(1000);
 
   LCD_WR_LINE(1, 0, "Step 0");
   LCD_refresh();
@@ -833,7 +833,7 @@ main()
   LCD_WR_LINE(1, 0, "Step 3");
   LCD_refresh();
 
-  for (ui1=0; ;ui1++) {
+//  for (ui1=0; ;ui1++) {
     LCD_WR_LINE(0, 0, "Loop ");
     LCD_PUT_UINT8X(ui1);
     LCD_refresh();
@@ -843,7 +843,7 @@ main()
     BACK_COLOR=BLACK;;POINT_COLOR=WHITE; 
     showimage(); //
     _delay_ms(2000);
-  }
+//  }
 
   return 0;
 }

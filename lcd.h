@@ -1,7 +1,7 @@
 #ifndef LCD__H
 #define LCD__H
 
-#define LCD_MAX_ROW            2
+#define LCD_MAX_ROW           10
 #define LCD_MAX_COL           16
 
 #if 8 == LCD_DPORT_SIZE
