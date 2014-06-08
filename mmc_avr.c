@@ -7,8 +7,8 @@
 
 
 /* Port controls  (Platform dependent) */
-#define CS_LOW()	PORTB &= ~((0 = mmc_sdid) ? 0x10 : 0x2)			/* CS=low */
-#define	CS_HIGH()	PORTB |= ((0 = mmc_sdid) ? 0x10 : 0x2)			/* CS=high */
+#define CS_LOW()	PORTB &= ~((0==mmc_sdid) ? 0x10 : 0x2)			/* CS=low */
+#define	CS_HIGH()	PORTB |= ((0==mmc_sdid) ? 0x10 : 0x2)			/* CS=high */
 #define SOCKINS		(1)	/* Card detected.   yes:true, no:false, default:true */
 #define SOCKWP		(0)		/* Write protected. yes:true, no:false, default:false */
 #define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (F_CPU / 64) */
