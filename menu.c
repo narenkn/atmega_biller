@@ -1,22 +1,12 @@
 #include <stdint.h>
-#include <avr/io.h>
 #include <stdlib.h>
-#include <util/delay.h>
-#include <util/twi.h>
+#include <avr/pgmspace.h>
 
-#include "assert.h"
-#include "billing.h"
-#include "ep_store.h"
-#include "i2c.h"
-#include "lcd.h"
-#include "flash.h"
-#include "kbd.h"
-#include "main.h"
-#include "printer.h"
 #include "menu.h"
 
 #define ROW_JOIN
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A) A
 #define MENU_FUNC(A)
@@ -28,6 +18,7 @@ const uint8_t *menu_names PROGMEM = MENU_ITEMS;
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
@@ -35,6 +26,7 @@ typedef void (*menu_func_t)(uint8_t mode);
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -48,11 +40,13 @@ const uint8_t menu_args[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -66,11 +60,13 @@ const uint8_t menu_prompts[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN ,
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A) A
 #define MENU_NAME(A)
 #define MENU_FUNC(A)
@@ -84,11 +80,13 @@ const uint8_t menu_mode[] PROGMEM = {
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
 #define ROW_JOIN +
 #define COL_JOIN
+#define MENU_HIER(A)
 #define MENU_MODE(A)
 #define MENU_NAME(A)
 #define MENU_FUNC(A) 1
@@ -100,12 +98,12 @@ const uint8_t MENU_MAX PROGMEM = MENU_ITEMS;
 #undef  MENU_FUNC
 #undef  MENU_NAME
 #undef  MENU_MODE
+#undef  MENU_HIER
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
-uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
-
-menu_arg_t arg1, arg2;
+static uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
+static menu_arg_t arg1, arg2;
 uint8_t bufSS[BUFSS_SIZE];
 uint8_t    menu_error;
 
@@ -151,7 +149,6 @@ uint8_t menu_str1[] PROGMEM =
 /* */
 static uint8_t MenuMode = MENU_MRESET;
 
-// Not unit tested
 /* Helper routine to obtain input from user */
 void
 menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
@@ -305,35 +302,34 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     assert(0);
 }
 
-//// Not unit tested
-///* Helper routine to obtain choice from user */
-//uint8_t
-//menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
-//{
-//  uint8_t ret = 0;
-//
-//  do {
-//    assert(ret < max_idx);
-//
-//    LCD_WR_LINE_N(1, 0, quest, MENU_PROMPT_LEN);
-//    LCD_WR(": ");
-//    LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
-//
-//    KBD_GET_KEY;
-//
-//    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
-//      ret = ((max_idx-1)==ret) ? 0 : ret+1;
-//    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
-//      ret = (0==ret) ? max_idx-1 : ret-1;
-//    } else if (ASCII_ENTER == KbdData) {
-//      KBD_RESET_KEY;
-//      return ret;
-//    }
-//    KBD_RESET_KEY;
-//  } while (1);
-//  assert (0);
-//}
-//
+/* Helper routine to obtain choice from user */
+uint8_t
+menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
+{
+  uint8_t ret = 0;
+
+  do {
+    assert(ret < max_idx);
+
+    LCD_WR_LINE_N(1, 0, quest, MENU_PROMPT_LEN);
+    LCD_WR(": ");
+    LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
+
+    KBD_GET_KEY;
+
+    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+      ret = ((max_idx-1)==ret) ? 0 : ret+1;
+    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+      ret = (0==ret) ? max_idx-1 : ret-1;
+    } else if (ASCII_ENTER == KbdData) {
+      KBD_RESET_KEY;
+      return ret;
+    }
+    KBD_RESET_KEY;
+  } while (1);
+  assert (0);
+}
+
 //// Not unit tested
 ///* Set others passwd : only admin can do this */
 //void
@@ -392,7 +388,6 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 //  menu_unimplemented();
 //}
 //
-//#if 0
 //void
 //menu_Init(void)
 //{
@@ -406,6 +401,7 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 //  assert(ITEM_SIZEOF < (1<<8));
 //}
 //
+//#if 0
 //void
 //menu_Billing(uint8_t mode)
 //{
@@ -1175,35 +1171,65 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 //   */
 //  menu_unimplemented();
 //}
-//
-//#define ROW_JOIN ,
-//#define COL_JOIN
-//#define MENU_MODE(A)
-//#define MENU_NAME(A)
-//#define MENU_FUNC(A) A
-//#define ARG1(A, B)
-//#define ARG2(A, B)
-//menu_func_t menu_handlers[] = {
-//  MENU_ITEMS
-//};
-//#undef  ARG2
-//#undef  ARG1
-//#undef  MENU_FUNC
-//#undef  MENU_NAME
-//#undef  MENU_MODE
-//#undef  ROW_JOIN
-//#undef  COL_JOIN
-//
+
+#define ROW_JOIN ,
+#define COL_JOIN
+#define MENU_HIER(A)
+#define MENU_MODE(A)
+#define MENU_NAME(A)
+#define MENU_FUNC(A) A
+#define ARG1(A, B)
+#define ARG2(A, B)
+menu_func_t menu_handlers[] PROGMEM = {
+  MENU_ITEMS
+};
+#undef  ARG2
+#undef  ARG1
+#undef  MENU_FUNC
+#undef  MENU_NAME
+#undef  MENU_MODE
+#undef  MENU_HIER
+#undef  ROW_JOIN
+#undef  COL_JOIN
+
+#define ROW_JOIN ,
+#define COL_JOIN
+#define MENU_HIER(A) A
+#define MENU_MODE(A)
+#define MENU_NAME(A)
+#define MENU_FUNC(A)
+#define ARG1(A, B)
+#define ARG2(A, B)
+menu_func_t menu_hier[] PROGMEM = {
+  MENU_ITEMS
+};
+#undef  ARG2
+#undef  ARG1
+#undef  MENU_FUNC
+#undef  MENU_NAME
+#undef  MENU_MODE
+#undef  MENU_HIER
+#undef  ROW_JOIN
+#undef  COL_JOIN
+
 //void
 //menu_main(void)
 //{
-//  uint8_t menu_selected;
+//  uint8_t menu_selected, menu_hier;
 //
 //  /* initialize */
 //  menu_selected = 0;
+//  menu_hier = 0;
 //
 //menu_main_start:
 //  assert(KBD_NOT_HIT); /* ensures kbd for user-inputs */
+//
+//  /* First select a Menu */
+//  if (0 == menu_hier) {
+//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
+//    LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
+//    LCD_WR_LINE_N(1, 0, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
+//  }
 //
 //  /* Check if the new assignment is mode appropriate */
 //  if ( (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) ||

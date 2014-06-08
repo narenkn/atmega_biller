@@ -2,7 +2,7 @@
 /* Foolproof FatFs sample project for AVR              (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 #include "ffconf.h"
-#include "ff.c"
+#include "../ff.c"
 #include "mmc_avr.c"
 
 FATFS FatFs1;
@@ -16,7 +16,6 @@ int main (void)
   change_sd(0);
   f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
   f_mkfs("", 0, SD_SECTOR_SIZE);
-
   if (f_open(&Fil, "newfile.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
 
     f_write(&Fil, "It works!", 10, &bw);	/* Write data to the file */
@@ -28,7 +27,6 @@ int main (void)
   change_sd(1);
   f_mount(&FatFs1, "", 0);
   f_mkfs("", 0, SD_SECTOR_SIZE);
-
   if (f_open(&Fil, "newfile.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
 
     f_write(&Fil, "It works.. in another drive too...!", 37, &bw);	/* Write data to the file */

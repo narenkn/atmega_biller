@@ -1,13 +1,9 @@
 #include "i2c.h"
 
-#ifndef UNIT_TEST
-#error  "This file should not be used in non-Unit test mode"
-#endif
-
 uint8_t i2c_ymd[3], i2c_hm[2];
 
 #define NIBBLE_PACK(A, B) ((A<<4)|B)
-#define EPROM_SIZE (1<<12)
+#define EEPROM_SIZE ((1<<12)<<2)
 uint8_t i2c_bytes[EEPROM_SIZE];
 
 void
@@ -37,14 +33,14 @@ i2c_repeatStart(void)
 }
 
 uint8_t
-i2c_sendAddress(uint8_t)
+i2c_sendAddress(uint8_t address)
 {
   assert(0);
   return 0;
 }
 
 uint8_t
-i2c_sendData(uint8_t)
+i2c_sendData(uint8_t address)
 {
   assert(0);
   return 0;
@@ -68,7 +64,6 @@ void
 i2c_stop(void)
 {
   assert(0);
-  return 0;
 }
 
 #define ee24xx_write_page ee24xx_write_bytes
@@ -101,6 +96,11 @@ ee24xx_read_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 
   return num_bytes;
 }
+
+#undef timerDateSet
+#undef timerDateGet
+#undef timerTimeSet
+#undef timerTimeGet
 
 void
 timerDateSet(uint8_t year, uint8_t month, uint8_t date)

@@ -3,40 +3,19 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <assert.h>
 #include <stdlib.h>
 
-#define __code
-#define __idata
-#define __pdata
-#define __sbit  uint8_t
+#include <avr/pgmspace.h>
 
+#define assert(...)
 #define ERROR(msg) fprintf(stderr, msg)
+#define TEST_KEY_ARR_SIZE 128
 
-#include "assert.h"
-#include "billing.h"
-#include "crc.h"
-#include "lcd.h"
-#include "kbd.h"
-#include "i2c.h"
-#include "uart.h"
-#include "flash.h"
-#include "ep_store.h"
-#include "printer.h"
-#include "menu.h"
-
-#include "assert.c"
-#include "crc.c"
 #include "lcd.c"
 #include "kbd.c"
-#include "i2c.c"
-#include "uart.c"
-#include "flash.c"
-#include "ep_store.c"
-#include "printer.c"
 #include "menu.c"
 
-uint8_t inp[NUM_TEST_KEY_ARR][FLASH_SECTOR_SIZE];
+uint8_t inp[TEST_KEY_ARR_SIZE];
 
 /* Convert a int to string */
 void

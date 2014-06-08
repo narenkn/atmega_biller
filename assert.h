@@ -16,6 +16,7 @@ void expect_else_assert(const char *s, const char *f, const uint32_t l);
 
 #else
 
+/* Production Code: take care of exporting assertions */
 #if 0
 #define assert(X)			       \
   if (!(X)) {				       \

@@ -12,13 +12,17 @@ main_init(void)
   DDRD &= ~((1<<PD2)|(1<<PD3));
 //  PORTD |= (1<<PD2) | (1<<PD3);
 
-  /* Enable Int0 on falling edge */
+  /* PS2 : Int0 falling edge */
   GICR = 1<<INT0;
   MCUCR |= 1<<ISC01 | 0<<ISC00;
 
   /* For Fat32 */
   DDRB  |= 0xB2;
   PORTB |= 0xF2;
+
+  /* For Buzzer */
+  DDRD |= 0x80;
+  BUZZER_OFF;
 
   /* Enable Global Interrupts */
   sei();

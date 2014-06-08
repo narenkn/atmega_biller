@@ -15,12 +15,13 @@
 #include "uart.h"
 
 //**************************************************
-//UART0 initialize
+//UART initialize
 //baud rate: 19200  (for controller clock = 8MHz)
 //char size: 8 bit
 //parity: Disabled
 //**************************************************
-void uart0_init(void)
+void
+uart_init(void)
 {
 #if 1
   UCSRB = 0x00; //disable while setting baud rate
@@ -51,12 +52,23 @@ void uart0_init(void)
   UBRRH = ui1 >> 8;
   UCSRB = _BV(TXEN);		/* tx enable */
 #endif
+
+  /* For UART select */
+  DDRD |= (3<<5);
+  PORTD &= ~(3<<5);
+}
+
+void
+uart_select(uint8_t uid)
+{
+  PORTD |= (uid & 3) << 5;
 }
 
 //**************************************************
 //Function to receive a single byte
 //*************************************************
-uint8_t receiveByte( void )
+uint8_t
+uart_receiveByte( void )
 {
   uint8_t data, status;
 	
@@ -71,7 +83,8 @@ uint8_t receiveByte( void )
 //***************************************************
 //Function to transmit a single byte
 //***************************************************
-void transmitByte( uint8_t data )
+void
+uart_transmitByte( uint8_t data )
 {
   while ( !(UCSRA & (1<<UDRE)) )
     ; 			                /* Wait for empty transmit buffer */
@@ -84,7 +97,8 @@ void transmitByte( uint8_t data )
 //first argument indicates type: CHAR, INT or LONG
 //Second argument is the data to be displayed
 //***************************************************
-void transmitHex( uint8_t dataType, unsigned long data )
+void
+uart_transmitHex( uint8_t dataType, unsigned long data )
 {
   uint8_t count, i, temp;
   uint8_t dataString[] = "0x        ";
@@ -108,7 +122,8 @@ void transmitHex( uint8_t dataType, unsigned long data )
 //***************************************************
 //Function to transmit a string in Flash
 //***************************************************
-void transmitString_F(uint8_t* string)
+void
+uart_transmitString_F(uint8_t* string)
 {
   while (pgm_read_byte(&(*string)))
     transmitByte(pgm_read_byte(&(*string++)));
@@ -117,7 +132,8 @@ void transmitString_F(uint8_t* string)
 //***************************************************
 //Function to transmit a string in RAM
 //***************************************************
-void transmitString(uint8_t* string)
+void
+uart_transmitString(uint8_t* string)
 {
   while (*string)
     transmitByte(*string++);
