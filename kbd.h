@@ -40,16 +40,17 @@
 #define ASCII_UP         0xA6
 #define ASCII_DOWN       0xA7
 
-#define KBD_GET_KEY	  \
-  KbdGetCh()
-
 #define KBD_RESET_KEY          \
   KbdDataAvail = 0 ; KbdData = 0xFF
 
-#define KBD_GETCH(val)				\
+#ifndef UNIT_TEST
+# define KBD_GETCH				\
   while (0 == KbdDataAvail) {			\
     SLEEP_UNTIL_NEXT_INTR;			\
-  }
+  } do {} while (0) /* consume the next ; */
+#else
+# define KBD_GETCH KbdGetCh()
+#endif
 
 #define KBD_HIT      (0x0 != KbdDataAvail)
 #define KBD_NOT_HIT  (0x0 == KbdDataAvail)

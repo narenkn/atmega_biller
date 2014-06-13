@@ -11,5 +11,5 @@ TARGETS = $(subst .c, , $(SOURCES))
 
 $(TARGETS):
 
-test_% : test_%.c %.c
+test_% : test_%.c
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@

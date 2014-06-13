@@ -89,6 +89,7 @@ typedef struct {
 #define MENU_HIER_BILLING    1
 #define MENU_HIER_SETTINGS   2
 #define MENU_HIER_HISTORY    3
+#define MENU_HIER_MAX        3
 #define MENU_HIER_NAME_SIZE  7
 #define MENU_HIER_NAMES      "Billing" \
                              "Setting" \
@@ -169,7 +170,7 @@ extern uint8_t bufSS[BUFSS_SIZE];
 /* Helper routines */
 void menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
 uint8_t menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx);
-//void menu_Header(uint8_t mode);
+void menu_Header(uint8_t mode);
 //void menu_sale_add(uint8_t *sale);
 //void menu_sale_delete_month(uint8_t del_month);
 //uint16_t menu_sale_find(uint8_t *dmy, uint16_t id);
@@ -193,23 +194,27 @@ void menu_ShowBill(uint8_t mode);
 /* User option routines */
 //void menu_PrnHeader(void);
 //void menu_PrnFooter(void);
-//void menu_ModVat(uint8_t mode);
-//void menu_SetServTax(uint8_t mode);
-//void menu_SetDateTime(uint8_t mode);
+void menu_ModVat(uint8_t mode);
+void menu_SetServTax(uint8_t mode);
+void menu_SetDateTime(uint8_t mode);
 
 /* Report routines */
 //void menu_PrnFullBill(billing *bp);
-//void menu_BillReports(uint8_t mode);
+void menu_BillReports(uint8_t mode);
 //void menu_PrnItemBill(billing *bp);
 //void menu_PrnItemBillFooter(void);
 //void menu_PrnAllBill(billing *bp);
 //void menu_PrnTaxReport(billing *bp);
 //void menu_PrnTaxReportFooter(billing *bp);
-//void menu_DelAllBill(uint8_t mode);
+void menu_DelAllBill(uint8_t mode);
+
+/* SD routines */
+void menu_SDLoadItem(uint8_t mode);
+void menu_SDSaveItem(uint8_t mode);
 
 /* Other routines */
-//void menu_RunDiag(uint8_t mode);
-//void menu_main(void);
+void menu_RunDiag(uint8_t mode);
+void menu_main(void);
 
 #define menu_item_find(id) ((id<ITEM_MAX) ? (ITEM_SIZEOF*id): EEPROM_ADDR_INVALID)
 
