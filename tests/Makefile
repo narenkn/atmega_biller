@@ -14,7 +14,7 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DERROR\(...\)=
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON) $(CLINE_ARG)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=1000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -74,7 +74,7 @@ size: $(TARGET).elf
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf *.o *.elf dep/* *.hex *.eep *.lss *.map
+	-rm -rf *.o *.elf dep/* *.hex *.eep *.lss *.map *~
 
 
 ## Other dependencies

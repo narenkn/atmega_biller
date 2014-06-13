@@ -1,14 +1,3 @@
-//**************************************************************
-// ****** FUNCTIONS FOR SPI COMMUNICATION *******
-//**************************************************************
-//Controller		: ATmega32 (Clock: 8 Mhz-internal)
-//Compiler			: AVR-GCC (winAVR with AVRStudio-4)
-//Project Version	: DL_1.0
-//Author			: CC Dharmani, Chennai (India)
-//			  		  www.dharmanitech.com
-//Date				: 10 May 2011
-//**************************************************************
-
 #include <stdint.h>
 #include <avr/io.h>
 #include "spi.h"
@@ -18,17 +7,22 @@
 void
 spi_init(void)
 {
-  SPCR = 0x52; //setup SPI: Master mode, MSB first, SCK phase low, SCK idle low
+  DDRB |=  (1<<0) | (1<<1) | (1<<3) | (1<<4) | (1<<5) | (1<<7);
+  DDRB &=  ~(1<<6);
+
+  /* setup SPI: Master mode, MSB first,
+     SCK phase low, SCK idle low */
+  SPCR = 0x50;
   SPSR = 0x00;
 }
 
 uint8_t
 SPI_transmit(uint8_t data)
 {
-  // Start transmission
+  /* Start transmission */
   SPDR = data;
 
-  // Wait for transmission complete
+  /* Wait for transmission complete */
   while(!(SPSR & (1<<SPIF)));
   data = SPDR;
 
@@ -39,12 +33,12 @@ uint8_t
 SPI_receive(void)
 {
   uint8_t data;
-  // Wait for reception complete
+  /* Wait for reception complete */
 
   SPDR = 0xff;
   while(!(SPSR & (1<<SPIF)));
   data = SPDR;
 
-  // Return data register
+  /* Return data register */
   return data;
 }
