@@ -53,7 +53,7 @@ BYTE Timer1, Timer2;	/* 100Hz decrement timer */
 static
 BYTE CardType;			/* Card type flags */
 
-BYTE mmc_sdid = 0;
+BYTE mmc_sdid = 1;
 
 /*-----------------------------------------------------------------------*/
 /* Power Control  (Platform dependent)                                   */

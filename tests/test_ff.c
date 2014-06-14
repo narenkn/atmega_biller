@@ -26,8 +26,8 @@ main(void)
   _delay_ms(1000);
   LCD_init();
 
-  DDRB  |= 0xB0;
-  PORTB |= 0xF0;
+  DDRB  |= 0xB2;
+  PORTB |= 0xF2;
 
   LCD_bl_on;
   LCD_WR_LINE(0, 0, "Fat32 Testing:");
@@ -45,7 +45,7 @@ main(void)
   if (f_open(&Fil, "hw.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     LCD_WR_LINE(1, 0, "File hw.txt o");
     LCD_refresh();
-    f_write(&Fil, "Hello World!\r\n", 14, &bw);	/* Write data to the file */
+    f_write(&Fil, "Hello World1!\r\n", 15, &bw);	/* Write data to the file */
     f_close(&Fil);				/* Close the file */
     LCD_WR_LINE(1, 0, "File hw.txt pass");
     LCD_refresh();
