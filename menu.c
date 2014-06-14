@@ -182,7 +182,7 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* Get a string */
   do {
-    KBD_GET_KEY;
+    KBD_GETCH;
 
     /* Don't overflow buffer */
     if (col_id > 15) col_id = 15;
@@ -241,7 +241,7 @@ menu_getopt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 	  lbp++;
 	}
 	if ((0 == val) || (val > 31)) menu_error++;
-	arg->value.date.date = val;
+	arg->value.date.day = val;
       }
       /* Month */
       val = 0;
@@ -315,7 +315,7 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
     LCD_WR(": ");
     LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
 
-    KBD_GET_KEY;
+    KBD_GETCH;
 
     if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
       ret = ((max_idx-1)==ret) ? 0 : ret+1;
@@ -401,7 +401,6 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  assert(ITEM_SIZEOF < (1<<8));
 //}
 //
-//#if 0
 //void
 //menu_Billing(uint8_t mode)
 //{
@@ -504,7 +503,7 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  bp = (billing *)bufSS;
 //  do {
 //    /* retrieve & display bill */
-//    KBD_GET_KEY;
+//    KBD_GETCH;
 //
 //    if (ASCII_PRNSCRN == KbdData) {
 //      mode &= MENU_MODEMASK;
@@ -768,10 +767,10 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  ui1--;
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.item_count), (uint8_t *)&ui1, sizeof(uint16_t));
 //}
-//
-//void
-//menu_BillReports(uint8_t mode)
-//{
+
+void
+menu_BillReports(uint8_t mode)
+{
 //  uint16_t ui1, next_record;
 //  uint8_t ui3, ui4, ui5;
 //  billing *bp = (void *)bufSS;
@@ -845,7 +844,8 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //    menu_PrnFooter();
 //  else if ((MENU_MDAYTAX == ui3) || (MENU_MMONTAX == ui3))
 //    menu_PrnTaxReportFooter(bp);
-//}
+  menu_unimplemented();
+}
 //
 //void
 //menu_unimplemented(void)
@@ -1023,10 +1023,10 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  printer_prn_uint16(bp->ui11);
 //  printer_prn_uint16(bp->ui13);
 //}
-//
-//void
-//menu_ModVat(uint8_t mode)
-//{
+
+void
+menu_ModVat(uint8_t mode)
+{
 //  uint16_t ui1; /* FIXME: ui1 should be of 32 bits */
 //  uint8_t  ui2, ui3, choice[MENU_PROMPT_LEN*4];
 //
@@ -1047,11 +1047,12 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  ui1 <<= 16;
 //  ui1 |= arg1.value.integer.i16;
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.vat[ui3]), (uint8_t *)&ui1, sizeof(uint16_t));
-//}
-//
-//void
-//menu_Header(uint8_t mode)
-//{
+  menu_unimplemented();
+}
+
+void
+menu_Header(uint8_t mode)
+{
 //  uint8_t chars = 0, ui2, ui3;
 //  uint8_t mode_max = ((mode&(~MENU_MODEMASK)) == MENU_MFOOTER) ? FOOTER_MAX_SZ : HEADER_MAX_SZ;
 //
@@ -1091,11 +1092,12 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //      EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.prn_header[0]), (uint8_t *)bufSS, sizeof(uint8_t)*chars);
 //    }
 //  }
-//}
-//
-//void
-//menu_DelAllBill(uint8_t mode)
-//{
+  menu_unimplemented();
+}
+
+void
+menu_DelAllBill(uint8_t mode)
+{
 //  uint16_t ui1 = 0;
 //  uint8_t  ui2;
 //
@@ -1113,11 +1115,12 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_start), (uint8_t *)&ui1, sizeof(uint16_t));
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_end), (uint8_t *)&ui1, sizeof(uint16_t));
 //  FlashEraseSector(ui1);
-//}
-//
-//void
-//menu_SetServTax(uint8_t mode)
-//{
+  menu_unimplemented();
+}
+
+void
+menu_SetServTax(uint8_t mode)
+{
 //  uint16_t ui1; /* FIXME: ui1 should be of 32 bits */
 //
 //  if (MENU_ITEM_NONE == arg1.valid)
@@ -1127,11 +1130,11 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  ui1 <<= 16;
 //  ui1 |= arg1.value.integer.i16;
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.service_tax), (uint8_t *)&ui1, sizeof(uint16_t));
-//}
-//
-//void
-//menu_SetDateTime(uint8_t mode)
-//{
+}
+
+void
+menu_SetDateTime(uint8_t mode)
+{
 //  uint16_t ui1 = 0;
 //  uint8_t ymd[3];
 //
@@ -1146,11 +1149,12 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //    return;
 //
 //  menu_DelAllBill(mode);
-//}
-//
-//void
-//menu_RunDiag(uint8_t mode)
-//{
+  menu_unimplemented();
+}
+
+void
+menu_RunDiag(uint8_t mode)
+{
 //  uint8_t  ui2, ui3, ui4;
 //
 //  /* Run LCD
@@ -1169,8 +1173,8 @@ menu_getchoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
 //  */
 //  /* Verify Keypad : Ask user to press a key and display it
 //   */
-//  menu_unimplemented();
-//}
+  menu_unimplemented();
+}
 
 #define ROW_JOIN ,
 #define COL_JOIN
@@ -1200,9 +1204,9 @@ menu_func_t menu_handlers[] PROGMEM = {
 #define MENU_FUNC(A)
 #define ARG1(A, B)
 #define ARG2(A, B)
-menu_func_t menu_hier[] PROGMEM = {
+const uint8_t *menu_hier PROGMEM =
   MENU_ITEMS
-};
+;
 #undef  ARG2
 #undef  ARG1
 #undef  MENU_FUNC
@@ -1212,72 +1216,107 @@ menu_func_t menu_hier[] PROGMEM = {
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
-//void
-//menu_main(void)
-//{
-//  uint8_t menu_selected, menu_hier;
-//
-//  /* initialize */
-//  menu_selected = 0;
-//  menu_hier = 0;
-//
-//menu_main_start:
-//  assert(KBD_NOT_HIT); /* ensures kbd for user-inputs */
-//
-//  /* First select a Menu */
-//  if (0 == menu_hier) {
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
-//    LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
-//    LCD_WR_LINE_N(1, 0, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
-//  }
-//
-//  /* Check if the new assignment is mode appropriate */
-//  if ( (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) ||
-//       (menu_selected >= MENU_MAX) ) {
-//    menu_selected = 0;
-//  }
-//
-//  /* Wait until get command from user */
-//  EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
-//  LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
-//  LCD_WR_LINE_N(1, 0, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
-//
-//  KBD_GET_KEY;
-//
-//  if (ASCII_ENTER == KbdData) {
-//    KBD_RESET_KEY;
-//    arg1.valid = MENU_ITEM_NONE;
-//    LCD_CLRSCR;
-//    menu_getopt(menu_prompt_str+((menu_prompts[menu_selected<<1])<<2), &arg1, menu_args[(menu_selected<<1)]);
-//    assert (KBD_HIT);
-//    KBD_RESET_KEY;
-//    arg2.valid = MENU_ITEM_NONE;
-//    LCD_CLRSCR;
-//    menu_getopt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])<<2), &arg2, menu_args[((menu_selected<<1)+1)]);
-//    (menu_handlers[menu_selected])(menu_mode[menu_selected]);
-//  } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
-//    menu_selected = (0 == menu_selected) ? MENU_MAX : menu_selected-1;
-//  } else if ((ASCII_RIGHT == KbdData) || (ASCII_UP == KbdData)) {
-//    menu_selected = (menu_selected >= (MENU_MAX-1)) ? 0 : menu_selected+1;
-//  } else if (ASCII_PRNSCRN == KbdData) {
-//    /* FIXME : Would this occur? */
-//  } else if ((KbdData >= '0') && (KbdData <= '9')) {
-//    /* could be hotkey for menu */
-//    menu_selected *= 10;
-//    menu_selected += KbdData-'0';
-//    /* handle out of bounds */
-//    if (menu_selected >= MENU_MAX)
-//      menu_selected = KbdData-'0';
-//  }
-//
-//  /* Clear Key press */
-//  assert (KBD_HIT);
-//  KBD_RESET_KEY;
-//
-//  /* Forever stuck in this maze.. can't ever get out */
-//  goto menu_main_start;
-//}
-//
+void
+menu_main(void)
+{
+  uint8_t menu_selected, menu_selhier, ui8_1;
+
+  /* initialize
+     0==menu_selhier : hier not selected
+   */
+  menu_selected = 0;
+  menu_selhier = 0;
+
+menu_main_start:
+  assert(KBD_NOT_HIT); /* ensures kbd for user-inputs */
+
+  /* First select a Menu */
+  if (0 == menu_selhier) {
+    /* FIXME: Display shop name */
+    //    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
+    //    LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
+    LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, (menu_hier+(menu_selected*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
+  } else {
+    /* FIXME: Shop name (8 chars)
+       EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[0]), bufSS, sizeof(uint8_t)*LCD_MAX_COL);
+       LCD_WR_LINE_NP(0, 0, bufSS, LCD_MAX_COL); */
+    LCD_POS(0, (LCD_MAX_COL>>1)&0xF);
+    LCD_PUTCH('>');
+    LCD_WR_LINE_NP(0, ((LCD_MAX_COL>>1)+1)&0xF, (menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
+    LCD_WR_LINE_NP(1, 0, (menu_hier+(menu_selected*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
+  }
+  LCD_refresh();
+
+  /* Wait until get command from user */
+  KBD_GETCH;
+
+  if ((ASCII_ENTER == KbdData) && (0 == menu_selhier)) {
+    menu_selhier = menu_selected + 1;
+    menu_selected = MENU_MAX;
+    for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
+      menu_selected = (MENU_MAX <= (1+menu_selected)) ? 0 : menu_selected+1;
+      if ( ((1+menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
+	   (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) /* mode appropriate */
+	   ) {
+	break;
+      }
+    }
+  } else if ((ASCII_ENTER == KbdData) && (0 != menu_selhier)) {
+    KBD_RESET_KEY;
+    arg1.valid = MENU_ITEM_NONE;
+    LCD_CLRSCR;
+    menu_getopt(menu_prompt_str+((menu_prompts[menu_selected<<1])<<2), &arg1, menu_args[(menu_selected<<1)]);
+    assert (KBD_HIT);
+    KBD_RESET_KEY;
+    arg2.valid = MENU_ITEM_NONE;
+    LCD_CLRSCR;
+    menu_getopt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])<<2), &arg2, menu_args[((menu_selected<<1)+1)]);
+#ifdef UNIT_TEST_MENU_1
+    UNIT_TEST_MENU_1(menu_mode[menu_selected]);
+#else
+    (menu_handlers[menu_selected])(menu_mode[menu_selected]);
+#endif
+  } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+    if (0 == menu_selhier) {
+      menu_selected = (0 == menu_selected) ? MENU_HIER_MAX-1 : menu_selected-1;
+    } else if (0 == menu_selected) {
+      menu_selhier = 0;
+    } else { /* (0 != menu_selhier) && (0 != menu_selected) */
+      for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
+	menu_selected--;
+	if (0 == menu_selected) {
+	  menu_selhier = 0;
+	  break;
+	} else if ( ((1+menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
+		   (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) /* mode appropriate */
+		   ) {
+	  break;
+	}
+      }
+    }
+  } else if ((ASCII_RIGHT == KbdData) || (ASCII_UP == KbdData)) {
+    if (0 == menu_selhier) {
+      menu_selected = (menu_selected >= (MENU_HIER_MAX-1)) ? 0 : menu_selected+1;
+    } else {
+      for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
+	menu_selected = (MENU_MAX <= (1+menu_selected)) ? 0 : menu_selected+1;
+	if ( ((1+menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
+		   (0 == (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) /* mode appropriate */
+		   ) {
+	  break;
+	}
+      }
+    }
+  }
+
+  /* Clear Key press */
+  assert (KBD_HIT);
+  KBD_RESET_KEY;
+
+  /* Forever stuck in this maze.. can't ever get out */
+  goto menu_main_start;
+}
+
 ///* Sales are easily accessable from table */
 //void
 //menu_sale_add(uint8_t *sale)
@@ -1494,4 +1533,15 @@ menu_func_t menu_hier[] PROGMEM = {
 //    EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_date_old_ptr_month), (uint8_t *)&ui2, sizeof(uint8_t));
 //  }
 //}
-//#endif
+
+void
+menu_SDLoadItem(uint8_t mode)
+{
+  menu_unimplemented();
+}
+
+void
+menu_SDSaveItem(uint8_t mode)
+{
+  menu_unimplemented();
+}

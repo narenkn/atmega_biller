@@ -163,6 +163,20 @@
   lcd_buf_prop |= LCD_PROP_DIRTY;		\
 }
 
+#define LCD_WR_LINE_NP(x, y, str, len)  {	\
+  uint8_t ui1_t;			        \
+  lcd_buf_p = &(lcd_buf[x][y]);			\
+  for (ui1_t=0; (ui1_t<len); ui1_t++) {	\
+    lcd_buf_p[0] = pgm_read_mem(str+ui1_t);	\
+    lcd_buf_p++;			\
+    assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
+  }					\
+  for (; ui1_t<LCD_MAX_COL; ui1_t++) {	\
+    lcd_buf_p[ui1_t] = ' ';		\
+  }					\
+  lcd_buf_prop |= LCD_PROP_DIRTY;		\
+}
+
 #define LCD_POS(x, y)				\
   lcd_buf_p = &(lcd_buf[x][y])
 
