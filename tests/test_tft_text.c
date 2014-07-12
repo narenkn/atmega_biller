@@ -20,7 +20,7 @@ main()
   BACK_COLOR=BLACK;
   POINT_COLOR=WHITE;
 
-  while(1) {		
+  while(1) {
     TftInit();
     TftClear(RED);
     TftShowString(0, 0, "Hello World");

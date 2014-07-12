@@ -47,8 +47,8 @@ main(void)
     LCD_PUTCH('0'+(ymd[2]&0xF));
     LCD_refresh();
     timerTimeGet(hms);
-    LCD_PUTCH('0'+((hms[2]>>4)&0xF));
-    LCD_PUTCH('0'+(hms[2]&0xF));
+    LCD_PUTCH('0'+((hms[0]>>4)&0xF));
+    LCD_PUTCH('0'+(hms[0]&0xF));
     LCD_PUTCH(':');
     LCD_PUTCH('0'+((hms[1]>>4)&0xF));
     LCD_PUTCH('0'+(hms[1]&0xF));

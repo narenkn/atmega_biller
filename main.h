@@ -6,4 +6,6 @@ void main_init(void);
 #define BUZZER_ON  PORTD |= 0x80
 #define BUZZER_OFF PORTD &= ~0x80
 
+uint32_t get_fattime(void);
+
 #endif
