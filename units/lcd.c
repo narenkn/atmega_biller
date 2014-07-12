@@ -31,10 +31,14 @@ LCD_refresh(void)
   
   refresh();
   if (lcd_buf_prop & LCD_PROP_DIRTY) {
-    for (ui1=0; ui1<LCD_MAX_ROW; ui1++)
+    for (ui1=0; ui1<(LCD_MAX_ROW-1); ui1++)
       for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
 	mvaddch(ui1+LCD_WIN_STARTX+1, ui2+LCD_WIN_STARTY+1, lcd_buf[ui1][ui2]);
       }
+    ui1 = LCD_MAX_ROW-1;
+    for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
+      mvaddch(ui1+LCD_WIN_STARTX+1, ui2+LCD_WIN_STARTY+1, ((lcd_buf_prop&LCD_PROP_NOECHO_L2)&&(' '!=lcd_buf[ui1][ui2]))?'*':lcd_buf[ui1][ui2]);
+    }
     wrefresh(win);
   }
 }

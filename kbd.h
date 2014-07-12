@@ -30,6 +30,8 @@
 #endif
 /* Key definitions */
 #define ASCII_UNDEF      0
+#define ASCII_DEFINED    ((uint8_t)~ASCII_UNDEF)
+#define ASCII_LF         0xA
 #define ASCII_ENTER      0xA0
 #define ASCII_BACKSPACE  0xA1
 #define ASCII_NUMLK      0xA2
@@ -39,6 +41,7 @@
 #define ASCII_RIGHT      0xA5
 #define ASCII_UP         0xA6
 #define ASCII_DOWN       0xA7
+#define ASCII_F2         0xA8
 
 #define KBD_RESET_KEY          \
   KbdDataAvail = 0 ; KbdData = 0xFF
@@ -65,8 +68,8 @@ void    KbdScan(void);
 uint8_t KbdIsShiftPressed(void);
 extern volatile uint8_t KbdData;
 extern volatile uint8_t KbdDataAvail;
-extern PROGMEM uint8_t ps2code2ascii[];
-extern PROGMEM uint8_t ps2code2asciiE0[];
-extern PROGMEM uint8_t keyChars[];
+extern const uint8_t ps2code2ascii[] PROGMEM;
+extern const uint8_t ps2code2asciiE0[] PROGMEM;
+extern const uint8_t keyChars[] PROGMEM;
 
 #endif

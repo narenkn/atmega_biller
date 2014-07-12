@@ -76,10 +76,6 @@ typedef struct {
 /* */
 #define EEPROM_ADDR_INVALID     0xFFFF
 
-/* Current Properties */
-uint8_t user_id;
-uint8_t user_logged_in;
-
 /* Access routines */
 void ep_store_init(void);
 

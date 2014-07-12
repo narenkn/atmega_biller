@@ -13,3 +13,6 @@ $(TARGETS):
 
 test_% : test_%.c
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
+
+clean:
+	-\rm -f core.* $(TARGETS)

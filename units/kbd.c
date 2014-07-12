@@ -14,7 +14,7 @@ uint8_t *test_key[NUM_TEST_KEY_ARR];
 #define KBD_KEY(N)                  N
 
 /* This should be kept in sync with original kbd.c */
-uint8_t keyChars[] = {
+const uint8_t keyChars[] = {
   /* KCHAR_ROWS x KCHAR_COLS */
   '0', ' ', '.', ',', ')', '+', '?', '_', ':',
   '1', 'a', 'b', 'c', '!', 'A', 'B', 'C', '~',

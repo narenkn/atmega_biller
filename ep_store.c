@@ -17,6 +17,4 @@ void
 ep_store_init(void)
 {
   assert(64 == ITEM_SIZEOF);
-  user_id = 0;
-  user_logged_in = 0;
 }

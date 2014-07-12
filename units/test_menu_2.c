@@ -5,14 +5,28 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <assert.c>
+
 #include <avr/pgmspace.h>
 
-#define assert(...)
-#define ERROR(msg) fprintf(stderr, msg)
 #define TEST_KEY_ARR_SIZE 128
+
+#include "lcd.h"
+#include "kbd.h"
+#include "ep_store.h"
+#define UNIT_TEST_MENU_1 menu_handler
+void
+menu_handler(uint8_t ui)
+{
+  LCD_WR_LINE_NP(1, 0, "menu_handler:", 13);
+  LCD_PUT_UINT8X(ui);
+  LCD_refresh();
+}
+#include "menu.h"
 
 #include "lcd.c"
 #include "kbd.c"
+#include "ep_store.c"
 #include "menu.c"
 
 uint8_t inp[TEST_KEY_ARR_SIZE];
@@ -35,7 +49,7 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("Prompt 1", &arg1, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
     assert(0 == strncmp("Promp ?         ", &(lcd_buf[0][0]), LCD_MAX_COL));
     if (0 != strncmp("Promp ?         ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
 #ifdef DEBUG
@@ -77,7 +91,7 @@ main(void)
     INIT_TEST_KEYS(inp);
     //    printf("After construction:%s\n", inp);
     KBD_RESET_KEY;
-    menu_getopt("mlpsdlfjlalkjf", &arg1, MENU_ITEM_STR);
+    menuGetOpt("mlpsdlfjlalkjf", &arg1, MENU_ITEM_STR);
     //    printf("After getopt:%s\n", inp);
     assert(0 == strncmp("mlpsd ?          ", lcd_buf[0], LCD_MAX_COL));
     if (0 != strncmp("mlpsd ?          ", lcd_buf[0], LCD_MAX_COL)) {
@@ -118,7 +132,7 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("lsjdflkjf", &arg1, MENU_ITEM_ID);
+    menuGetOpt("lsjdflkjf", &arg1, MENU_ITEM_ID);
     r1 = arg1.value.integer.i8;
     r1 <<= 16;
     r1 |= arg1.value.integer.i16;
@@ -137,14 +151,14 @@ main(void)
     sprintf(inp, "%02d%02d%04d", date, month, 2000+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("dflkjf", &arg1, MENU_ITEM_DATE);
-    if ( (date != arg1.value.date.date) || (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
+    menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE);
+    if ( (date != arg1.value.date.day) || (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
-      printf("date:%d org:%d\n", arg1.value.date.date, date);
+      printf("date:%d org:%d\n", arg1.value.date.day, date);
       printf("month:%d org:%d\n", arg1.value.date.month, month);
       printf("year:%d org:%d\n", arg1.value.date.year, year);
     }
-    assert(date == arg1.value.date.date);
+    assert(date == arg1.value.date.day);
     assert(month == arg1.value.date.month);
     assert(year == arg1.value.date.year);
   }
@@ -157,7 +171,7 @@ main(void)
     sprintf(inp, "%02d%04d", month, 2000+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH);
+    menuGetOpt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH);
     if ( (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
       printf("month:%d org:%d\n", arg1.value.date.month, month);
@@ -175,14 +189,14 @@ main(void)
     sprintf(inp, "%02d%02d", hour, min);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("dflkjf", &arg1, MENU_ITEM_TIME);
+    menuGetOpt("dflkjf", &arg1, MENU_ITEM_TIME);
     if ( (hour != arg1.value.time.hour) || (min != arg1.value.time.min) ) {
       printf("string:%s\n", inp);
       printf("hour:%d org:%d\n", arg1.value.time.hour, hour);
       printf("min:%d org:%d\n", arg1.value.time.min, min);
       printf("%s\n", lcd_buf[0]);
     }
-    assert(0 == strncmp("dflkj ?          ", lcd_buf, LCD_MAX_COL));
+    assert(0 == strncmp("dflkj ?          ", lcd_buf[0], LCD_MAX_COL));
     assert(hour == arg1.value.time.hour);
     assert(min == arg1.value.time.min);
   }
@@ -210,7 +224,7 @@ main(void)
     if (ui3 >= TEST_KEY_ARR_SIZE)
       continue;
     INIT_TEST_KEYS(inp);
-    ui3 = menu_getchoice("what crap?", menu_str1, MENU_STR1_IDX_NUM_ITEMS);
+    ui3 = menuGetChoice("what crap?", menu_str1, MENU_STR1_IDX_NUM_ITEMS);
 #if 0
     assert(0 == strncmp("what : Name     ", lcd_buf, LCD_MAX_COL));
     if (0 != strncmp("what : Name     ", lcd_buf, LCD_MAX_COL)) {
