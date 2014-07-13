@@ -15,7 +15,7 @@ uint8_t kbdStatus = 0;
 #define ps2CtrlHit  (1<<1)
 #define ps2AltHit   (1<<2)
 #define ps2CapsHit  (1<<3)
-#define LENOF_DR 3
+#define LENOF_DR 4
 uint8_t kbdDr[LENOF_DR];
 
 /* Key definitions */
@@ -185,13 +185,13 @@ main(void)
 
   for (ui1=0; ; ui1++) {
     if (KBD_HIT) {
-      LCD_cmd(LCD_CMD_CUR_10+9);
+      LCD_cmd((LCD_CMD_CUR_10+9));
       LCD_wrchar(KbdData);
       KbdDataAvail = 0;
     }
-    LCD_cmd(LCD_CMD_CUR_10+11);
+    LCD_cmd((LCD_CMD_CUR_10+11));
     LCD_uint8x(drC);
-    LCD_cmd(LCD_CMD_CUR_10+14);
+    LCD_cmd((LCD_CMD_CUR_10+14));
     LCD_uint8x(ui1);
     LCD_cmd(LCD_CMD_CUR_20);
     LCD_uint8x(bitC);

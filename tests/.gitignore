@@ -1,0 +1,16 @@
+buzzer
+test_ds1307
+test_eeprom
+test_ff
+test_kbd
+test_kbd_1
+test_kbd_2
+test_lcd
+test_lcd_nointer
+test_lcd_nointer_2
+test_ps2barscan
+test_ps2kbd
+test_tft_1
+test_tft_text
+test_uart
+twi_test
