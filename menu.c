@@ -148,6 +148,7 @@ uint8_t menu_str1[] PROGMEM =
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
+static uint8_t LoginUserId = 0; /* 0 is invalid */
 
 /* Helper routine to obtain input from user */
 void
@@ -163,7 +164,7 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* */
   if (MENU_ITEM_CONFIRM == opt) {
-    ui1 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2);
+    ui1 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2);
     arg->value.integer.i8  = ui1;
     return;
   }
@@ -301,6 +302,7 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     }
   } else if (MENU_ITEM_STR == item_type) {
     menu_error = 0;
+    strncpy(arg->value.sptr, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL);
   } else assert(0);
 
   /* */
@@ -316,16 +318,16 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
 /* Helper routine to obtain choice from user */
 uint8_t
-menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
+menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx)
 {
   uint8_t ret = 0;
 
   do {
     assert(ret < max_idx);
 
-    LCD_WR_LINE_N(1, 0, quest, MENU_PROMPT_LEN);
+    LCD_WR_LINE_N(1, 0, quest, choice_len);
     LCD_WR(": ");
-    LCD_WR_N((opt_arr+(ret*MENU_PROMPT_LEN)), MENU_PROMPT_LEN);
+    LCD_WR_N((opt_arr+(ret*choice_len)), choice_len);
 
     KBD_GETCH;
 
@@ -342,55 +344,116 @@ menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t max_idx)
   assert (0);
 }
 
+// Not unit tested
+/* Load in the factory settings */
+/* Todo:
+   1. passwds : needs to be reset
+   2. users : make default user names
+ */
+void
+menuFactorySettings(uint8_t mode)
+{
+  assert(MENU_MSUPER == MenuMode);
+}
+
+/* FIXME: Needs to be removed */
 void
 menu_unimplemented(uint32_t idx)
 {
   LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, "unimplemented ", 14);
-  LCD_PUT_UINT8X((uint8_t)idx);
+  LCD_PUT_UINT8X(idx);
   LCD_refresh();
 }
 
 // Not unit tested
-/* Set others passwd : only admin can do this */
+/* Set others passwd : only admin can do this
+   arg1 : user name
+   arg2 : passwd
+ */
 void
 menuSetUserPasswd(uint8_t mode)
 {
-  menu_unimplemented(__LINE__);
+  uint8_t ui2, ui3;
+  uint16_t ui1;
+  assert(MENU_MSUPER == MenuMode);
+
+  /* Choose the user to replace it with */
+  assert(MENU_ITEM_STR == arg1.valid);
+  if (' ' == arg1.value.sptr[0]) {
+    LCD_ALERT("Invalid User");
+    return;
+  }
+  for (
+       ui2=0, ui1=offsetof(struct ep_store_layout, users)+EPS_MAX_UNAME;
+       ui2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui2++ ) {
+    bufSS[(LCD_MAX_COL<<1)+ui2] = eeprom_read_byte((uint8_t *)ui1);
+  }
+  ui2 = menuGetChoice("Replace at?", bufSS+(LCD_MAX_COL<<1), EPS_MAX_UNAME, EPS_MAX_USERS-1) + 1;
+  if (0 != menuGetChoice(menu_str1+(MENU_STR1_IDX_FINAL*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2)) {
+    LCD_ALERT("Aborting!");
+    return;
+  }
+
+  /* modify at will */
+  ui3 = LoginUserId;
+  LoginUserId = ui2;
+  menuSetPasswd(mode & ~MENU_MVALIDATE);
+  LoginUserId = ui3;
+  for (ui3=0; ui3<EPS_MAX_UNAME; ui3++) {
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+(ui2*EPS_MAX_UNAME)), arg1.value.sptr[ui3]);
+  }
 }
 
-// Not unit tested
-/* Set my password, arg1 is old passwd */
+/* Set my password, arg1 is old passwd, arg2 is new passwd */
 void
 menuSetPasswd(uint8_t mode)
 {
-//  uint16_t ui1, ui4;
-//  uint8_t ui2, ui3;
-//
-//  CRC16_Init();
-//  for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
-//    ui2 = lcd_buf[LCD_MAX_ROW-1][ui1];
-//    /* check isprintable? */
-//    for (ui3=0; ui3<(KCHAR_COLS*KCHAR_ROWS); ui3++) {
-//      if (ui2 == keyChars[ui3])
-//	break;
-//    }
-//    if (ui3 < (KCHAR_ROWS*KCHAR_COLS))
-//      CRC16_Update(ui2);
-//  }
-//  ui1 = CRC16_High; ui1 <<= 8; ui1 |= CRC16_Low;
-//
-//  if ((mode&(~MENU_MODEMASK)) == MENU_MVALIDATE) {
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.passwd), (uint8_t *)&ui4, sizeof(uint16_t));
-//    if (ui4 != ui1) {
-//      LCD_ALERT("Passwd InCorre");
-//    } else {
-//      LCD_ALERT("Passwd Correct");
-//      MenuMode = MENU_MSUPER;
-//    }
-//  } else {
-//    EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.passwd), (uint8_t *)&ui1, sizeof(uint16_t));
-//  }
-  menu_unimplemented(__LINE__);
+  uint16_t crc_old = 0, crc_new = 0;
+  uint8_t ui2, ui3, ui4;
+
+  /* */
+  assert(0 != LoginUserId);
+  assert(MENU_MRESET != MenuMode);
+
+  /* Compute CRC on old password, check */
+  if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
+    assert(MENU_ITEM_STR == arg1.valid);
+    for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
+      ui2 = arg1.value.sptr[ui4];
+      /* check isprintable? */
+      for (ui3=0; ui3<(KCHAR_COLS*KCHAR_ROWS); ui3++) {
+	if (' ' == ui2)
+	  continue;
+	else if (ui2 == keyChars[ui3])
+	  break;
+      }
+      if (ui3 < (KCHAR_ROWS*KCHAR_COLS))
+	crc_old = _crc16_update(crc_old, ui2);
+    }
+
+    if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, passwds[(LoginUserId-1)])) != crc_old) {
+      LCD_ALERT("Passwd Wrong!!");
+      return;
+    }
+  }
+
+  /* update mine only */
+  assert(MENU_ITEM_STR == arg2.valid);
+  for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
+    ui2 = arg2.value.sptr[ui4];
+    /* check isprintable? */
+    for (ui3=0; ui3<(KCHAR_COLS*KCHAR_ROWS); ui3++) {
+      if (' ' == ui2)
+	continue;
+      else if (ui2 == keyChars[ui3])
+	break;
+    }
+    if (ui3 < (KCHAR_ROWS*KCHAR_COLS))
+      crc_new = _crc16_update(crc_new, ui2);
+  }
+
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, passwds[(LoginUserId-1)]), crc_new);
+  LCD_ALERT("Passwd Updated");
 }
 
 // Not unit tested
@@ -398,7 +461,8 @@ menuSetPasswd(uint8_t mode)
 void
 menuUserLogout(uint8_t mode)
 {
-  menu_unimplemented(__LINE__);
+  LoginUserId = 0;
+  MenuMode = MENU_MRESET;
 }
 
 // Not unit tested
@@ -406,7 +470,46 @@ menuUserLogout(uint8_t mode)
 void
 menuUserLogin(uint8_t mode)
 {
-  menu_unimplemented(__LINE__);
+  uint16_t crc;
+  uint8_t ui2, ui3, ui4, ui5;
+
+  assert(MENU_ITEM_STR == arg1.valid);
+  assert(MENU_ITEM_STR == arg2.valid);
+
+  for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
+    for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
+      if (eeprom_read_byte((uint8_t *)ui3) != arg1.value.sptr[ui3])
+	break;
+    }
+    if (EPS_MAX_UNAME == ui3)
+      goto menuUserLogin_found;
+  }
+  LCD_ALERT("No user");
+  return;
+
+ menuUserLogin_found:
+  assert(ui2 < (EPS_MAX_USERS+1));
+  for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
+    ui3 = arg2.value.sptr[ui4];
+    /* check isprintable? */
+    for (ui5=0; ui5<(KCHAR_COLS*KCHAR_ROWS); ui5++) {
+      if (' ' == ui3)
+	continue;
+      else if (ui3 == keyChars[ui5])
+	break;
+    }
+    if (ui5 < (KCHAR_ROWS*KCHAR_COLS))
+      crc = _crc16_update(crc, ui3);
+  }
+
+  if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, passwds) + (ui2*sizeof(uint16_t)))) != crc) {
+    LCD_ALERT("Wrong Passwd");
+    return;
+  }
+
+  /* */
+  MenuMode = (0 == ui2) ? MENU_MSUPER : MENU_MNORMAL;
+  LoginUserId = ui2+1;
 }
 
 void
@@ -469,11 +572,11 @@ menuBilling(uint8_t mode)
 //  bi->info.n_items = ui5;
 //
 //  /* */
-//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_FINAL*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2))
+//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_FINAL*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
 //    goto get_more_items;
 //
 //  /* */
-//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_SAVE*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2))
+//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_SAVE*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
 //    return;
 //
 //  /* time */
@@ -491,7 +594,7 @@ menuBilling(uint8_t mode)
 //  /* billing ... */
 //  EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.print_it ), (uint8_t *)&ui2, sizeof(uint8_t));
 //  if (0 == ui2) { /* enabled */
-//    if (0 == menu_getchoice(menu_str1+(MENU_STR1_IDX_PRINT*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2)) {
+//    if (0 == menu_getchoice(menu_str1+(MENU_STR1_IDX_PRINT*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2)) {
 //      menu_PrnFullBill(bi);
 //    }
 //  }
@@ -631,10 +734,10 @@ menuAddItem(uint8_t mode)
 //      ui1 /= 10;
 //    }
 //  }
-//  vat = menu_getchoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), choice, 4);
+//  vat = menu_getchoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, 4);
 //
 //  /* serv-tax */
-//  s_tax = menu_getchoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2) ? 0 : 1;
+//  s_tax = menu_getchoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
 //
 //  /* Confirm */
 //  if ( (MENU_ITEM_NONE == arg1.valid) || (MENU_ITEM_NONE == arg2.valid) ||
@@ -642,7 +745,7 @@ menuAddItem(uint8_t mode)
 //    ERROR("Invalid Option");
 //    return;
 //  }
-//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2))
+//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
 //    return;
 //
 //  /* Pack the value */
@@ -1077,7 +1180,7 @@ menuModVat(uint8_t mode)
 //      ui1 /= 10;
 //    }
 //  }
-//  ui3 = menu_getchoice(menu_str1+(MENU_STR1_IDX_REPLA*MENU_PROMPT_LEN), choice, 4);
+//  ui3 = menu_getchoice(menu_str1+(MENU_STR1_IDX_REPLA*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, 4);
 //  assert(ui3 < 4);
 //
 //  ui1 = arg1.value.integer.i8;
@@ -1142,7 +1245,7 @@ menuDelAllBill(uint8_t mode)
 //
 //  /* Remove all data when date is changed */
 //  LCD_ALERT("Delete AllData");
-//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_DADAT*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), 2))
+//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_DADAT*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
 //    return;
 //
 //  /* */
@@ -1322,11 +1425,13 @@ menu_main_start:
     /* Get choices before menu function is called */
     KBD_RESET_KEY;
     arg1.valid = MENU_ITEM_NONE;
+    arg1.value.sptr = bufSS;
     LCD_CLRSCR;
     menuGetOpt(menu_prompt_str+((menu_prompts[menu_selected<<1])*MENU_PROMPT_LEN), &arg1, menu_args[(menu_selected<<1)]);
     assert (KBD_HIT);
     KBD_RESET_KEY;
     arg2.valid = MENU_ITEM_NONE;
+    arg2.value.sptr = bufSS+LCD_MAX_COL;
     LCD_CLRSCR;
     menuGetOpt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])*MENU_PROMPT_LEN), &arg2, menu_args[((menu_selected<<1)+1)]);
 #ifdef UNIT_TEST_MENU_1

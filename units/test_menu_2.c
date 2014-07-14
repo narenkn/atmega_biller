@@ -57,15 +57,15 @@ main(void)
 	putchar(lcd_buf[0][ui1]);
       putchar('\n');
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	putchar(lcd_buf[1][ui1]);
+	putchar(lcd_buf[LCD_MAX_ROW-1][ui1]);
       putchar('\n');
 #endif
     }
-    assert(0 == strncmp(inp, lcd_buf[1], LCD_MAX_COL/2));
-    if (0 != strncmp(inp, lcd_buf[1], LCD_MAX_COL/2)) {
+    assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL/2));
+    if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL/2)) {
       printf("lcd_buf:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", lcd_buf[1][ui1]);
+	printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
       printf("\ninp:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	printf("%c ", inp[ui1]);
@@ -100,15 +100,15 @@ main(void)
 	putchar(lcd_buf[0][ui1]);
       putchar('\n');
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	putchar(lcd_buf[1][ui1]);
+	putchar(lcd_buf[LCD_MAX_ROW-1][ui1]);
       putchar('\n');
 #endif
     }
-    assert(0 == strncmp(inp, lcd_buf[1], LCD_MAX_COL));
-    if (0 != strncmp(inp, lcd_buf[1], LCD_MAX_COL)) {
+    assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL));
+    if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL)) {
       printf("lcd_buf:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", lcd_buf[1][ui1]);
+	printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
       printf("\ninp:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	printf("%c ", inp[ui1]);
@@ -233,7 +233,7 @@ main(void)
 	putchar(lcd_buf[0][ui1]);
       putchar('\n');
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	putchar(lcd_buf[1][ui1]);
+	putchar(lcd_buf[LCD_MAX_ROW-1][ui1]);
       putchar('\n');
 #endif
     }

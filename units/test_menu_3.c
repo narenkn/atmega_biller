@@ -5,17 +5,28 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <avr/pgmspace.h>
+#include <assert.c>
 
-#define assert(...)
-#define ERROR(msg) fprintf(stderr, msg)
+#include <avr/pgmspace.h>
+#include <avr/eeprom.h>
+#include <util/crc16.h>
+
 #define TEST_KEY_ARR_SIZE 128
+
+#include "lcd.h"
+#include "kbd.h"
+#include "i2c.h"
+#include "ep_store.h"
+#include "menu.h"
 
 #include "lcd.c"
 #include "kbd.c"
+#include "i2c.c"
+#include "ep_store.c"
 #include "menu.c"
 
 uint8_t inp[TEST_KEY_ARR_SIZE], inp2[TEST_KEY_ARR_SIZE];
+uint8_t inp3[TEST_KEY_ARR_SIZE];
 
 int
 main(void)
@@ -27,12 +38,12 @@ main(void)
 
   /* */
   assert_init();
-  menu_Init();
-  i2cInit();
+  menuInit();
+  i2c_init();
   ep_store_init();
 
-  /* Passwd */
-  for (loop=0; loop<1000; loop++) {
+  /* menuSetPasswd */
+  for (loop=0; loop<0; loop++) {
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
     for (ui1=0; ui1<passwd_size; ui1++) {
       if (0 == (rand() % 3))
@@ -42,34 +53,82 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("Prompt 1", &arg1, MENU_ITEM_STR);
- 
-    MenuMode = MENU_MNORMAL;
-    menu_SetPasswd(MENU_MRESET);
-    assert(MENU_MNORMAL == MenuMode);
+    arg2.value.sptr = bufSS+LCD_MAX_COL;
+    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
+
+    LCD_CLRSCR;
+    ui2 = LoginUserId = (rand() % EPS_MAX_USERS)+1;
+    ui3 = MenuMode = (rand() & 1) ? MENU_MSUPER : MENU_MNORMAL;
+    menuSetPasswd(MENU_MRESET);
+    assert(ui3 == MenuMode);
+    assert(0 == strncmp("Passwd Updated  ", lcd_buf[0], LCD_MAX_COL));
 
     /* sometimes corrupt the password */
     uint8_t corrupted = rand() % 2;
-    //    printf("Before corruption inp:'%s'\n", inp);
     if (corrupted) {
-      inp[rand()%passwd_size]++;
+      ui4 = rand()%passwd_size;
+      inp[ui4]++;
+      if (inp[ui4] > '~') inp[ui4] -= 2;
     }
-    //    printf("After corruption inp:'%s'\n", inp);
 
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("Prompt 1", &arg1, MENU_ITEM_STR);
-    menu_SetPasswd(MENU_MNORMAL|MENU_MVALIDATE);
+    arg1.value.sptr = bufSS;
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
+    menuSetPasswd(ui3|MENU_MVALIDATE);
 
-    //    printf("Corrupted:%d\n", (uint32_t) corrupted);
     if (corrupted) {
-      //      printf("MenuMode:0x%x\n", (uint32_t)MenuMode);
-      assert(MENU_MNORMAL == MenuMode);
+      assert(0 == strncmp("Passwd Wrong!!  ", lcd_buf[0], LCD_MAX_COL));
+    } else {
+      assert(0 == strncmp("Passwd Updated  ", lcd_buf[0], LCD_MAX_COL));
+    }
+    assert(MenuMode == ui3);
+    assert(LoginUserId == ui2);
+  }
+
+  /* menuSetUserPasswd */
+  for (loop=0; loop<10; loop++) {
+    uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
+    for (ui1=0; ui1<passwd_size; ui1++) {
+      if (0 == (rand() % 3))
+	inp[ui1] = 'A' + (rand()%26);
+      else
+	inp[ui1] = 'a' + (rand()%26);
+    }
+    INIT_TEST_KEYS(inp);
+    KBD_RESET_KEY;
+    arg2.value.sptr = bufSS+LCD_MAX_COL;
+    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
+
+    for (ui1=0; ui1<EPS_MAX_UNAME; ui1++) {
+      if (0 == (rand() % 3))
+	inp2[ui1] = 'A' + (rand()%26);
+      else
+	inp2[ui1] = 'a' + (rand()%26);
+    }
+    if (0 == (rand()%5))
+      inp2[0] = ' ';
+    INIT_TEST_KEYS(inp2);
+    KBD_RESET_KEY;
+    arg1.value.sptr = bufSS;
+    menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
+
+    LCD_CLRSCR;
+    MenuMode = MENU_MSUPER;
+    inp[0] = ASCII_ENTER;
+    INIT_TEST_KEYS(inp);
+    menuSetUserPasswd(MENU_MSUPER);
+    if (' ' == inp2[0]) {
+      assert(0 == strncmp("Invalid User    ", lcd_buf[0], LCD_MAX_COL));
     } else {
       assert(MENU_MSUPER == MenuMode);
+      assert(0 == strncmp("Passwd Updated  ", lcd_buf[0], LCD_MAX_COL));
+      printf("lcd_buf:%s\n", lcd_buf[0]);
+      assert(MenuMode == MENU_MSUPER);
     }
   }
 
+#if 0
   /* modvat */
   for (loop=0; loop<1000; loop++) {
     uint32_t vat = (rand()%100)*100 + (rand()%100);
@@ -90,7 +149,7 @@ main(void)
     /* */
     arg1.valid = MENU_ITEM_NONE;
     LCD_CLRSCR;
-    menu_getopt("sdlkfjlaksfklas", &arg1, MENU_ITEM_FLOAT);
+    menuGetOpt("sdlkfjlaksfklas", &arg1, MENU_ITEM_FLOAT);
 
     /* select input */
     uint16_t sel = rand() % 4;
@@ -125,8 +184,8 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menu_getopt("Prompt 1", &arg1, MENU_ITEM_STR);
-    assert(0 == strncmp("Promp ?         ", lcd_buf, LCD_MAX_COL));
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
+    assert(0 == strncmp("Promp ?         ", lcd_buf[0], LCD_MAX_COL));
 
     /* Generate random string for Header */
     ui2 = rand() % HEADER_MAX_SZ;
@@ -159,7 +218,7 @@ main(void)
     }
 
   }
-
+#endif
 
   return 0;
 }

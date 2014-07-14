@@ -91,7 +91,7 @@ class ep_store_layout:
       ## value 0b0000 : don't ask, 0b00xx : copies without confirmation,
       ## 0b01xx : confirm before print xx copies
       'property' : '',
-      'passwds' : '[EPS_MAX_UNAME+1]',
+      'passwds' : '[EPS_MAX_USERS+1]',
       'shop_name_len' : '',
       'prn_header_len' : '',
       'prn_footer_len' : '',
@@ -100,7 +100,7 @@ class ep_store_layout:
       ## User options
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
-      'users' : '[EPS_MAX_USERS][EPS_MAX_UNAME]',
+      'users' : '[EPS_MAX_USERS+1][EPS_MAX_UNAME]',
       'denomination_text' : '[20]',
       'shop_name' : '[SHOP_NAME_SZ_MAX]',
       'prn_header' : '[HEADER_MAX_SZ_MAX]',

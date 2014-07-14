@@ -142,8 +142,9 @@
       lcd_buf_p[0] = ((char *)str)[ui2_t];	\
       ui2_t++;					\
     }					\
-    lcd_buf_p++;			\
-    assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
+    lcd_buf_p++;						\
+    if ((ui1_t+1)<LCD_MAX_COL)					\
+      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
   }					\
   lcd_buf_prop |= LCD_PROP_DIRTY;		\
 }
