@@ -5,6 +5,7 @@
 *.o
 *.elf
 *.lss
+ep_ds.h
 \#*
 dep
 default/*

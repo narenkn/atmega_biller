@@ -1,19 +1,20 @@
 ###############################################################################
-# Makefile for the project billmac
+# Makefile for the individual test programs
 ###############################################################################
 
 ## General Flags
-PROJECT = billmac
+PROJECT = 
 MCU = atmega32
-TARGET = billmac.elf
+SOURCE = adc.c      ep_store.c  i2c.c  lcd.c     main.c  mmc_avr.c  spi.c  uart.c billing.c  ff.c        kbd.c  loader.c  menu.c  printer.c  tft.c
+TARGET = billmac
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
-COMMON = -mmcu=$(MCU)
+COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DERROR\(...\)=
 
 ## Compile options common for all C compilation units.
-CFLAGS = $(COMMON)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS = $(COMMON) $(CLINE_ARG)
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -23,7 +24,7 @@ ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
 LDFLAGS = $(COMMON)
-LDFLAGS +=  -Wl,-Map=billmac.map
+LDFLAGS +=  -Wl,-Map=$(SOURCE:.c=.map)
 
 
 ## Intel Hex file production flags
@@ -33,45 +34,48 @@ HEX_EEPROM_FLAGS = -j .eeprom
 HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
-
 ## Objects that must be built in order to link
-OBJECTS = ff.o i2c.o main.o rtc.o spi.o uart.o adc.o 
+OBJECTS = $(SOURCE:.c=.o)
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
 
+## Build
+all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
+
+.PHONY: clean all headers
+
 ##
 include ../make.proj
 
-## Build
-all: $(TARGET) billmac.hex billmac.eep billmac.lss size
+##
+headers: ../ep_ds.h 
 
 ## Compile
 VPATH := ..
-.o: .c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+%: %.c headers
+	$(CC) $(INCLUDES) $(CFLAGS)  $<
 
 ##Link
-$(TARGET): $(OBJECTS)
-	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET)
+$(TARGET).elf: $(OBJECTS)
+	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET).elf
 
-%.hex: $(TARGET)
+%.hex: $(TARGET).elf
 	avr-objcopy -O ihex $(HEX_FLASH_FLAGS)  $< $@
 
-%.eep: $(TARGET)
+%.eep: $(TARGET).elf
 	-avr-objcopy $(HEX_EEPROM_FLAGS) -O ihex $< $@ || exit 0
 
-%.lss: $(TARGET)
+%.lss: $(TARGET).elf
 	avr-objdump -h -S $< > $@
 
-size: ${TARGET}
+size: $(TARGET).elf
 	@echo
-	@avr-size -C --mcu=${MCU} ${TARGET}
+	@avr-size -C --mcu=$(MCU) $(TARGET).elf
 
 ## Clean target
-.PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) billmac.elf dep/* billmac.hex billmac.eep billmac.lss billmac.map
+	-rm -rf *.o *.elf dep/* *.hex *.eep *.lss *.map *~
 
 
 ## Other dependencies

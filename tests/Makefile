@@ -46,13 +46,15 @@ include ../make.proj
 ## Build
 all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
+.PHONY: clean all headers
+
+##
+headers: ../ep_ds.h 
+
 ## Compile
 VPATH := ..
-%.o: %.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-
-%.o: %.cpp
-	$(CXX) $(INCLUDES) -Dnaren $(CXXFLAGS) -c  $<
+%: %.c headers
+	$(CC) $(INCLUDES) $(CFLAGS)  $<
 
 ##Link
 $(TARGET).elf: $(OBJECTS)
@@ -72,7 +74,6 @@ size: $(TARGET).elf
 	@avr-size -C --mcu=$(MCU) $(TARGET).elf
 
 ## Clean target
-.PHONY: clean
 clean:
 	-rm -rf *.o *.elf dep/* *.hex *.eep *.lss *.map *~
 

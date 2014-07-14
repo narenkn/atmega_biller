@@ -1,21 +1,22 @@
 from optparse import OptionParser
+from optparse import SUPPRESS_HELP
 #from ctypes import windll
 import time
 import re
+import sys
 
 class data_struct:
   error = 0
   def ds_print(self, cl):
-    print "#ifdef EP_DS_H\n#define EP_DS_H\n"
     for const, cval in cl.consts.items():
       print "#define %25s %5d" % (const, cval)
     print ""
-    print "typedef struct {"
+    print "struct %s {" % cl.name
     for t_var, tvars in cl.variables.items():
       for var, s_var in tvars.items():
         print "  %10s %25s%s;" % (t_var, var, s_var)
-    print "} __attribute__((packed)) %10s;" % cl.name
-    print "\n\n#endif"
+    print "} __attribute__((packed));"
+    print "#define %s_SIZEOF sizeof(struct %s)" % (cl.name.upper(), cl.name)
 
 class item:
   consts = {
@@ -102,11 +103,13 @@ if "__main__" == __name__:
   ds = data_struct()
 
   if options.header:
+    print "#ifndef EP_DS_H\n#define EP_DS_H\n"
     it = item('item')
     ds.ds_print(it)
     ep = ep_store_layout('ep_store_layout')
     ds.ds_print(ep)
+    print "\n\n#endif"
   elif options.settings:
     pass;
 
-  exit (ds.error);
+  sys.exit (ds.error+error)
