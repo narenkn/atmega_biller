@@ -46,6 +46,7 @@ include ../make.proj
 ## Build
 all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
+
 .PHONY: clean all headers
 
 ##
@@ -75,7 +76,7 @@ size: $(TARGET).elf
 
 ## Clean target
 clean:
-	-rm -rf *.o *.elf dep/* *.hex *.eep *.lss *.map *~
+	-$(RM) *.o *.elf dep/* *.hex *.eep *.lss *.map *~
 
 
 ## Other dependencies

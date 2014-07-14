@@ -4,6 +4,7 @@ from optparse import SUPPRESS_HELP
 import time
 import re
 import sys
+import csv
 
 class data_struct:
   error = 0
@@ -12,11 +13,36 @@ class data_struct:
       print "#define %25s %5d" % (const, cval)
     print ""
     print "struct %s {" % cl.name
-    for t_var, tvars in cl.variables.items():
-      for var, s_var in tvars.items():
+    for t_var, tvars in sorted(cl.variables.items()):
+      for var, s_var in sorted(tvars.items(), key=lambda x: x[1], reverse=True):
         print "  %10s %25s%s;" % (t_var, var, s_var)
     print "} __attribute__((packed));"
     print "#define %s_SIZEOF sizeof(struct %s)" % (cl.name.upper(), cl.name)
+
+class csv2dat:
+  error = 0
+
+  def __init__(self, f):
+    self.file = f
+
+  def dat_print(self, cl):
+    csvfile = open(self.file, 'rb')
+    if csvfile:
+      reader = csv.reader(csvfile, delimiter=',', quotechar="'")
+      headers = reader.next()
+      reader.next() ## Loose the information line
+      data = {}
+      for h in headers:
+        data[h] = []
+      for row in reader:
+        for h, v in zip(headers, row):
+          data[h].append(v)
+      for t_var, tvars in sorted(cl.variables.items()):
+        for var, s_var in sorted(tvars.items(), key=lambda x: x[1], reverse=True):
+          if var not in data:
+            print "column '%s' not found in csv(%s)" % (var, self.file)
+            self.error += 1
+            return
 
 class item:
   consts = {
@@ -25,7 +51,7 @@ class item:
     'ITEM_PROD_CODE_BYTEL':20,
     }
   variables = {
-    'uint16_t' : {'id':'', 'cost':'', 'discout':''},
+    'uint16_t' : {'id':'', 'cost':'', 'discount':''},
     'uint8_t'  : {
       'name':'[ITEM_NAME_BYTEL]',
       'prod_code':'[ITEM_PROD_CODE_BYTEL]',
@@ -100,16 +126,24 @@ if "__main__" == __name__:
                   help="Settings file");
   (options, args) = parser.parse_args()
 
-  ds = data_struct()
+  it = item('item')
+  ep = ep_store_layout('ep_store_layout')
 
   if options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n"
-    it = item('item')
+    ds = data_struct()
     ds.ds_print(it)
-    ep = ep_store_layout('ep_store_layout')
     ds.ds_print(ep)
     print "\n\n#endif"
+    error += ds.error
   elif options.settings:
-    pass;
+    f = open(options.csv)
+    if not f:
+      print "Error: Failed opening file"
+      exit (1)
+    f.close()
+    cd = csv2dat(options.csv)
+    cd.dat_print(it)
+    error += cd.error
 
-  sys.exit (ds.error+error)
+  sys.exit (error)
