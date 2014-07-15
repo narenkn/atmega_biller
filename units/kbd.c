@@ -9,6 +9,7 @@ uint8_t test_key_arr_idx = 0;
 #define NUM_TEST_KEY_ARR 16
 uint8_t *test_key[NUM_TEST_KEY_ARR];
 
+#define RESET_TEST_KEYS KbdInit()
 #define INIT_TEST_KEYS(A) do { test_key[test_key_arr_idx+1] = A; test_key_arr_idx++; assert((test_key_arr_idx+1) < NUM_TEST_KEY_ARR); } while (0)
 #define KBD_KEY_TIMES(N)   ((N-1)<<4)
 #define KBD_KEY(N)                  N
@@ -33,6 +34,8 @@ KbdInit(void)
 {
   uint8_t ui2;
 
+  test_key_idx = -1; test_key_arr_idx = 0;
+
   for (ui2=0; ui2<NUM_TEST_KEY_ARR; ui2++)
     test_key[ui2] = NULL;
 }
@@ -45,8 +48,11 @@ KbdGetCh(void)
 {
   static uint8_t do_correct = 0;
 
+  /* Previous key not yet consumed */
   if KBD_HIT
     return;
+  
+  /* All keys exhausted in latest pipe, look for pipeline */
   if (((uint16_t) -1) == test_key_idx) {
     if (test_key_arr_idx) {
       uint8_t ui2;
@@ -60,8 +66,13 @@ KbdGetCh(void)
       return;
   }
   assert(test_key_idx<=TEST_KEY_ARR_SIZE);
-  if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) { /* completed */
-    assert (((uint16_t)-1) != test_key_idx);
+
+  if (NULL == test_key[0])
+    return;
+
+  /* last char of pipe */
+  if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) {
+    assert (test_key_idx >= 0);
     KbdData = ASCII_ENTER;
     KbdDataAvail = 1;
     test_key_idx = -1;

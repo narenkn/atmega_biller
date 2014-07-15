@@ -22,17 +22,17 @@
 #define MENU_ITEM_PASSWD           (1<<5)
 
 /* Prompt for Menu argument */
-#define MENU_PROMPT_LEN 5
+#define MENU_PROMPT_LEN 8
 #define MENU_PROMPTS \
-  "None " /* 0 */    \
-  "Id   " /* 1 */    \
-  "Name " /* 2 */    \
-  "OldPa" /* 3 */    \
-  "Passw" /* 4 */    \
-  "Month" /* 5 */    \
-  "Time " /* 6 */    \
-  "Date " /* 7 */    \
-  "Decim" /* 8 */
+  "None    " /* 0 */    \
+  "Id      " /* 1 */    \
+  "Name    " /* 2 */    \
+  "OldPaswd" /* 3 */    \
+  "Password" /* 4 */    \
+  "Month   " /* 5 */    \
+  "Time    " /* 6 */    \
+  "Date    " /* 7 */    \
+  "Decimal " /* 8 */
 
 #define MENU_PR_NONE   0
 #define MENU_PR_ID     1
