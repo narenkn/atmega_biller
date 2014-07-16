@@ -1,6 +1,15 @@
 
 CFLAGS += -DLCD_DPORT_SIZE=4
 
+../version.h : ../utils/csv2dat.py
+	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
+	git log --pretty=format:"%h %an %s" ../utils/csv2dat.py | wc -l | xargs echo "#define SW_VERSION " >> $@
+	@echo -n "#define GIT_HASH_SMALL " >> $@
+	@git log --pretty=format:'"%h"' | head -1 >> $@
+	@echo -n "#define GIT_HASH " >> $@
+	@git log --pretty=format:'"%H"' | head -1 >> $@
+	@echo "#endif" >> $@
+
 ../ep_ds.h : ../utils/csv2dat.py
 	python ../utils/csv2dat.py --header > $@
 

@@ -13,7 +13,7 @@ include ../make.proj
 
 $(TARGETS):
 
-headers : ../ep_ds.h
+headers : ../ep_ds.h ../version.h
 
 % : %.c headers
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@

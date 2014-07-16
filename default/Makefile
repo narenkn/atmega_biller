@@ -49,7 +49,7 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 include ../make.proj
 
 ##
-headers: ../ep_ds.h 
+headers: ../ep_ds.h ../version.h
 
 ## Compile
 VPATH := ..

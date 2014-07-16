@@ -50,7 +50,7 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 .PHONY: clean all headers
 
 ##
-headers: ../ep_ds.h 
+headers: ../ep_ds.h ../version.h 
 
 ## Compile
 VPATH := ..
