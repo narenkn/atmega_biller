@@ -184,11 +184,16 @@
 #define LCD_POS(x, y)				\
   lcd_buf_p = &(lcd_buf[x][y])
 
-#define LCD_WR_N(str, len) {	 \
-  uint8_t ui1_t;			 \
-  for (ui1_t=0; ui1_t<len; ui1_t++) {	 \
-    lcd_buf_p[0] = str[ui1_t];	 \
-    lcd_buf_p++;		 \
+#define LCD_WR_N(str, len) {		\
+  uint8_t ui1_t;			\
+  for (ui1_t=0; (0 != str[ui1_t]) && (ui1_t<len); ui1_t++) {	\
+    lcd_buf_p[0] = str[ui1_t];			\
+    lcd_buf_p++;						\
+    assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
+  }				 \
+  for (; (ui1_t<len); ui1_t++) {		\
+    lcd_buf_p[0] = ' ';						\
+    lcd_buf_p++;						\
     assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
   }				 \
   lcd_buf_prop |= LCD_PROP_DIRTY;		\

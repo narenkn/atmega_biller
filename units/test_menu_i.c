@@ -8,6 +8,8 @@
 #include <assert.c>
 
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
+#include <util/crc16.h>
 
 #define TEST_KEY_ARR_SIZE 128
 

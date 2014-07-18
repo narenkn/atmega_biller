@@ -8,6 +8,8 @@
 #include <assert.c>
 
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
+#include <util/crc16.h>
 
 #define TEST_KEY_ARR_SIZE 128
 
@@ -49,9 +51,10 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
+    arg1.value.sptr = bufSS;
     menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
-    assert(0 == strncmp("Promp ?         ", &(lcd_buf[0][0]), LCD_MAX_COL));
-    if (0 != strncmp("Promp ?         ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
+    assert(0 == strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL));
+    if (0 != strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
 #ifdef DEBUG
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	putchar(lcd_buf[0][ui1]);
@@ -93,8 +96,8 @@ main(void)
     KBD_RESET_KEY;
     menuGetOpt("mlpsdlfjlalkjf", &arg1, MENU_ITEM_STR);
     //    printf("After getopt:%s\n", inp);
-    assert(0 == strncmp("mlpsd ?          ", lcd_buf[0], LCD_MAX_COL));
-    if (0 != strncmp("mlpsd ?          ", lcd_buf[0], LCD_MAX_COL)) {
+    assert(0 == strncmp("mlpsdlfj ?       ", lcd_buf[0], LCD_MAX_COL));
+    if (0 != strncmp("mlpsdlfj ?       ", lcd_buf[0], LCD_MAX_COL)) {
 #ifdef DEBUG
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	putchar(lcd_buf[0][ui1]);
@@ -196,7 +199,7 @@ main(void)
       printf("min:%d org:%d\n", arg1.value.time.min, min);
       printf("%s\n", lcd_buf[0]);
     }
-    assert(0 == strncmp("dflkj ?          ", lcd_buf[0], LCD_MAX_COL));
+    assert(0 == strncmp("dflkjf   ?       ", lcd_buf[0], LCD_MAX_COL));
     assert(hour == arg1.value.time.hour);
     assert(min == arg1.value.time.min);
   }
@@ -224,7 +227,7 @@ main(void)
     if (ui3 >= TEST_KEY_ARR_SIZE)
       continue;
     INIT_TEST_KEYS(inp);
-    ui3 = menuGetChoice("what crap?", menu_str1, MENU_STR1_IDX_NUM_ITEMS);
+    ui3 = menuGetChoice("what crap?", menu_str1, MENU_PROMPT_LEN, MENU_STR1_IDX_NUM_ITEMS);
 #if 0
     assert(0 == strncmp("what : Name     ", lcd_buf, LCD_MAX_COL));
     if (0 != strncmp("what : Name     ", lcd_buf, LCD_MAX_COL)) {

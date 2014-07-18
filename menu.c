@@ -347,7 +347,7 @@ menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_
 // Not unit tested
 /* Load in the factory settings */
 /* Todo:
-   1. passwds : needs to be reset
+   1. admin passwd needs to be reset
    2. users : make default user names
  */
 void
@@ -365,7 +365,6 @@ menu_unimplemented(uint32_t idx)
   LCD_refresh();
 }
 
-// Not unit tested
 /* Set others passwd : only admin can do this
    arg1 : user name
    arg2 : passwd
@@ -383,7 +382,7 @@ menuSetUserPasswd(uint8_t mode)
   for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
     ui3 = arg1.value.sptr[ui2];
     /* check alnum? */
-    if ((' ' == ui3) && (ui2 > 0))
+    if ((!isgraph(ui3)) && (ui2 > 0))
       break;
     else if (!isalnum(ui3)) {
       LCD_ALERT("Invalid User");
@@ -428,7 +427,7 @@ menuSetPasswd(uint8_t mode)
     for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
       ui2 = arg1.value.sptr[ui4];
       /* check isprintable? */
-      for (ui3=0; (' '!=ui2) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
+      for (ui3=0; (isgraph(ui2)) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
 	if (ui2 == keyChars[ui3])
 	  break;
       }
@@ -447,7 +446,7 @@ menuSetPasswd(uint8_t mode)
   for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
     ui2 = arg2.value.sptr[ui4];
     /* check isprintable? */
-    for (ui3=0; (' '!=ui2) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
+    for (ui3=0; (isgraph(ui2)) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
       if (ui2 == keyChars[ui3])
 	break;
     }
@@ -479,9 +478,11 @@ menuUserLogin(uint8_t mode)
 
   for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
     for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
-      if (eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+(ui2*EPS_MAX_UNAME)+ui3)) != arg1.value.sptr[ui3]) {
+      ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+(ui2*EPS_MAX_UNAME)+ui3));
+      if (ui4 != arg1.value.sptr[ui3]) {
 	break;
-      }
+      } else if ((0 == ui3) && (0 == ui2) && (!isgraph(ui4)))
+	break;
     }
     if (EPS_MAX_UNAME == ui3)
       goto menuUserLogin_found;
@@ -494,7 +495,7 @@ menuUserLogin(uint8_t mode)
   for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
     ui3 = arg2.value.sptr[ui4];
     /* check isprintable? */
-    for (ui5=0; (' '!=ui3) && (ui5<(KCHAR_COLS*KCHAR_ROWS)); ui5++) {
+    for (ui5=0; isgraph(ui3) && (ui5<(KCHAR_COLS*KCHAR_ROWS)); ui5++) {
       if (ui3 == keyChars[ui5])
 	break;
     }
@@ -1204,7 +1205,7 @@ menuHeader(uint8_t mode)
 //
 //    /* check for valid chars */
 //    for (ui2=0, ui3=0; (ui2<LCD_MAX_COL) && (0==ui3); ui2++) {
-//      ui3 = (' ' == lcd_buf[LCD_MAX_ROW-1][ui2]) ? 1 : 0;
+//      ui3 = (isgraph(lcd_buf[LCD_MAX_ROW-1][ui2])) ? 1 : 0;
 //    }
 //    if (ui3) {
 //      for (ui2=0; (ui2<LCD_MAX_COL) && (chars<mode_max); ui2++) {
