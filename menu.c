@@ -1385,7 +1385,8 @@ menu_main_start:
     /* Display shop name */
     ui8_1 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, shop_name_len));
     eeprom_read_block(bufSS, (uint8_t *)offsetof(struct ep_store_layout, shop_name), ui8_1);
-    LCD_WR_LINE_N(0, 0, bufSS, ((ui8_1<LCD_MAX_COL)?ui8_1:LCD_MAX_COL));
+    bufSS[ui8_1] = 0;
+    LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
     LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, (menu_hier_names+(menu_selected*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
   } else {
     /* Shop name (8 chars) */
