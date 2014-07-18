@@ -185,8 +185,7 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* Get a string */
   do {
-    lp[0] = '_';
-    LCD_refresh();
+    /* FIXME: Need to added cursor functionality */
     KBD_GETCH;
 
     /* Don't overflow buffer */
@@ -221,6 +220,7 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     if (ASCII_ENTER != KbdData) {
       KBD_RESET_KEY;
     }
+    LCD_refresh();
   } while (KbdData != ASCII_ENTER);
 
   menu_error = 1;
