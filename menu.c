@@ -185,6 +185,8 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* Get a string */
   do {
+    lp[0] = '_';
+    LCD_refresh();
     KBD_GETCH;
 
     /* Don't overflow buffer */
@@ -197,8 +199,8 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
       if (col_id == 0) {
 	break;
       }
-      col_id--; lp--;
       lp[0] = ' ';
+      col_id--; lp--;
       break;
     case ASCII_LF:
     case ASCII_ENTER:
@@ -219,7 +221,6 @@ menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     if (ASCII_ENTER != KbdData) {
       KBD_RESET_KEY;
     }
-    LCD_refresh();
   } while (KbdData != ASCII_ENTER);
 
   menu_error = 1;
