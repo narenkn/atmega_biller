@@ -1,0 +1,221 @@
+from optparse import OptionParser
+from optparse import SUPPRESS_HELP
+#from ctypes import windll
+import time
+import re
+import sys
+import csv
+
+class data_struct:
+  error = 0
+  def ds_print(self, cl):
+    for const, cval in cl.consts.items():
+      print "#define %25s %5d" % (const, cval)
+    print ""
+    print "struct %s {" % cl.name
+    for t_var, tvars in sorted(cl.variables.items()):
+      for var, s_var in sorted(tvars.items(), key=lambda x: x[1], reverse=True):
+        print "  %10s %25s%s;" % (t_var, var, s_var[0])
+    print "} __attribute__((packed));"
+    print "#define %s_SIZEOF sizeof(struct %s)" % (cl.name.upper(), cl.name)
+
+class csv2dat:
+  error = 0
+
+  def __init__(self, f):
+    self.file = f
+
+  def dat_print(self, cl):
+    csvfile = open(self.file, 'rb')
+    re_1 = re.compile(r'unused')
+    csv_lines = 0
+    data = {}
+    if csvfile:
+      reader = csv.reader(csvfile, delimiter=',', quotechar="'")
+      re_type_int = re.compile(r'(2|(\?+))$')
+      re_int = re.compile(r'\d+')
+      headers = reader.next()
+      for h in headers:
+        data[h] = []
+      for row in reader:
+        csv_lines += 1
+        for h, v in zip(headers, row):
+          if len(data[h]) and re_type_int.match(data[h][0]):
+            if re_int.match(v):
+              data[h].append(int(v))
+            else:
+              data[h].append(0)
+          else:
+            data[h].append(v)
+      ##
+      vardict = {}
+      goffset = 0
+      for t_var, tvars in sorted(cl.variables.items()):
+        for var, s_var in sorted(tvars.items(), key=lambda x: x[1][0], reverse=True):
+          if re_1.match(var):
+            pass
+          elif var not in data:
+            print "column '%s' not found in csv(%s)" % (var, self.file)
+            self.error += 1
+            return
+          if int(((goffset+s_var[1]) * 10) % 10) > 8:
+            goffset += 1
+            goffset = int(goffset)
+          s_var.append(goffset)
+          assert var not in vardict
+          vardict[var] = s_var
+          goffset += s_var[1]
+#          print "var:%s goffset:%f" % (var, goffset)
+      re_arr = re.compile(r'\[[a-zA-Z_]+\]')
+      re_bit = re.compile(r':\d+')
+      re_graph = re.compile(r'[\r\n\x20-\x7F]') 
+      goffset += 0.9
+      for li in range(1, csv_lines):
+        pbytes = [0] * int(goffset)
+        for var in vardict:
+          decl = vardict[var][0]
+          offset = vardict[var][2]
+          is_var = 1 if ('' == decl) else 0
+          is_arr = 1 if re_arr.match(decl) else 0
+          is_bit = 1 if re_bit.match(decl) else 0
+#          if options.debug:
+#            print "%s (%d,%d,%d) %s , offset : %f" % (var, is_var, is_arr, is_bit, decl, offset)
+          if var not in data:
+            pass
+          elif is_var:
+            for i in range(vardict[var][1]): ## each bytes
+              pbytes[vardict[var][2]+i] = (data[var][li] >> (i*8)) & 0xFF
+          elif is_arr:
+            for i in range(vardict[var][1]): ## each bytes
+              if (i >= len(data[var][li])) or (not re_graph.match(data[var][li][i])):
+                pbytes[vardict[var][2]+i] = ' '
+              else:
+                pbytes[vardict[var][2]+i] = data[var][li][i]
+          elif is_bit:
+            pbytes[int(vardict[var][2])] |= data[var][li] << int((vardict[var][2]*10)%10)
+          else: assert(0 == "Field '%s' is not type matched" % var)
+#        print "pbytes:", pbytes
+    csvfile.close()
+
+class item:
+  consts = {
+    'ITEM_NAME_BYTEL':12,
+    'ITEM_NAME_UNI_BYTEL':24,
+    'ITEM_PROD_CODE_BYTEL':20,
+    }
+  variables = {
+    'uint16_t' : {
+      'id': ['', 2],
+      'cost':['', 2],
+      'discount':['', 2],
+      },
+    'uint8_t'  : {
+      'name':['[ITEM_NAME_BYTEL]', 1*12],
+      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*20],
+      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*24],
+      'has_serv_tax':[':1', 0.1],
+      'has_common_discount':[':1', 0.1],
+      'has_cess1':[':1', 0.1],
+      'has_cess2':[':1', 0.1],
+      'has_weighing_mc':[':1', 0.1],
+      'vat_sel':[':3', 0.3],
+      'name_in_unicode':[':1', 0.1],
+      'is_biller_item':[':1', 0.1],
+      'unused_1':[':1', 0.1],
+      'unused_2':[':1', 0.1],
+      'unused_3':[':1', 0.1],
+      'unused_4':[':1', 0.1],
+      'unused_5':[':1', 0.1],
+      'unused_6':[':1', 0.1],
+      }
+    }
+
+  def __init__(self, name):
+    self.name = name
+
+class ep_store_layout:
+  consts = {
+    'HEADER_MAX_SZ_MAX' : 54,
+    'SHOP_NAME_SZ_MAX' : 16,
+    'FOOTER_MAX_SZ_MAX' : 24,
+    'EPS_MAX_VAT_CHOICE' : 8,
+    'EPS_MAX_USERS' : 15,
+    'EPS_MAX_UNAME' : 8,
+    }
+  variables = {
+    'uint16_t' : {
+      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*8],
+      'service_tax' : ['', 2],
+      'cess1' : ['', 2],
+      'cess2' : ['', 2],
+      'round_off' : ['', 2],
+      ## bits [15:4] : Unused
+      ## bits [3:0] : Printing
+      ## value 0b0000 : don't ask, 0b00xx : copies without confirmation,
+      ## 0b01xx : confirm before print xx copies
+      'property' : ['', 2],
+      'passwds' : ['[EPS_MAX_USERS+1]', 2*16],
+      'shop_name_len' : ['', 2],
+      'prn_header_len' : ['', 2],
+      'prn_footer_len' : ['', 2],
+      },
+    'uint8_t' : {
+      ## User options
+      ## User 0 : is 'admin' + 15 usernames
+      ## 16 passwords
+      'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8],
+      'denomination_text' : ['[20]', 20],
+      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16],
+      'prn_header' : ['[HEADER_MAX_SZ_MAX]', 54],
+      'prn_footer' : ['[FOOTER_MAX_SZ_MAX]', 24],
+      }
+    }
+  def __init__(self, name):
+    self.name = name
+
+if "__main__" == __name__:
+  ## Constants
+  error = 0
+  options = None
+
+  ##
+  parser = OptionParser()
+  parser.add_option("", "--header",
+                  action="store_true", dest="header", default=False,
+                  help=SUPPRESS_HELP);
+  parser.add_option("", "--debug",
+                  action="store_true", dest="debug", default=False,
+                  help=SUPPRESS_HELP);
+  parser.add_option("", "--settings",
+                  action="store_true", dest="settings", default=False,
+                  help="Create settings file from csv");
+  parser.add_option("", "--items",
+                  action="store_true", dest="items", default=False,
+                  help="Create items file from csv");
+  parser.add_option("-f", "--file", dest="csv", default="settings.csv",
+                  help="Settings file");
+  (options, args) = parser.parse_args()
+
+  it = item('item')
+  ep = ep_store_layout('ep_store_layout')
+
+  if options.header:
+    print "#ifndef EP_DS_H\n#define EP_DS_H\n"
+    ds = data_struct()
+    ds.ds_print(it)
+    ds.ds_print(ep)
+    print "\n\n#endif"
+    error += ds.error
+  elif options.settings:
+    f = open(options.csv)
+    if not f:
+      print "Error: Failed opening file"
+      exit (1)
+    f.close()
+    cd = csv2dat(options.csv)
+    cd.dat_print(it)
+    error += cd.error
+  elif options.items:
+    pass
+
+  sys.exit (error)

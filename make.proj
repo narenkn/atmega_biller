@@ -13,5 +13,8 @@ CFLAGS += -DLCD_DPORT_SIZE=4
 ../ep_ds.h : ../utils/csv2dat.py
 	python ../utils/csv2dat.py --header > $@
 
-%.dat : ../utils/csv2dat.py
-	python ../utils/csv2dat.py --settings > $@ 
+%.set : %.csv
+	python ../utils/csv2dat.py --settings $< > $@
+
+%.itm : %.csv
+	python ../utils/csv2dat.py --items $< > $@

@@ -380,7 +380,7 @@ menuSetUserPasswd(uint8_t mode)
   /* Choose the user to replace it with */
   assert(MENU_ITEM_STR == arg1.valid);
   assert(MENU_ITEM_STR == arg2.valid);
-  for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
+  for (ui2=0; ui2<EPS_MAX_UNAME; ui2++) {
     ui3 = arg1.value.sptr[ui2];
     /* check alnum? */
     if ((!isgraph(ui3)) && (ui2 > 0))
