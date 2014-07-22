@@ -6,6 +6,11 @@ import re
 import sys
 import csv
 
+TYPE_INT = 1
+TYPE_STRING = 2
+TYPE_BIT = 3
+TYPE_INTARR = 4
+
 class data_struct:
   error = 0
   def ds_print(self, cl):
@@ -25,6 +30,16 @@ class csv2dat:
   def __init__(self, f):
     self.file = f
 
+  def crc16(self, string, crc=0):
+    for a in string:
+      crc ^= a
+      for i in range(8):
+        if crc & 1:
+          crc = (crc >> 1) ^ 0xA001
+        else:
+          crc = (crc >> 1)
+    return crc
+
   def dat_print(self, cl):
     csvfile = open(self.file, 'rb')
     re_1 = re.compile(r'unused')
@@ -32,21 +47,15 @@ class csv2dat:
     data = {}
     if csvfile:
       reader = csv.reader(csvfile, delimiter=',', quotechar="'")
-      re_type_int = re.compile(r'(2|(\?+))$')
       re_int = re.compile(r'\d+')
       headers = reader.next()
+      comment_line = reader.next()
       for h in headers:
         data[h] = []
       for row in reader:
         csv_lines += 1
         for h, v in zip(headers, row):
-          if len(data[h]) and re_type_int.match(data[h][0]):
-            if re_int.match(v):
-              data[h].append(int(v))
-            else:
-              data[h].append(0)
-          else:
-            data[h].append(v)
+          data[h].append(v)
       ##
       vardict = {}
       goffset = 0
@@ -66,67 +75,94 @@ class csv2dat:
           vardict[var] = s_var
           goffset += s_var[1]
 #          print "var:%s goffset:%f" % (var, goffset)
-      re_arr = re.compile(r'\[[a-zA-Z_]+\]')
-      re_bit = re.compile(r':\d+')
-      re_graph = re.compile(r'[\r\n\x20-\x7F]') 
+      ## Sanity check is complete, things should work from here
+      outfile = open("%sdat" % self.file[:-3], 'wb')
+      signature = 0
+      assert(outfile)
+      pbytes = []
+      for i in range(1, -1, -1):
+        pbytes.append((csv_lines >> (i*8)) & 0xFF);
+      outfile.write(bytearray(pbytes))
+      signature = self.crc16(bytearray(pbytes), signature)
+      re_graph = re.compile(r'[\x21-\x7E]')
       goffset += 0.9
-      for li in range(1, csv_lines):
+      for li in range(csv_lines):
         pbytes = [0] * int(goffset)
         for var in vardict:
-          decl = vardict[var][0]
-          offset = vardict[var][2]
-          is_var = 1 if ('' == decl) else 0
-          is_arr = 1 if re_arr.match(decl) else 0
-          is_bit = 1 if re_bit.match(decl) else 0
-#          if options.debug:
-#            print "%s (%d,%d,%d) %s , offset : %f" % (var, is_var, is_arr, is_bit, decl, offset)
+          offset = vardict[var][3]
+          if options.debug:
+            print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset)
           if var not in data:
             pass
-          elif is_var:
+          elif TYPE_INT == vardict[var][2]:
             for i in range(vardict[var][1]): ## each bytes
-              pbytes[vardict[var][2]+i] = (data[var][li] >> (i*8)) & 0xFF
-          elif is_arr:
+              if '' != data[var][li]:
+                pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
+          elif TYPE_INTARR == vardict[var][2]:
+            i,j,k,l = 0,0,0,0
+            while ((i < vardict[var][1]) and (j < len(data[var][li]))): ## each bytes
+              c = data[var][li][j]
+              if re_graph.match(c):
+                k <<= 4
+                k |= int(c, 16)
+                if (1 == (l&1)): ## assign
+                  pbytes[vardict[var][3]+i] = k & 0xFF
+                  i += 1
+                l += 1
+              j += 1
+          elif TYPE_STRING == vardict[var][2]:
             for i in range(vardict[var][1]): ## each bytes
               if (i >= len(data[var][li])) or (not re_graph.match(data[var][li][i])):
-                pbytes[vardict[var][2]+i] = ' '
+                pbytes[vardict[var][3]+i] = ' '
               else:
-                pbytes[vardict[var][2]+i] = data[var][li][i]
-          elif is_bit:
-            pbytes[int(vardict[var][2])] |= data[var][li] << int((vardict[var][2]*10)%10)
+                pbytes[vardict[var][3]+i] = data[var][li][i]
+          elif TYPE_BIT == vardict[var][2]:
+            if '' != data[var][li]:
+#              print pbytes[int(vardict[var][3])], " ",
+              pbytes[int(vardict[var][3])] |= int(data[var][li]) << (int((vardict[var][3]*10)%10))
+#              print "TYPE_BIT ", var, ", ", int(vardict[var][3]), ", ", int(data[var][li]), ", ", (7 - int((vardict[var][3]*10)%10)),
+#              print pbytes[int(vardict[var][3])]
           else: assert(0 == "Field '%s' is not type matched" % var)
-#        print "pbytes:", pbytes
+        if options.debug: print "pbytes:", pbytes
+        outfile.write(bytearray(pbytes))
+        signature = self.crc16(bytearray(pbytes), signature)
+      pbytes = []
+      for i in range(1, -1, -1):
+        pbytes.append((signature >> (i*8)) & 0xFF);
+      outfile.write(bytearray(pbytes))
+      outfile.close()
     csvfile.close()
 
 class item:
   consts = {
-    'ITEM_NAME_BYTEL':12,
-    'ITEM_NAME_UNI_BYTEL':24,
+    'ITEM_NAME_BYTEL':10,
+    'ITEM_NAME_UNI_BYTEL':18,
     'ITEM_PROD_CODE_BYTEL':20,
     }
   variables = {
     'uint16_t' : {
-      'id': ['', 2],
-      'cost':['', 2],
-      'discount':['', 2],
+      'id': ['', 2, TYPE_INT],
+      'cost':['', 2, TYPE_INT],
+      'discount':['', 2, TYPE_INT],
       },
     'uint8_t'  : {
-      'name':['[ITEM_NAME_BYTEL]', 1*12],
-      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*20],
-      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*24],
-      'has_serv_tax':[':1', 0.1],
-      'has_common_discount':[':1', 0.1],
-      'has_cess1':[':1', 0.1],
-      'has_cess2':[':1', 0.1],
-      'has_weighing_mc':[':1', 0.1],
-      'vat_sel':[':3', 0.3],
-      'name_in_unicode':[':1', 0.1],
-      'is_biller_item':[':1', 0.1],
-      'unused_1':[':1', 0.1],
-      'unused_2':[':1', 0.1],
-      'unused_3':[':1', 0.1],
-      'unused_4':[':1', 0.1],
-      'unused_5':[':1', 0.1],
-      'unused_6':[':1', 0.1],
+      'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
+      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*20, TYPE_STRING],
+      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*18, TYPE_INTARR],
+      'has_serv_tax':[':1', 0.1, TYPE_BIT],
+      'has_common_discount':[':1', 0.1, TYPE_BIT],
+      'has_cess1':[':1', 0.1, TYPE_BIT],
+      'has_cess2':[':1', 0.1, TYPE_BIT],
+      'has_weighing_mc':[':1', 0.1, TYPE_BIT],
+      'vat_sel':[':3', 0.3, TYPE_BIT],
+      'name_in_unicode':[':1', 0.1, TYPE_BIT],
+      'is_biller_item':[':1', 0.1, TYPE_BIT],
+      'unused_1':[':1', 0.1, TYPE_BIT],
+      'unused_2':[':1', 0.1, TYPE_BIT],
+      'unused_3':[':1', 0.1, TYPE_BIT],
+      'unused_4':[':1', 0.1, TYPE_BIT],
+      'unused_5':[':1', 0.1, TYPE_BIT],
+      'is_valid_item':[':1', 0.1, TYPE_BIT],
       }
     }
 
@@ -135,7 +171,7 @@ class item:
 
 class ep_store_layout:
   consts = {
-    'HEADER_MAX_SZ_MAX' : 54,
+    'HEADER_MAX_SZ_MAX' : 16*3,
     'SHOP_NAME_SZ_MAX' : 16,
     'FOOTER_MAX_SZ_MAX' : 24,
     'EPS_MAX_VAT_CHOICE' : 8,
@@ -144,30 +180,27 @@ class ep_store_layout:
     }
   variables = {
     'uint16_t' : {
-      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*8],
-      'service_tax' : ['', 2],
-      'cess1' : ['', 2],
-      'cess2' : ['', 2],
-      'round_off' : ['', 2],
+      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*8, TYPE_INT],
+      'service_tax' : ['', 2, TYPE_INT],
+      'cess1' : ['', 2, TYPE_INT],
+      'cess2' : ['', 2, TYPE_INT],
+      'round_off' : ['', 2, TYPE_INT],
       ## bits [15:4] : Unused
       ## bits [3:0] : Printing
       ## value 0b0000 : don't ask, 0b00xx : copies without confirmation,
       ## 0b01xx : confirm before print xx copies
-      'property' : ['', 2],
-      'passwds' : ['[EPS_MAX_USERS+1]', 2*16],
-      'shop_name_len' : ['', 2],
-      'prn_header_len' : ['', 2],
-      'prn_footer_len' : ['', 2],
+      'property' : ['', 2, TYPE_INT],
+      'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_INT],
       },
     'uint8_t' : {
       ## User options
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
-      'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8],
-      'denomination_text' : ['[20]', 20],
-      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16],
-      'prn_header' : ['[HEADER_MAX_SZ_MAX]', 54],
-      'prn_footer' : ['[FOOTER_MAX_SZ_MAX]', 24],
+      'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
+      'denomination_text' : ['[5]', 5, TYPE_STRING],
+      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16, TYPE_STRING],
+      'prn_header' : ['[HEADER_MAX_SZ_MAX]', 16*3, TYPE_STRING],
+      'prn_footer' : ['[FOOTER_MAX_SZ_MAX]', 24, TYPE_STRING],
       }
     }
   def __init__(self, name):
@@ -207,6 +240,8 @@ if "__main__" == __name__:
     print "\n\n#endif"
     error += ds.error
   elif options.settings:
+    pass
+  elif options.items:
     f = open(options.csv)
     if not f:
       print "Error: Failed opening file"
@@ -215,7 +250,6 @@ if "__main__" == __name__:
     cd = csv2dat(options.csv)
     cd.dat_print(it)
     error += cd.error
-  elif options.items:
-    pass
+  else: error += 1
 
   sys.exit (error)

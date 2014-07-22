@@ -147,5 +147,10 @@ uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
  */
 uint8_t twst;
 
+/*
+ * Number of EEPROM devices connected in the system
+ */
+#define EEPROM_MAX_DEVICES             4
+#define EEPROM_MAX_DEVICES_LOGN2       2
+
 #endif
-	

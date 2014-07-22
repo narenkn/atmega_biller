@@ -192,7 +192,8 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
   sla = TWI_SLA_24CXX | (((eeaddr >> 8) & 0x07) << 1);
 #else
   /* 16-bit address devices need only TWI Device Address */
-  sla = TWI_SLA_24CXX;
+  sla = TWI_SLA_24CXX | (((eeaddr >> 14) & 0x03) << 1);
+  eeaddr <<= 2; eeaddr &= ~0x3;
 #endif
 
   /*
@@ -369,19 +370,20 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
   uint16_t rv = 0;
   uint16_t endaddr;
 
-  if (eeaddr + len <= (eeaddr | (EEPROM_PAGE_SIZE - 1)))
-    endaddr = eeaddr + len;
-  else
-    endaddr = (eeaddr | (EEPROM_PAGE_SIZE - 1)) + 1;
-  len = endaddr - eeaddr;
-
 #ifndef WORD_ADDRESS_16BIT
   /* patch high bits of EEPROM address into SLA */
   sla = TWI_SLA_24CXX | (((eeaddr >> 8) & 0x07) << 1);
 #else
   /* 16-bit address devices need only TWI Device Address */
-  sla = TWI_SLA_24CXX;
+  sla = TWI_SLA_24CXX | (((eeaddr >> 14) & 0x03) << 1);
+  eeaddr <<= 2; eeaddr &= ~0x3;
 #endif
+
+  if (eeaddr + len <= (eeaddr | (EEPROM_PAGE_SIZE - 1)))
+    endaddr = eeaddr + len;
+  else
+    endaddr = (eeaddr | (EEPROM_PAGE_SIZE - 1)) + 1;
+  len = endaddr - eeaddr;
 
  restart:
   if (n++ >= MAX_ITER)

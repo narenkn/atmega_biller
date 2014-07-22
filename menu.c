@@ -1381,19 +1381,17 @@ menu_main_start:
   /* Clear known key press */
   KBD_RESET_KEY;
 
+    eeprom_read_block(bufSS, (uint8_t *)offsetof(struct ep_store_layout, shop_name), SHOP_NAME_SZ_MAX);
+    bufSS[SHOP_NAME_SZ_MAX] = 0;
+
   /* First select a Menu */
   if (0 == menu_selhier) {
     /* Display shop name */
-    ui8_1 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, shop_name_len));
-    eeprom_read_block(bufSS, (uint8_t *)offsetof(struct ep_store_layout, shop_name), ui8_1);
-    bufSS[ui8_1] = 0;
     LCD_WR_LINE_N(0, 0, bufSS, LCD_MAX_COL);
     LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, (menu_hier_names+(menu_selected*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
   } else {
     /* Shop name (8 chars) */
-    ui8_1 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, shop_name_len));
-    eeprom_read_block(bufSS, (uint8_t *)offsetof(struct ep_store_layout, shop_name), ui8_1);
-    LCD_WR_LINE_N(0, 0, bufSS, ((ui8_1<LCD_MAX_COL)?ui8_1:LCD_MAX_COL));
+    LCD_WR_LINE_N(0, 0, bufSS, ((SHOP_NAME_SZ_MAX<LCD_MAX_COL)?SHOP_NAME_SZ_MAX:LCD_MAX_COL));
     LCD_POS(0, (LCD_MAX_COL>>1)&0xF);
     LCD_PUTCH('>');
     LCD_WR_LINE_NP(0, ((LCD_MAX_COL>>1)+1)&0xF, (menu_hier_names+((menu_selhier-1)*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
@@ -1723,7 +1721,75 @@ menu_main_start:
 void
 menuSDLoadItem(uint8_t mode)
 {
-  menu_unimplemented(__LINE__);
+  FATFS FS;
+  FIL   fp;
+  UINT  ret_size, ui1;
+  uint16_t ui16_1;
+  uint8_t ui8_1;
+
+  /* */
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&fp, SD_ITEM_FILE, FA_READ)) {
+    LCD_ALERT("File open error");
+    goto menuSDLoadItemExit;
+  }
+
+  /* Check for crc in file */
+  bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
+  ui8_1 = 0, ui16_1 = 0;
+  while (FR_OK == f_read(&fp, bufSS, BUFSS_SIZE-2, &ret_size)) {
+    if (0 == ret_size) break;
+    if (0 != ui16_1) { /* skip first time */
+      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
+      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-1]);
+    }
+    for (ui1=0; ui1<(ret_size-2); ui1++) {
+      ui16_1 = _crc16_update(ui16_1, bufSS[ui1]);
+    }
+    bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
+    bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
+    ui8_1 = (ret_size + ui8_1) % ITEM_SIZEOF;
+    //    printf("ret_size:%d ui8_1:%d ITEM_SIZEOF:%d\n", ret_size, ui8_1, ITEM_SIZEOF);
+  }
+  ret_size = bufSS[BUFSS_SIZE-2];
+  ret_size <<= 8;
+  ret_size |= bufSS[BUFSS_SIZE-1];
+  if ((0 == ui16_1) || (ui16_1 != ret_size) || (4 != ui8_1)) {
+    //    printf("ui16_1:%x ret_size:%x ui8_1:%d\n", ui16_1, ret_size, ui8_1);
+    LCD_ALERT_16N("File error ", ui16_1);
+    goto menuSDLoadItemExit;
+  }
+
+  /* */
+  assert(FR_OK == f_lseek(&fp, 0));
+  assert(FR_OK == f_read(&fp, bufSS, 2, &ret_size));
+  assert(2 == ret_size);
+  ui1 = bufSS[0];
+  ui1<<=8, ui1 |= bufSS[1];
+  ui16_1 = 0;
+  while (FR_OK == f_read(&fp, bufSS, ITEM_SIZEOF, &ret_size)) {
+    if (ITEM_SIZEOF != ret_size) break; /* reached last */
+    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+//    printf("writing to addr : %x : ", ui16_1);
+//    for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++) {
+//      printf("%x ", bufSS[ui8_1]);
+//    }
+//    printf("\n");
+    ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  }
+  assert(ui16_1 == (ui1*(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)));
+  assert(2 == ret_size); /* crc would be pending */
+  /* Clear all other memeory */
+  for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
+    bufSS[ui8_1] = 0;
+  while ((EEPROM_ADDR_INVALID - ui16_1) > ITEM_SIZEOF) {
+    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  }
+
+ menuSDLoadItemExit:
+  /* */
+  f_mount(NULL, "", 0);
 }
 
 // Not unit tested

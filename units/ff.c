@@ -101,9 +101,9 @@ FRESULT f_mount (
 	BYTE opt
 )
 {
-  if (NULL == path) { /* unmount */
-    fs->mount_path[0] = 0;
-    fs->is_mounted = 0;
+  if (NULL == fs) { /* unmount */
+    _fs->mount_path[0] = 0;
+    _fs->is_mounted = 0;
     return;
   }
   /* mount */
@@ -150,7 +150,7 @@ FRESULT f_read (
 {
   uint32_t size;
   
-  size = fread(buff, btr, 1, fp->fp);
+  size = fread(buff, 1, btr, fp->fp);
   *br = size;
   return (0 == size) ? FR_DISK_ERR : FR_OK;
 }

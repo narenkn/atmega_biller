@@ -221,4 +221,6 @@ void menuMain(void);
 
 #define menu_item_find(id) ((id<ITEM_MAX) ? (ITEM_SIZEOF*id): EEPROM_ADDR_INVALID)
 
+#define SD_ITEM_FILE "items.dat"
+
 #endif

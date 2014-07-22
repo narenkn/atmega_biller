@@ -3,7 +3,7 @@
 uint8_t i2c_ymd[3], i2c_hm[2];
 
 #define NIBBLE_PACK(A, B) ((A<<4)|B)
-#define EEPROM_SIZE ((1<<12)<<2)
+#define EEPROM_SIZE ((1<<16)<<2)
 uint8_t i2c_bytes[EEPROM_SIZE];
 
 void
@@ -13,8 +13,8 @@ i2c_init(void)
   i2c_ymd[1] = NIBBLE_PACK(0, 1);
   i2c_ymd[2] = NIBBLE_PACK(1, 4);
 
-  uint16_t ui1;
-  for (ui1=0; ui1<EEPROM_SIZE; ui1++)
+  uint32_t ui1;
+  for (ui1=0; ui1<(EEPROM_SIZE-1); ui1++)
     i2c_bytes[ui1] = 0xBD;
 }
 
@@ -71,13 +71,13 @@ i2c_stop(void)
 uint16_t
 ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 {
-  uint16_t n_bytes = num_bytes;
-  assert (addr < EEPROM_SIZE);
-  if (addr < EEPROM_SIZE) {
-    for (; n_bytes>0; n_bytes--) {
-      i2c_bytes[addr] = data[0];
-      addr++, data++;
-    }
+  uint16_t n_bytes;
+  uint32_t addr_t = addr;
+
+  addr_t <<= 2;
+
+  for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
+    i2c_bytes[addr_t+n_bytes] = data[n_bytes];
   }
 
   return num_bytes;
@@ -86,12 +86,13 @@ ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 uint16_t
 ee24xx_read_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 {
-  uint16_t n_bytes = num_bytes;
+  uint16_t n_bytes;
+  uint32_t addr_t = addr;
 
-  assert (addr < EEPROM_SIZE);
-  for (; n_bytes>0; n_bytes--) {
-    data[0] = i2c_bytes[addr];
-    addr++, data++;
+  addr_t <<= 2;
+
+  for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
+    data[n_bytes] = i2c_bytes[addr_t+n_bytes];
   }
 
   return num_bytes;
