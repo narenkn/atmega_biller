@@ -20,21 +20,23 @@ main()
   LCD_WR_LINE(0, 0, "UART Testing:");
   LCD_refresh();
   _delay_ms(1000);
-  uart0_init();
+  uart_init();
 
   DDRD |= 0x60;
-  PORTD |= 2<<5;
+  PORTD |= 0<<5;
 
   uint8_t ui1, ui2;
   while (1) {
     for (ui1=0; ui1<26; ui1++) {
-      ui2 = receiveByte();
+//      ui2 = receiveByte();
 
       LCD_POS(1, 0);
-//      LCD_PUTCH('a'+ui1);
-      LCD_PUTCH(ui2);
+      LCD_PUTCH('a'+ui1);
+//      LCD_PUTCH(ui2);
       LCD_refresh();
-      transmitByte(ui2);
+      uart_transmitByte('a'+ui1);
+      uart_transmitByte('\r');
+      uart_transmitByte('\n');
       _delay_ms(1000);
     }
   }

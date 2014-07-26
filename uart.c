@@ -1,14 +1,3 @@
-//**************************************************************
-//******** FUNCTIONS FOR SERIAL COMMUNICATION USING UART *******
-//**************************************************************
-//Controller		: ATmega32 (Clock: 8 Mhz-internal)
-//Compiler			: AVR-GCC (winAVR with AVRStudio-4)
-//Project Version	: DL_1.0
-//Author			: CC Dharmani, Chennai (India)
-//			  		  www.dharmanitech.com
-//Date				: 10 May 2011
-//**************************************************************
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -23,7 +12,7 @@
 void
 uart_init(void)
 {
-#if 1
+#if 0
   UCSRB = 0x00; //disable while setting baud rate
   UCSRA = 0x00;
   UCSRC = (1 << URSEL) | 0x06;
@@ -32,7 +21,7 @@ uart_init(void)
   UCSRB = 0x18;
 #endif
 
-#if 0
+#if 1
   uint16_t ui1;
 
   UCSRB = 0x00;
@@ -116,7 +105,7 @@ uart_transmitHex( uint8_t dataType, unsigned long data )
       data = data/16;
     }
 
-  transmitString (dataString);
+  uart_transmitString (dataString);
 }
 
 //***************************************************
@@ -126,7 +115,7 @@ void
 uart_transmitString_F(uint8_t* string)
 {
   while (pgm_read_byte(&(*string)))
-    transmitByte(pgm_read_byte(&(*string++)));
+  uart_transmitByte(pgm_read_byte(&(*string++)));
 }
 
 //***************************************************
@@ -136,7 +125,7 @@ void
 uart_transmitString(uint8_t* string)
 {
   while (*string)
-    transmitByte(*string++);
+  uart_transmitByte(*string++);
 }
 
 //************ END ***** www.dharmanitech.com *******

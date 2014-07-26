@@ -4,6 +4,8 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
+#include "uart.c"
+
 volatile uint8_t KbdData, KbdDataAvail=0;
 #define KBD_HIT (0 != KbdDataAvail)
 #define KBD_PS2_CLK      ((PIND >> 2)&1)
@@ -168,9 +170,14 @@ main(void)
 
   LCD_init();
 
+  uart_init();
+  uart_select(0);
+
   /* Set pin mode & enable pullup */
   DDRD &= ~((1<<PD2)|(1<<PD3));
 //  PORTD |= (1<<PD2) | (1<<PD3);
+  DDRD |= 0x10;
+  PORTD |= 2<<5;
 
   /* Enable Int0 on falling edge */
   GICR = 1<<INT0;
@@ -179,8 +186,8 @@ main(void)
   /* Enable Global Interrupts */
   sei();
 
-  PORTD = 0x10;
-  LCD_WriteDirect(LCD_CMD_CUR_10, "PS2 Kbd: ", 9);
+  PORTD |= 0x10;
+  LCD_WriteDirect(LCD_CMD_CUR_10, "Printer: ", 9);
   _delay_ms(1000);
 
   for (ui1=0; ; ui1++) {
@@ -188,18 +195,11 @@ main(void)
       LCD_cmd((LCD_CMD_CUR_10+9));
       LCD_wrchar(KbdData);
       KbdDataAvail = 0;
+      uart_transmitByte(KbdData);
+      uart_transmitByte('\r');
+      uart_transmitByte('\n');
     }
-//    LCD_cmd((LCD_CMD_CUR_10+11));
-//    LCD_uint8x(drC);
-//    LCD_cmd((LCD_CMD_CUR_10+14));
-//    LCD_uint8x(ui1);
-//    LCD_cmd(LCD_CMD_CUR_20);
-//    LCD_uint8x(bitC);
-//    LCD_uint8x(kbdDr[0]);
-//    LCD_uint8x(kbdDr[1]);
-//    LCD_uint8x(kbdDr[2]);
-//    LCD_uint8x(kbdDr[3]);
-    _delay_ms(1000);
+    _delay_ms(100);
   }
 
   return 0;

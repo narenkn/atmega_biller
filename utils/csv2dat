@@ -40,7 +40,7 @@ class csv2dat:
           crc = (crc >> 1)
     return crc
 
-  def dat_print(self, cl):
+  def make_dat(self, cl):
     csvfile = open(self.file, 'rb')
     re_1 = re.compile(r'unused')
     csv_lines = 0
@@ -79,11 +79,11 @@ class csv2dat:
       outfile = open("%sdat" % self.file[:-3], 'wb')
       signature = 0
       assert(outfile)
-      pbytes = []
-      for i in range(1, -1, -1):
-        pbytes.append((csv_lines >> (i*8)) & 0xFF);
-      outfile.write(bytearray(pbytes))
-      signature = self.crc16(bytearray(pbytes), signature)
+#      pbytes = []
+#      for i in range(1, -1, -1):
+#        pbytes.append((csv_lines >> (i*8)) & 0xFF);
+#      outfile.write(bytearray(pbytes))
+#      signature = self.crc16(bytearray(pbytes), signature)
       re_graph = re.compile(r'[\x21-\x7E]')
       goffset += 0.9
       for li in range(csv_lines):
@@ -131,13 +131,22 @@ class csv2dat:
         pbytes.append((signature >> (i*8)) & 0xFF);
       outfile.write(bytearray(pbytes))
       outfile.close()
-    csvfile.close()
+      csvfile.close()
+
+  def make_csv(self, cl):
+    datfile = open("%sdat" % self.file[:-3], 'rb')
+    csvfile = open(self.file, 'wb')
+    if datfile and csvfile:
+      writer = csv.writer(csvfile, delimiter=',', quotechar="'")
+      assert(0)
+      datfile.close()
+      csvfile.close()
 
 class item:
   consts = {
     'ITEM_NAME_BYTEL':10,
-    'ITEM_NAME_UNI_BYTEL':18,
-    'ITEM_PROD_CODE_BYTEL':20,
+    'ITEM_NAME_UNI_BYTEL':16,
+    'ITEM_PROD_CODE_BYTEL':16,
     }
   variables = {
     'uint16_t' : {
@@ -154,15 +163,16 @@ class item:
       'has_cess1':[':1', 0.1, TYPE_BIT],
       'has_cess2':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
-      'vat_sel':[':3', 0.3, TYPE_BIT],
+      'vat_sel':[':2', 0.2, TYPE_BIT],
       'name_in_unicode':[':1', 0.1, TYPE_BIT],
-      'is_biller_item':[':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
       'unused_3':[':1', 0.1, TYPE_BIT],
       'unused_4':[':1', 0.1, TYPE_BIT],
       'unused_5':[':1', 0.1, TYPE_BIT],
-      'is_valid_item':[':1', 0.1, TYPE_BIT],
+      'unused_6':[':1', 0.1, TYPE_BIT],
+      'unused_7':[':1', 0.1, TYPE_BIT],
+      'is_disabled':[':1', 0.1, TYPE_BIT],
       }
     }
 
@@ -219,12 +229,12 @@ if "__main__" == __name__:
   parser.add_option("", "--debug",
                   action="store_true", dest="debug", default=False,
                   help=SUPPRESS_HELP);
-  parser.add_option("", "--settings",
-                  action="store_true", dest="settings", default=False,
-                  help="Create settings file from csv");
-  parser.add_option("", "--items",
-                  action="store_true", dest="items", default=False,
-                  help="Create items file from csv");
+  parser.add_option("", "--to_dat",
+                  action="store_true", dest="to_dat", default=False,
+                  help="Create csv file from dat");
+  parser.add_option("", "--to_csv",
+                  action="store_true", dest="to_csv", default=False,
+                  help="Create dat file from csv");
   parser.add_option("-f", "--file", dest="csv", default="settings.csv",
                   help="Settings file");
   (options, args) = parser.parse_args()
@@ -239,16 +249,13 @@ if "__main__" == __name__:
     ds.ds_print(ep)
     print "\n\n#endif"
     error += ds.error
-  elif options.settings:
-    pass
-  elif options.items:
-    f = open(options.csv)
-    if not f:
-      print "Error: Failed opening file"
-      exit (1)
-    f.close()
+  elif options.to_dat:
     cd = csv2dat(options.csv)
-    cd.dat_print(it)
+    cd.make_csv(it)
+    error += cd.error
+  elif options.to_csv:
+    cd = csv2dat(options.csv)
+    cd.make_dat(it)
     error += cd.error
   else: error += 1
 

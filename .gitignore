@@ -6,6 +6,7 @@
 *.elf
 *.lss
 ep_ds.h
+version.h
 \#*
 dep
 default/*

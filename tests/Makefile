@@ -14,7 +14,7 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DERROR\(...\)=
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON) $(CLINE_ARG)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=1000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -40,12 +40,11 @@ OBJECTS = $(SOURCE:.c=.o)
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
 
-##
-include ../make.proj
-
 ## Build
 all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
+##
+include ../make.proj
 
 .PHONY: clean all headers
 

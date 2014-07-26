@@ -71,6 +71,7 @@ typedef struct {
 #define MENU_MSUPER    0x20
 #define MENU_MNORMAL   0x40  /* User functions */
 #define MENU_MRESET    0x80  /* Right after reset */
+#define MENU_MODITEM   0x01
 #define MENU_MPRINT    0x01
 #define MENU_MDELETE   0x02
 #define MENU_MVALIDATE 0x03
@@ -91,11 +92,13 @@ typedef struct {
 #define MENU_HIER_BILLING    1
 #define MENU_HIER_SETTINGS   2
 #define MENU_HIER_HISTORY    3
-#define MENU_HIER_MAX        3
+#define MENU_HIER_SD         4
+#define MENU_HIER_MAX        4
 #define MENU_HIER_NAME_SIZE  7
 #define MENU_HIER_NAMES      "Billing" \
                              "Setting" \
-                             "History"
+                             "History" \
+                             "SD Card"
 
 #define MENU_ITEMS \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Billing     ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
@@ -110,8 +113,8 @@ typedef struct {
     ARG1(MENU_PR_NAME, MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete Item ") COL_JOIN MENU_FUNC(menuDelItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Modify Item ") COL_JOIN MENU_FUNC(menuModItem) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
+    ARG1(MENU_PR_FLOAT, MENU_ITEM_FLOAT) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("SD Load Item") COL_JOIN MENU_FUNC(menuSDLoadItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("SD Save Item") COL_JOIN MENU_FUNC(menuSDSaveItem) COL_JOIN \
@@ -161,6 +164,14 @@ typedef struct {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MRESET)  MENU_NAME("User Login  ") COL_JOIN MENU_FUNC(menuUserLogin) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MRESET) MENU_NAME("Run Diagnost") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Items   ") COL_JOIN MENU_FUNC(menuSDLoadItem) COL_JOIN \
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Export Items ") COL_JOIN MENU_FUNC(menuSDSaveItem) COL_JOIN \
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Settings") COL_JOIN MENU_FUNC(menuSDLoadSettings) COL_JOIN \
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("ExportSetting") COL_JOIN MENU_FUNC(menuSDSaveSettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
 
 /* Let's check if this buf size if good enough */
@@ -188,7 +199,6 @@ void menuUserLogin(uint8_t mode);
 /* Item routines */
 void menuAddItem(uint8_t mode);
 void menuDelItem(uint8_t mode);
-void menuModItem(uint8_t mode);
 
 /* billing routines */
 void menuBilling(uint8_t mode);
@@ -214,6 +224,8 @@ void menuDelAllBill(uint8_t mode);
 /* SD routines */
 void menuSDLoadItem(uint8_t mode);
 void menuSDSaveItem(uint8_t mode);
+void menuSDLoadSettings(uint8_t mode);
+void menuSDSaveSettings(uint8_t mode);
 
 /* Other routines */
 void menuRunDiag(uint8_t mode);
@@ -221,6 +233,7 @@ void menuMain(void);
 
 #define menu_item_find(id) ((id<ITEM_MAX) ? (ITEM_SIZEOF*id): EEPROM_ADDR_INVALID)
 
-#define SD_ITEM_FILE "items.dat"
+#define SD_ITEM_FILE      "items.dat"
+#define SD_SETTINGS_FILE  "settings.dat"
 
 #endif

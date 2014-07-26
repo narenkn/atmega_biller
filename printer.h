@@ -13,6 +13,8 @@
 #define PRINTER_PAPER_CUT           0x1B69
 #define PRINTER_PAPER_PARTIAL_CUT   0x1B6D
 
+#define PRINTER_MAX_CHARS_ON_LINE   42
+
 #define PRINTER_PRINT(c) \
   uart_putc(c)
 
