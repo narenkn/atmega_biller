@@ -181,9 +181,9 @@ class item:
 
 class ep_store_layout:
   consts = {
-    'HEADER_MAX_SZ_MAX' : 16*3,
-    'SHOP_NAME_SZ_MAX' : 16,
-    'FOOTER_MAX_SZ_MAX' : 24,
+    'HEADER_SZ_MAX' : 16*3,
+    'SHOP_SZ_MAX' : 16,
+    'FOOTER_SZ_MAX' : 24,
     'EPS_MAX_VAT_CHOICE' : 8,
     'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,

@@ -240,7 +240,7 @@ main(void)
 //    assert(0 == strncmp("Promp ?         ", lcd_buf[0], LCD_MAX_COL));
 //
 //    /* Generate random string for Header */
-//    ui2 = rand() % HEADER_MAX_SZ;
+//    ui2 = rand() % HEADER_SZ_MAX;
 //    for (ui1=0; ui1<ui2; ui1++) {
 //      if (0 == (rand() % 3))
 //	inp2[ui1] = 'A' + (rand()%26);

@@ -12,8 +12,8 @@
 void
 billing_init(void)
 {
-  assert(6 == SALE_INFO_SIZEOF);
-  assert(10 == SALE_ITEM_SIZEOF);
-  assert(350 == SALE_SIZEOF);
+  assert(6 == sizeof(struct sale_info));
+  assert(10 == sizeof(struct sale_item));
+  assert(241 == SALE_SIZEOF);
   assert(SALE_SIZEOF <= BUFSS_SIZE);
 }

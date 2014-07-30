@@ -10,7 +10,7 @@
 //parity: Disabled
 //**************************************************
 void
-uart_init(void)
+uartInit(void)
 {
 #if 0
   UCSRB = 0x00; //disable while setting baud rate
@@ -48,7 +48,7 @@ uart_init(void)
 }
 
 void
-uart_select(uint8_t uid)
+uartSelect(uint8_t uid)
 {
   PORTD |= (uid & 3) << 5;
 }
@@ -57,7 +57,7 @@ uart_select(uint8_t uid)
 //Function to receive a single byte
 //*************************************************
 uint8_t
-uart_receiveByte( void )
+uartReceiveByte( void )
 {
   uint8_t data, status;
 	
@@ -73,7 +73,7 @@ uart_receiveByte( void )
 //Function to transmit a single byte
 //***************************************************
 void
-uart_transmitByte( uint8_t data )
+uartTransmitByte( uint8_t data )
 {
   while ( !(UCSRA & (1<<UDRE)) )
     ; 			                /* Wait for empty transmit buffer */
@@ -87,7 +87,7 @@ uart_transmitByte( uint8_t data )
 //Second argument is the data to be displayed
 //***************************************************
 void
-uart_transmitHex( uint8_t dataType, unsigned long data )
+uartTransmitHex( uint8_t dataType, unsigned long data )
 {
   uint8_t count, i, temp;
   uint8_t dataString[] = "0x        ";
@@ -112,7 +112,7 @@ uart_transmitHex( uint8_t dataType, unsigned long data )
 //Function to transmit a string in Flash
 //***************************************************
 void
-uart_transmitString_F(uint8_t* string)
+uartTransmitString_P(uint8_t* string)
 {
   while (pgm_read_byte(&(*string)))
   uart_transmitByte(pgm_read_byte(&(*string++)));
@@ -122,10 +122,8 @@ uart_transmitString_F(uint8_t* string)
 //Function to transmit a string in RAM
 //***************************************************
 void
-uart_transmitString(uint8_t* string)
+uartTransmitString(uint8_t* string)
 {
   while (*string)
   uart_transmitByte(*string++);
 }
-
-//************ END ***** www.dharmanitech.com *******

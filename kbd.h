@@ -42,6 +42,7 @@
 #define ASCII_UP         0xA6
 #define ASCII_DOWN       0xA7
 #define ASCII_F2         0xA8
+#define ASCII_ESCAPE     0xA9
 
 #define KBD_RESET_KEY          \
   KbdDataAvail = 0 ; KbdData = 0xFF
