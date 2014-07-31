@@ -1,13 +1,14 @@
 
-CFLAGS += -DLCD_DPORT_SIZE=4
+CFLAGS += -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=256
 
 ../version.h : ../utils/csv2dat
 	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
-	git log --pretty=format:"%h %an %s" ../utils/csv2dat | wc -l | xargs echo "#define SW_VERSION " >> $@
+	git log --pretty=format:"%h %an %s" ../utils/csv2dat | wc -l | xargs expr 1 + | xargs echo "#define SW_VERSION " >> $@
 	@echo -n "#define GIT_HASH_SMALL " >> $@
 	@git log --pretty=format:'"%h"' | head -1 >> $@
 	@echo -n "#define GIT_HASH " >> $@
 	@git log --pretty=format:'"%H"' | head -1 >> $@
+	@git log --pretty=format:'%H' | head -1 | xargs python ../utils/csv2dat --crc16 >> $@
 	@echo "#endif" >> $@
 
 ../ep_ds.h : ../utils/csv2dat

@@ -105,7 +105,7 @@ uartTransmitHex( uint8_t dataType, unsigned long data )
       data = data/16;
     }
 
-  uart_transmitString (dataString);
+  uartTransmitString (dataString);
 }
 
 //***************************************************
@@ -114,8 +114,11 @@ uartTransmitHex( uint8_t dataType, unsigned long data )
 void
 uartTransmitString_P(uint8_t* string)
 {
-  while (pgm_read_byte(&(*string)))
-  uart_transmitByte(pgm_read_byte(&(*string++)));
+  uint8_t ui8_1;
+  while (ui8_1 = pgm_read_byte(&(string[0]))) {
+    uartTransmitByte(ui8_1);
+    string++;
+  }
 }
 
 //***************************************************
@@ -125,5 +128,5 @@ void
 uartTransmitString(uint8_t* string)
 {
   while (*string)
-  uart_transmitByte(*string++);
+  uartTransmitByte(*string++);
 }

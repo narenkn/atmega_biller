@@ -397,41 +397,41 @@ menu_unimplemented(uint32_t idx)
 void
 menuSetUserPasswd(uint8_t mode)
 {
-  uint8_t ui2, ui3;
-  uint16_t ui1;
+  uint8_t ui8_2, ui8_3;
+  uint16_t ui16_1;
   assert(MENU_MSUPER == MenuMode);
 
   /* Choose the user to replace it with */
   assert(MENU_ITEM_STR == arg1.valid);
   assert(MENU_ITEM_STR == arg2.valid);
-  for (ui2=0; ui2<EPS_MAX_UNAME; ui2++) {
-    ui3 = arg1.value.sptr[ui2];
+  for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++) {
+    ui8_3 = arg1.value.sptr[ui8_2];
     /* check alnum? */
-    if ((!isgraph(ui3)) && (ui2 > 0))
+    if ((!isgraph(ui8_3)) && (ui8_2 > 0))
       break;
-    else if (!isalnum(ui3)) {
+    else if (!isalnum(ui8_3)) {
       LCD_ALERT("Invalid User");
       return;
     }
   }
   for (
-       ui2=0, ui1=offsetof(struct ep_store_layout, users)+EPS_MAX_UNAME;
-       ui2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui2++ ) {
-    bufSS[(LCD_MAX_COL*3)+ui2] = eeprom_read_byte((uint8_t *)ui1);
+       ui8_2=0, ui16_1=offsetof(struct ep_store_layout, users)+EPS_MAX_UNAME;
+       ui8_2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui8_2++, ui16_1++ ) {
+    bufSS[(LCD_MAX_COL*3)+ui8_2] = eeprom_read_byte((uint8_t *)ui16_1);
   }
-  ui2 = menuGetChoice("Replace at?", bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS-1) + 1;
+  ui8_2 = menuGetChoice("Replace at?", bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS-1) + 1;
   if (0 != menuGetChoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2)) {
     LCD_ALERT("Aborting!");
     return;
   }
 
   /* modify at will */
-  ui3 = LoginUserId;
-  LoginUserId = ui2;
+  ui8_3 = LoginUserId;
+  LoginUserId = ui8_2;
   menuSetPasswd(mode & ~MENU_MVALIDATE);
-  LoginUserId = ui3;
-  for (ui3=0; ui3<EPS_MAX_UNAME; ui3++) {
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+((ui2-1)*EPS_MAX_UNAME)+ui3), arg1.value.sptr[ui3]);
+  LoginUserId = ui8_3;
+  for (ui8_3=0; ui8_3<EPS_MAX_UNAME; ui8_3++) {
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+((ui8_2-1)*EPS_MAX_UNAME)+ui8_3), arg1.value.sptr[ui8_3]);
   }
 }
 
@@ -440,7 +440,7 @@ void
 menuSetPasswd(uint8_t mode)
 {
   uint16_t crc_old = 0, crc_new = 0;
-  uint8_t ui2, ui3, ui4;
+  uint8_t ui8_2, ui8_3, ui8_4;
 
   /* */
   assert(0 != LoginUserId);
@@ -449,15 +449,15 @@ menuSetPasswd(uint8_t mode)
   /* Compute CRC on old password, check */
   if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
     assert(MENU_ITEM_STR == arg1.valid);
-    for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
-      ui2 = arg1.value.sptr[ui4];
+    for (ui8_4=0; ui8_4<LCD_MAX_COL; ui8_4++) {
+      ui8_2 = arg1.value.sptr[ui8_4];
       /* check isprintable? */
-      for (ui3=0; (isgraph(ui2)) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
-	if (ui2 == keyChars[ui3])
+      for (ui8_3=0; (isgraph(ui8_2)) && (ui8_3<(KCHAR_COLS*KCHAR_ROWS)); ui8_3++) {
+	if (ui8_2 == keyChars[ui8_3])
 	  break;
       }
-      if (ui3 < (KCHAR_ROWS*KCHAR_COLS))
-	crc_old = _crc16_update(crc_old, ui2);
+      if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
+	crc_old = _crc16_update(crc_old, ui8_2);
     }
 
     if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, passwds[(LoginUserId-1)])) != crc_old) {
@@ -468,15 +468,15 @@ menuSetPasswd(uint8_t mode)
 
   /* update mine only */
   assert(MENU_ITEM_STR == arg2.valid);
-  for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
-    ui2 = arg2.value.sptr[ui4];
+  for (ui8_4=0; ui8_4<LCD_MAX_COL; ui8_4++) {
+    ui8_2 = arg2.value.sptr[ui8_4];
     /* check isprintable? */
-    for (ui3=0; (isgraph(ui2)) && (ui3<(KCHAR_COLS*KCHAR_ROWS)); ui3++) {
-      if (ui2 == keyChars[ui3])
+    for (ui8_3=0; (isgraph(ui8_2)) && (ui8_3<(KCHAR_COLS*KCHAR_ROWS)); ui8_3++) {
+      if (ui8_2 == keyChars[ui8_3])
 	break;
     }
-    if (ui3 < (KCHAR_ROWS*KCHAR_COLS))
-      crc_new = _crc16_update(crc_new, ui2);
+    if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
+      crc_new = _crc16_update(crc_new, ui8_2);
   }
 
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
@@ -547,7 +547,8 @@ menuInit(void)
     ERROR("BUFF not sufficient");
   
   assert(1 == sizeof(uint8_t));
-  assert((SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*)) < BUFSS_SIZE);
+  assert((SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
+  assert(sizeof(void *) == sizeof(uint16_t));
 }
 
 // Not unit tested
@@ -556,10 +557,11 @@ menuBilling(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
   uint16_t ui16_1, ui16_2;
+  UINT    brw;
 
   struct sale *sl = (void *) bufSS;
-  for (ui2=0; ui2<SALE_SIZEOF; ui2++) {
-    bufSS[ui2] = 0;
+  for (ui8_2=0; ui8_2<SALE_SIZEOF; ui8_2++) {
+    bufSS[ui8_2] = 0;
   }
 
   for (ui8_5=0; ui8_5<MAX_ITEMS_IN_BILL;) {
@@ -568,7 +570,7 @@ menuBilling(uint8_t mode)
 
     /* Get arg and find if valid, str or num */
     arg1.valid = MENU_ITEM_NONE;
-    menu_getopt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
     for (ui8_2=1,ui8_1=0,ui8_3=0,ui16_2=0; ui8_1<LCD_MAX_COL; ui8_1++) {
       if (!isgraph(arg1.value.sptr[ui8_1]))
 	continue;
@@ -588,14 +590,14 @@ menuBilling(uint8_t mode)
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
       ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
       if (ui8_2) { /* integer */
-	if (si->it.id == ui16_2)
+	if (sl->it[0].id == ui16_2)
 	  break;
       } else { /* string */
 	for (ui8_2=0; ui8_2<ITEM_NAME_BYTEL; ui8_2) {
 	  if ( (!isgraph(arg1.value.sptr[ui8_2])) ||
-	       (!isgraph(sl->it[0]->name[ui8_2])) )
+	       (!isgraph(sl->it[0].name[ui8_2])) )
 	    break;
-	  else if ( arg1.value.sptr[ui8_2] != sl->it[0]->name[ui8_2] ) {
+	  else if ( arg1.value.sptr[ui8_2] != sl->it[0].name[ui8_2] ) {
 	    break;
 	  } else { /* match */
 	    ui8_4 = 1;
@@ -613,12 +615,12 @@ menuBilling(uint8_t mode)
     /* common inputs */
     sl->items[ui8_5].ep_item_ptr = ui16_1;
     arg2.valid = MENU_ITEM_NONE;
-    menu_getopt(menu_str1+(MENU_STR1_IDX_MANY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_MANY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
     sl->items[ui8_5].quantity = arg2.value.integer.i16;
 
     /* Override inputs */
     do {
-      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, , 7);
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, sl->it[0].name, 7);
       LCD_WR_FLOAT(LCD_MAX_ROW-1, 8, sl->items[ui8_5].quantity);
       KBD_RESET_KEY;
       KBD_GETCH;
@@ -641,7 +643,7 @@ menuBilling(uint8_t mode)
 	    ui16_2 /= 10;
 	  }
 	}
-	it->vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), (bufSS+SALE_SIZEOF), 4, EPS_MAX_VAT_CHOICE);
+	sl->items[ui8_5].vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), (bufSS+SALE_SIZEOF), 4, EPS_MAX_VAT_CHOICE);
       }
     } while (1);
 
@@ -656,21 +658,21 @@ menuBilling(uint8_t mode)
   /* Save the bill to SD */
   FATFS FatFs1;
   FIL Fil;
-  change_sd(0);
+  UINT ret_val;
+  //  change_sd(0);
   f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
-  f_mkfs("", 0, SD_SECTOR_SIZE);
-  ui16_2 = get_fattime();
+  // ui16_2 = get_fattime(); /* FIXME: */
   sprintf( bufSS+SALE_SIZEOF, "\\sale_%d_%d_%d.dat", (ui16_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK,
 	   (ui16_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK, (ui16_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK );
   if (f_open(&Fil, bufSS+SALE_SIZEOF, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     /* Move to end of the file to append data */
     f_lseek(&Fil, f_size(&Fil));
-    f_write(&Fil, bufSS, SALE_SIZEOF, &ui16_2);
-    assert(SALE_SIZEOF == ui16_2);
+    f_write(&Fil, bufSS, SALE_SIZEOF, &ret_val);
+    assert(SALE_SIZEOF == ret_val);
     for (ui8_4=0; ui8_4<ui8_5; ui8_4++) {
       ee24xx_read_bytes(sl->items[ui8_4].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
-      f_write(&Fil, &(sl->it[0]), ITEM_SIZEOF, &ui16_2);
-      assert(ITEM_SIZEOF == ui16_2);
+      f_write(&Fil, &(sl->it[0]), ITEM_SIZEOF, &ret_val);
+      assert(ITEM_SIZEOF == ret_val);
     }
     f_close(&Fil);
   }
@@ -707,10 +709,11 @@ menuAddItem(uint8_t mode)
       return;
   }
 
+  /* Find space to place item */
   for (ui16_1=0; (EEPROM_ADDR_INVALID-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
-    if ((mode&MENU_MODITEM)?  : 0 ) == it->id)
+    if (((mode&MENU_MODITEM) ? arg1.value.integer.i16 : 0 ) == it->id)
       break;
   }
   if ( (EEPROM_ADDR_INVALID-ui16_1+1) < (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
@@ -741,22 +744,22 @@ menuAddItem(uint8_t mode)
 
   /* Cost, discount */
   arg1.valid = MENU_ITEM_NONE;
-  menu_getopt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_FLOAT);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_FLOAT);
   it->cost = arg1.value.integer.i16;
   arg2.valid = MENU_ITEM_NONE;
-  menu_getopt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
   it->discount = arg2.value.integer.i16;
   if ((MENU_ITEM_FLOAT != arg1.valid) || (MENU_ITEM_FLOAT != arg2.valid))
     goto menuItemInvalidArg;
 
   /* */
   arg1.valid = MENU_ITEM_NONE;
-  menu_getopt(menu_str1+(MENU_STR1_IDX_PRODCODE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_PRODCODE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
   for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
     it->prod_code[ui8_1] = arg1.value.sptr[ui8_1];
   }
   arg2.valid = MENU_ITEM_NONE;
-  menu_getopt(menu_str1+(MENU_STR1_IDX_UNICODE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_STR);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_UNICODE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_STR);
   it->discount = arg2.value.integer.i16;
   if ((MENU_ITEM_STR != arg1.valid) || (MENU_ITEM_STR != arg2.valid))
     goto menuItemInvalidArg;
@@ -787,9 +790,9 @@ menuAddItem(uint8_t mode)
   it->vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, EPS_MAX_VAT_CHOICE);
 
   /* choices */
-  it->has_serv_tax = menu_getchoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
-  it->has_cess1 = menu_getchoice(menu_str1+(MENU_STR1_IDX_CESS1*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
-  it->has_cess2 = menu_getchoice(menu_str1+(MENU_STR1_IDX_CESS2*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
+  it->has_serv_tax = menuGetChoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
+  it->has_cess1 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CESS1*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
+  it->has_cess2 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CESS2*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
 
   /* Confirm */
   if (0 != menuGetChoice(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
@@ -799,7 +802,7 @@ menuAddItem(uint8_t mode)
   for (ui8_2=0; ui8_2<ITEM_SIZEOF; ui8_2++, ui16_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)ui16_1);
     if (ui8_3 != bufSS_ptr[ui8_2])
-      eeprom_update_byte((uint8_t *)ui1, ui8_3);
+      eeprom_update_byte((uint8_t *)ui16_1, ui8_3);
   }
 }
 
@@ -861,11 +864,14 @@ menuDiagPrinter(uint8_t mode)
 void
 menuPrnBill(struct sale *sl)
 {
+  uint8_t ui8_1;
+
   /* FIXME: I was here */
   /* Header */
   for (ui8_1=0; ui8_1<HEADER_SZ_MAX;) {
     ui8_1++;
     if (0 == (ui8_1%LCD_MAX_COL))
+      ;
   }
   /* Caption, Date */
   /* Items */
@@ -1851,7 +1857,7 @@ menuSDLoadSettings(uint8_t mode)
   while (FR_OK == f_read(&fp, bufSS, BUFSS_SIZE, &ret_size)) {
     if (BUFSS_SIZE != ret_size) break; /* reached last */
     ui16_2 = ((EP_STORE_LAYOUT_SIZEOF-ui16_1)<ret_size) ? (EP_STORE_LAYOUT_SIZEOF-ui16_1): ret_size;
-    eeprom_update_block(bufSS, (const void *)ui16_1, ui16_2);
+    eeprom_update_block((const void *)bufSS, (void *)ui16_1, ui16_2);
     ui16_1 += ui16_2;
   }
   assert(EP_STORE_LAYOUT_SIZEOF == ui16_1); /* crc would be pending */
@@ -1884,7 +1890,7 @@ menuSDSaveSettings(uint8_t mode)
   for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1+=ui16_3) {
     ui16_3 = (EP_STORE_LAYOUT_SIZEOF-ui16_1) > BUFSS_SIZE ? BUFSS_SIZE :
       (EP_STORE_LAYOUT_SIZEOF-ui16_1);
-    eeprom_read_block(bufSS, (const void *)ui16_1, ui16_3);
+    eeprom_read_block((void *)bufSS, (const void *)ui16_1, ui16_3);
     for (ui16_2=0; ui16_2<ui16_3; ui16_2+=ret_size) {
       f_write(&fp, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
     }

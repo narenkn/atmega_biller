@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "printer.h"
+#include "a1micro2mm.h"
 
 void
 printerInit(void)
@@ -16,14 +16,14 @@ printerDefineUserChar(uint8_t idx)
 }
 
 /* return temperature if paper is available */
-void
+uint8_t
 printerStatus(void)
 {
   uint8_t ui8_1;
 
   PRINTER_PRINT(ASCII_ESCAPE);
   PRINTER_PRINT('v');
-  PRINTER_PRINT(N);
+  PRINTER_PRINT('n'); /* FIXME: not sure if this is right */
   if ('P' != uartReceiveByte())
     return 0;
   if ('1' != uartReceiveByte())

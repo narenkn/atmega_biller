@@ -182,7 +182,7 @@ class item:
 class ep_store_layout:
   consts = {
     'HEADER_SZ_MAX' : 16*3,
-    'SHOP_SZ_MAX' : 16,
+    'SHOP_NAME_SZ_MAX' : 16,
     'FOOTER_SZ_MAX' : 24,
     'EPS_MAX_VAT_CHOICE' : 8,
     'EPS_MAX_USERS' : 15,
@@ -209,8 +209,8 @@ class ep_store_layout:
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
       'denomination_text' : ['[5]', 5, TYPE_STRING],
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16, TYPE_STRING],
-      'prn_header' : ['[HEADER_MAX_SZ_MAX]', 16*3, TYPE_STRING],
-      'prn_footer' : ['[FOOTER_MAX_SZ_MAX]', 24, TYPE_STRING],
+      'prn_header' : ['[HEADER_SZ_MAX]', 16*3, TYPE_STRING],
+      'prn_footer' : ['[FOOTER_SZ_MAX]', 24, TYPE_STRING],
       }
     }
   def __init__(self, name):
@@ -229,6 +229,9 @@ if "__main__" == __name__:
   parser.add_option("", "--debug",
                   action="store_true", dest="debug", default=False,
                   help=SUPPRESS_HELP);
+  parser.add_option("", "--crc16",
+                  action="store_true", dest="crc16", default=False,
+                  help=SUPPRESS_HELP);
   parser.add_option("", "--to_dat",
                   action="store_true", dest="to_dat", default=False,
                   help="Create csv file from dat");
@@ -242,7 +245,10 @@ if "__main__" == __name__:
   it = item('item')
   ep = ep_store_layout('ep_store_layout')
 
-  if options.header:
+  if options.crc16:
+    cd = csv2dat("")
+    print "#define GIT_HASH_CRC 0x%4x" % cd.crc16(bytearray(args[0]))
+  elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n"
     ds = data_struct()
     ds.ds_print(it)

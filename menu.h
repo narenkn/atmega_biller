@@ -180,9 +180,6 @@ typedef struct {
   MENU_HIER(MENU_HIER_DIAGNOSTIC) MENU_MODE(MENU_MSUPER|MENU_MNORMAL) MENU_NAME("PrintTestPage") COL_JOIN MENU_FUNC(menuPrintTestPage) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
 
-/* Let's check if this buf size if good enough */
-#define  BUFSS_SIZE   256
-
 extern uint8_t menu_error;
 extern uint8_t bufSS[BUFSS_SIZE];
 

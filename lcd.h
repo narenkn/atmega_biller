@@ -249,6 +249,16 @@
   assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
 }
 
+#define LCD_WR_FLOAT(x, y, N) {			\
+  uint8_t ui8_1, ui8_2;				\
+  for (ui8_1=8; ui8_1>0; )  {			\
+    ui8_1--;					\
+    lcd_buf[x][y+ui8_1] = '0'+N%10;		\
+    N /= 10;					\
+    if (N < 0.01) break;			\
+  }						\
+}
+
 #define LCD_ALERT(str)	  \
   LCD_WR_LINE(0, 0, str); \
   assert(0)

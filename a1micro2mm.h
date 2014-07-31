@@ -6,30 +6,30 @@
 #define PRINTER_PRINT(c)			\
   uartTransmitByte(c)
 
-#define ASCII_ESCAPE        0x1B
+#define ASCII_PRINTER_ESC        0x1B
 
 #define PRINTER_PAPER_STATUS			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x76)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x76)
 #define PRINTER_TOGGLE_ONOFF			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x3D)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x3D)
 #define PRINTER_PRINT_FEED			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x4A)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x4A)
 #define PRINTER_EMPHASIZE_ONOFF			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x45)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x45)
 #define PRINTER_INITIALIZE			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT('@') /* -n */
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('@') /* -n */
 #define PRINTER_UNDERLINE_ONOFF			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x2D)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x2D)
 #define PRINTER_WAKE				\
   PRINTER_PRINT(0xFF)
 #define PRINTER_PRINT_TEST_PAGE			\
   PRINTER_PRINT(0x12); PRINTER_PRINT(0x54)
 #define PRINTER_PAPER_CUT			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x69)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x69)
 #define PRINTER_PAPER_PARTIAL_CUT		\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT(0x6D)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT(0x6D)
 #define PRINTER_SLEEP_SET(N)			\
-  PRINTER_PRINT(ASCII_ESCAPE); PRINTER_PRINT('8'); PRINTER_PRINT(N)
+  PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('8'); PRINTER_PRINT(N)
 
 #define PRINTER_ONLINE				\
   PRINTER_TOGGLE_ONOFF;				\
@@ -49,12 +49,12 @@
 #define PRN_MODE_DOUBLE_WIDTH            (1<<5)
 
 #define PRINTER_FEED_DOTS(n)			\
-  uartTransmitByte(ASCII_ESCAPE);		\
+  uartTransmitByte(ASCII_PRINTER_ESC);		\
   uartTransmitByte('J');			\
   uartTransmitByte(n)
 
 #define PRINTER_FEED_LINES(n)			\
-  uartTransmitByte(ASCII_ESCAPE);		\
+  uartTransmitByte(ASCII_PRINTER_ESC);		\
   uartTransmitByte('d');			\
   uartTransmitByte(n)
 
@@ -64,22 +64,22 @@
   uartTransmitByte(N)
 
 #define PRINTER_BOLD(N)				\
-  uartTransmitByte(ASCII_ESCAPE);		\
+  uartTransmitByte(ASCII_PRINTER_ESC);		\
   uartTransmitByte('!');			\
   uartTransmitByte(N)
 
 #define PRINTER_UNDERLINE(N)			\
-  uartTransmitByte(ASCII_ESCAPE);		\
+  uartTransmitByte(ASCII_PRINTER_ESC);		\
   uartTransmitByte('-');			\
   uartTransmitByte(N)
 
 #define PRINTER_USERCHAR_ENDIS(N)		\
-  uartTransmitByte(ASCII_ESCAPE);		\
+  uartTransmitByte(ASCII_PRINTER_ESC);		\
   uartTransmitByte('%');			\
   uartTransmitByte(N)
 
 void printerInit(void);
 void printerDefineUserChar(uint8_t idx);
-void printerStatus(void);
+uint8_t printerStatus(void);
 
 #endif

@@ -18,11 +18,20 @@
 #include "ep_store.h"
 #define UNIT_TEST_MENU_1 menu_handler
 void menu_handler(uint8_t ui);
+#include "billing.h"
+#include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
 #include "menu.h"
+#include "main.h"
 
 #include "lcd.c"
 #include "kbd_ncurses.c"
 #include "ep_store.c"
+#include "i2c.c"
+#include "uart.c"
+#include "ff.c"
+#include "a1micro2mm.c"
 #include "menu.c"
 
 void
@@ -35,7 +44,6 @@ menu_handler(uint8_t ui)
 void
 test_init()
 {
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, shop_name_len)), sizeof("My Shop")-1);
   eeprom_update_block("My Shop", (uint16_t *)(offsetof(struct ep_store_layout, shop_name)), sizeof("My Shop")-1);
 }
 
