@@ -235,7 +235,7 @@ void menuSDSaveSettings(uint8_t mode);
 void menuRunDiag(uint8_t mode);
 void menuMain(void);
 
-#define menu_item_find(id) ((id<ITEM_MAX) ? (ITEM_SIZEOF*id): EEPROM_ADDR_INVALID)
+#define menu_item_addr(id) ((id-1)*ITEM_SIZEOF)
 
 #define SD_ITEM_FILE      "items.dat"
 #define SD_SETTINGS_FILE  "settings.dat"

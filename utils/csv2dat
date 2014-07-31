@@ -6,10 +6,12 @@ import re
 import sys
 import csv
 
-TYPE_INT = 1
-TYPE_STRING = 2
-TYPE_BIT = 3
-TYPE_INTARR = 4
+TYPE_UINT8   = 1
+TYPE_UINT16  = 2
+TYPE_UINT32  = 3
+TYPE_STRING  = 4
+TYPE_BIT     = 5
+TYPE_INTARR  = 6
 
 class data_struct:
   error = 0
@@ -27,8 +29,8 @@ class data_struct:
 class csv2dat:
   error = 0
 
-  def __init__(self, f):
-    self.file = f
+  def __init__(self, o):
+    self.options = o
 
   def crc16(self, string, crc=0):
     for a in string:
@@ -41,7 +43,7 @@ class csv2dat:
     return crc
 
   def make_dat(self, cl):
-    csvfile = open(self.file, 'rb')
+    csvfile = open(self.options.in_file, 'rb')
     re_1 = re.compile(r'unused')
     csv_lines = 0
     data = {}
@@ -76,7 +78,7 @@ class csv2dat:
           goffset += s_var[1]
 #          print "var:%s goffset:%f" % (var, goffset)
       ## Sanity check is complete, things should work from here
-      outfile = open("%sdat" % self.file[:-3], 'wb')
+      outfile = open(self.options.out_file, 'wb')
       signature = 0
       assert(outfile)
 #      pbytes = []
@@ -94,7 +96,7 @@ class csv2dat:
             print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset)
           if var not in data:
             pass
-          elif TYPE_INT == vardict[var][2]:
+          elif TYPE_UINT16 == vardict[var][2]:
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
                 pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
@@ -150,14 +152,14 @@ class item:
     }
   variables = {
     'uint16_t' : {
-      'id': ['', 2, TYPE_INT],
-      'cost':['', 2, TYPE_INT],
-      'discount':['', 2, TYPE_INT],
+      'id': ['', 2, TYPE_UINT16],
+      'cost':['', 2, TYPE_UINT16],
+      'discount':['', 2, TYPE_UINT16],
       },
     'uint8_t'  : {
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
-      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*20, TYPE_STRING],
-      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*18, TYPE_INTARR],
+      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
+      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_INTARR],
       'has_serv_tax':[':1', 0.1, TYPE_BIT],
       'has_common_discount':[':1', 0.1, TYPE_BIT],
       'has_cess1':[':1', 0.1, TYPE_BIT],
@@ -190,17 +192,17 @@ class ep_store_layout:
     }
   variables = {
     'uint16_t' : {
-      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*4, TYPE_INT],
-      'service_tax' : ['', 2, TYPE_INT],
-      'cess1' : ['', 2, TYPE_INT],
-      'cess2' : ['', 2, TYPE_INT],
-      'round_off' : ['', 2, TYPE_INT],
+      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*4, TYPE_UINT16],
+      'service_tax' : ['', 2, TYPE_UINT16],
+      'cess1' : ['', 2, TYPE_UINT16],
+      'cess2' : ['', 2, TYPE_UINT16],
+      'round_off' : ['', 2, TYPE_UINT16],
       ## bits [15:4] : Unused
       ## bits [3:0] : Printing
       ## value 0b0000 : don't ask, 0b00xx : copies without confirmation,
       ## 0b01xx : confirm before print xx copies
-      'property' : ['', 2, TYPE_INT],
-      'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_INT],
+      'property' : ['', 2, TYPE_UINT16],
+      'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },
     'uint8_t' : {
       ## User options
@@ -217,7 +219,7 @@ class ep_store_layout:
     self.name = name
 
 class dat2bill:
-  MAX_ITEMS_IN_BILL = 18
+  MAX_ITEMS_IN_BILL = 16
   SALE_INFO_ITEMS_NBITS = 4
   sale_item = [
     ['ep_item_ptr', TYPE_UINT16, 2],
@@ -275,7 +277,7 @@ if "__main__" == __name__:
   parser.add_option("", "--to_csv",
                   action="store_true", dest="to_csv", default=False,
                   help="Create dat file from csv");
-  parser.add_option("-f", "--file", dest="csv", default="settings.csv",
+  parser.add_option("-i", "--in_file", dest="in_file", default="settings.csv",
                   help="Settings file");
   parser.add_option("", "--dat2bill", dest="dat2bill", default=None,
                   help="Convert billed data to xls");
@@ -283,15 +285,15 @@ if "__main__" == __name__:
                   help="Starting date to analyze from");
   parser.add_option("", "--to_date", dest="to_csv", default=None,
                   help="Ending date to analyze upto");
-  parser.add_option("-o", "--out_file", dest="out_file", default="sale.xls",
-                  help="sales XLS file, to write out");
+  parser.add_option("-o", "--out_file", dest="out_file", default="settings.dat",
+                  help="Output file");
   (options, args) = parser.parse_args()
 
   it = item('item')
   ep = ep_store_layout('ep_store_layout')
 
   if options.crc16:
-    cd = csv2dat("")
+    cd = csv2dat(None)
     print "#define GIT_HASH_CRC 0x%4x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n"
@@ -301,12 +303,12 @@ if "__main__" == __name__:
     print "\n\n#endif"
     error += ds.error
   elif options.to_dat:
-    cd = csv2dat(options.csv)
-    cd.make_csv(it)
+    cd = csv2dat(options)
+    cd.make_dat(it)
     error += cd.error
   elif options.to_csv:
-    cd = csv2dat(options.csv)
-    cd.make_dat(it)
+    cd = csv2dat(options)
+    cd.make_csv(it)
     error += cd.error
   elif options.dat2bill:
     pass

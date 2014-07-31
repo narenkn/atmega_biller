@@ -16,8 +16,12 @@
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"
+#include "billing.h"
 #include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
 #include "menu.h"
+#include "main.h"
 
 /* All Header overrides */
 #undef  SD_ITEM_FILE
@@ -27,7 +31,9 @@
 #include "kbd.c"
 #include "ep_store.c"
 #include "i2c.c"
+#include "uart.c"
 #include "ff.c"
+#include "a1micro2mm.c"
 #include "menu.c"
 
 int
@@ -38,9 +44,10 @@ main(void)
   
   menuSDLoadItem(MENU_MSUPER);
 
-  for (ui16_1 = 0; (EEPROM_ADDR_INVALID-ui16_1)>ITEM_SIZEOF;
+  for (ui16_1 = 0; (EEPROM_MAX_ADDRESS-ui16_1)>ITEM_SIZEOF;
        ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-    assert(ITEM_SIZEOF == ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF));
+    ui16_2 = ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    assert(ITEM_SIZEOF == ui16_2);
     if (0 == it->name[0]) break;
 
     printf("addr:%x loop : ", ui16_1);
@@ -60,10 +67,10 @@ main(void)
     printf("item has_weighing_mc:%d\n", it->has_weighing_mc);
     printf("item name_in_unicode:%d\n", it->name_in_unicode);
     printf("item has_cess1:%d\n", it->has_cess1);
-    printf("item is_biller_item:%d\n", it->is_biller_item);
+    //    printf("item is_biller_item:%d\n", it->is_biller_item);
     printf("item has_common_discount:%d\n", it->has_common_discount);
     printf("item has_serv_tax:%d\n", it->has_serv_tax);
-    printf("item is_valid_item:%d\n", it->is_valid_item);
+    printf("item is_disabled:%d\n", it->is_disabled);
     printf("item unused_5:%d\n", it->unused_5);
     printf("item unused_4:%d\n", it->unused_4);
     printf("item unused_3:%d\n", it->unused_3);

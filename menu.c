@@ -374,7 +374,7 @@ menuFactorySettings(uint8_t mode)
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
     bufSS[ui8_1] = 0;
   for (ui16_1=0;
-       (EEPROM_ADDR_INVALID-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+       (EEPROM_MAX_ADDRESS-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
@@ -587,7 +587,7 @@ menuBilling(uint8_t mode)
     if (0 == ui8_3)
       break;
 
-    for (ui16_1=0; (EEPROM_ADDR_INVALID-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+    for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
       ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
       if (ui8_2) { /* integer */
@@ -711,13 +711,13 @@ menuAddItem(uint8_t mode)
   }
 
   /* Find space to place item */
-  for (ui16_1=0; (EEPROM_ADDR_INVALID-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
     if (((mode&MENU_MODITEM) ? arg1.value.integer.i16 : 0 ) == it->id)
       break;
   }
-  if ( (EEPROM_ADDR_INVALID-ui16_1+1) < (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
+  if ( (EEPROM_MAX_ADDRESS-ui16_1+1) < (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
     if (mode & MENU_MODITEM) {
       LCD_ALERT("Invalid ID");
     } else {
@@ -824,13 +824,13 @@ menuDelItem(uint8_t mode)
 
   /* find address for the id */
   ui16_2 = arg1.value.integer.i16;
-  for (ui16_1=0; (EEPROM_ADDR_INVALID-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
     if ((ui16_2 == it->id) && !(it->is_disabled))
       break;
   }
-  if ( (EEPROM_ADDR_INVALID-ui16_1+1) < (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
+  if ( (EEPROM_MAX_ADDRESS-ui16_1+1) < (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
     LCD_ALERT("No such item");
     return;
   }
@@ -1757,7 +1757,7 @@ menuSDLoadItem(uint8_t mode)
    */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
     bufSS[ui8_1] = 0;
-  while ((EEPROM_ADDR_INVALID-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+  while ((EEPROM_MAX_ADDRESS-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     /* id 0 is invalid */
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
     ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
@@ -1788,7 +1788,7 @@ menuSDSaveItem(uint8_t mode)
 
   /* */
   signature = 0;
-  for (ui16_1=0; (EEPROM_ADDR_INVALID-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     if ((0 != it->id) && (! it->is_disabled)) {
@@ -1841,7 +1841,7 @@ menuSDLoadSettings(uint8_t mode)
     bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
     bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
     ui8_1 = (ret_size + ui8_1) % ITEM_SIZEOF;
-    //    printf("ret_size:%d ui8_1:%d ITEM_SIZEOF:%d\n", ret_size, ui8_1, ITEM_SIZEOF);
+        printf("ret_size:%d ui8_1:%d ITEM_SIZEOF:%d\n", ret_size, ui8_1, ITEM_SIZEOF);
   }
   ret_size = bufSS[BUFSS_SIZE-2];
   ret_size <<= 8;

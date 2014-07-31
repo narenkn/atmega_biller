@@ -18,5 +18,8 @@ headers : ../ep_ds.h ../version.h
 % : %.c headers
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
 
+%.dat : %.csv
+	python ../utils/csv2dat --to_dat --in_file $< --out_file $@
+
 clean:
 	-\rm -f core.* $(TARGETS)
