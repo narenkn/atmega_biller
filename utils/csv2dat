@@ -184,13 +184,13 @@ class ep_store_layout:
     'HEADER_SZ_MAX' : 16*3,
     'SHOP_NAME_SZ_MAX' : 16,
     'FOOTER_SZ_MAX' : 24,
-    'EPS_MAX_VAT_CHOICE' : 8,
+    'EPS_MAX_VAT_CHOICE' : 4,
     'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,
     }
   variables = {
     'uint16_t' : {
-      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*8, TYPE_INT],
+      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*4, TYPE_INT],
       'service_tax' : ['', 2, TYPE_INT],
       'cess1' : ['', 2, TYPE_INT],
       'cess2' : ['', 2, TYPE_INT],

@@ -543,12 +543,13 @@ menuInit(void)
 {
   MenuMode = MENU_MRESET;
 
-  if ((ITEM_SIZEOF+sizeof(menu_arg_t)+sizeof(menu_arg_t)+4) >= BUFSS_SIZE)
-    ERROR("BUFF not sufficient");
+  assert ((ITEM_SIZEOF+sizeof(menu_arg_t)+sizeof(menu_arg_t)+4) < BUFSS_SIZE);
   
   assert(1 == sizeof(uint8_t));
   assert((SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
-  assert(sizeof(void *) == sizeof(uint16_t));
+  //  printf("(SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)):%d BUFSS_SIZE:%d\n", (SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
+  //  printf("sizeof(item):%d sale_item:%d sale_info:%d uint32_t:%d sale:%d\n", sizeof(struct item), sizeof(struct sale_item), sizeof(struct sale_info), sizeof(uint32_t), sizeof(struct sale));
+  //  assert(sizeof(void *) == sizeof(uint16_t));
 }
 
 // Not unit tested

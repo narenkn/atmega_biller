@@ -260,12 +260,11 @@
 }
 
 #define LCD_ALERT(str)	  \
-  LCD_WR_LINE(0, 0, str); \
-  assert(0)
+  LCD_WR_LINE(0, 0, str)
+
 #define LCD_ALERT_16N(str, n) \
   LCD_WR_LINE(0, 0, str);     \
-  LCD_PUT_UINT16X(n);	      \
-  assert(0)
+  LCD_PUT_UINT16X(n)
 
 extern uint8_t lcd_buf_prop;
 extern uint8_t *lcd_buf_p;

@@ -3,7 +3,7 @@
 
 #if 256 == BUFSS_SIZE
 # define  SALE_INFO_ITEMS_NBITS    4
-# define MAX_ITEMS_IN_BILL        18
+# define MAX_ITEMS_IN_BILL        16
 #elif 512 == BUFSS_SIZE
 # define  SALE_INFO_ITEMS_NBITS    5
 # define MAX_ITEMS_IN_BILL        45

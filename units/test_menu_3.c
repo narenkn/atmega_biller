@@ -15,14 +15,21 @@
 
 #include "lcd.h"
 #include "kbd.h"
-#include "i2c.h"
 #include "ep_store.h"
+#include "billing.h"
+#include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
 #include "menu.h"
+#include "main.h"
 
 #include "lcd.c"
 #include "kbd.c"
-#include "i2c.c"
 #include "ep_store.c"
+#include "i2c.c"
+#include "uart.c"
+#include "ff.c"
+#include "a1micro2mm.c"
 #include "menu.c"
 
 uint8_t inp[TEST_KEY_ARR_SIZE], inp2[TEST_KEY_ARR_SIZE];
