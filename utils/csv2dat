@@ -216,6 +216,43 @@ class ep_store_layout:
   def __init__(self, name):
     self.name = name
 
+class dat2bill:
+  MAX_ITEMS_IN_BILL = 18
+  SALE_INFO_ITEMS_NBITS = 4
+  sale_item = [
+    ['ep_item_ptr', TYPE_UINT16, 2],
+    ['quantity', TYPE_UINT16, 2],
+    ['cost', TYPE_UINT16, 2],
+    ['discount', TYPE_UINT16, 2],
+    ['unused', TYPE_BIT, 3],
+    ['has_serv_tax', TYPE_BIT, 1],
+    ['has_cess1', TYPE_BIT, 1],
+    ['has_cess2', TYPE_BIT, 1],
+    ['vat_sel', TYPE_BIT, 2],
+  ]
+  sale_info = [
+    ['n_items', TYPE_BIT, SALE_INFO_ITEMS_NBITS],
+    ['property', TYPE_BIT, 8-SALE_INFO_ITEMS_NBITS],
+    ['date_yy', TYPE_BIT, 7],
+    ['date_mm', TYPE_BIT, 4],
+    ['date_dd', TYPE_BIT, 5],
+    ['time_hh', TYPE_BIT, 5],
+    ['time_mm', TYPE_BIT, 6],
+    ['time_ss', TYPE_BIT, 5],
+  ]
+  sale_end = [
+    ['taxable_total', TYPE_UINT32, 4],
+    ['non_taxable_total', TYPE_UINT32, 4],
+    ['cess1', TYPE_UINT32, 4],
+    ['cess2', TYPE_UINT32, 4],
+    ['discount', TYPE_UINT32, 4],
+    ['total', TYPE_UINT32, 4],
+  ]
+
+  def __init__(self, name):
+    self.name = name
+    self.sale = sale_info + (sale_item * MAX_ITEMS_IN_BILL) + sale_end
+
 if "__main__" == __name__:
   ## Constants
   error = 0
@@ -237,6 +274,14 @@ if "__main__" == __name__:
                   help="Create dat file from csv");
   parser.add_option("-f", "--file", dest="csv", default="settings.csv",
                   help="Settings file");
+  parser.add_option("", "--dat2bill", dest="dat2bill", default=None,
+                  help="Convert billed data to xls");
+  parser.add_option("", "--from_date", dest="to_date", default=None,
+                  help="Starting date to analyze from");
+  parser.add_option("", "--to_date", dest="to_csv", default=None,
+                  help="Ending date to analyze upto");
+  parser.add_option("-o", "--out_file", dest="out_file", default="sale.xls",
+                  help="sales XLS file, to write out");
   (options, args) = parser.parse_args()
 
   it = item('item')
@@ -257,6 +302,8 @@ if "__main__" == __name__:
     cd = csv2dat(options.csv)
     cd.make_dat(it)
     error += cd.error
+  elif options.dat2bill:
+    pass
   else: error += 1
 
   sys.exit (error)
