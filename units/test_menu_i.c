@@ -58,6 +58,7 @@ main(void)
 
   printw("Press F2 to exit");
   menuMain();
+  menuGetChoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2);
 
   /* Prepare to exit */
   LCD_end();

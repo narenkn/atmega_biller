@@ -155,6 +155,7 @@ class item:
       'id': ['', 2, TYPE_UINT16],
       'cost':['', 2, TYPE_UINT16],
       'discount':['', 2, TYPE_UINT16],
+      'unused':['', 2, TYPE_UINT16],
       },
     'uint8_t'  : {
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],

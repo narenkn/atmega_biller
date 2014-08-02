@@ -41,14 +41,17 @@ main(void)
 {
   uint16_t ui16_1, ui16_2;
   struct item *it = (void *)bufSS;
-  
+
+  /* FIXME: corrupt a byte and find crc fails */
+
+  /* Load the items, FIXME: make it selfcheck */
   menuSDLoadItem(MENU_MSUPER);
 
-  for (ui16_1 = 0; (EEPROM_MAX_ADDRESS-ui16_1)>ITEM_SIZEOF;
-       ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+  for (ui16_1 = 0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ui16_2 = ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     assert(ITEM_SIZEOF == ui16_2);
-    if (0 == it->name[0]) break;
+    if (0 == it->name[0]) continue;
 
     printf("addr:%x loop : ", ui16_1);
     for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2++) {
