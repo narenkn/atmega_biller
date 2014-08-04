@@ -115,7 +115,7 @@ uint8_t    menu_error;
 #define MENU_STR1_IDX_CONFI 6
 #define MENU_STR1_IDX_ITEM  7
 #define MENU_STR1_IDX_SALEQTY  8
-#define MENU_STR1_IDX_FINAL 9
+#define MENU_STR1_IDX_FINALIZ 9
 #define MENU_STR1_IDX_PRINT 10
 #define MENU_STR1_IDX_SAVE  11
 #define MENU_STR1_IDX_DADAT 12
@@ -128,7 +128,8 @@ uint8_t    menu_error;
 #define MENU_STR1_IDX_UNICODE   19
 #define MENU_STR1_IDX_CESS1     20
 #define MENU_STR1_IDX_CESS2     21
-#define MENU_STR1_IDX_NUM_ITEMS 22
+#define MENU_STR1_IDX_ENTRYES   22
+#define MENU_STR1_IDX_NUM_ITEMS 23
 uint8_t menu_str1[] PROGMEM =
   "Price   " /* 0 */
   "Discount" /* 1 */
@@ -139,7 +140,7 @@ uint8_t menu_str1[] PROGMEM =
   "Confirm?" /* 6 */
   "Item/id " /* 7 */
   "Sale Qty" /* 8 */
-  "Final?  " /* 9 */
+  "Finaliz?" /* 9 */
   "Print?  " /*10 */
   "Save?   " /*11 */
   "Delete? " /*12 */
@@ -152,6 +153,7 @@ uint8_t menu_str1[] PROGMEM =
   "Unicode " /*19 */
   "Cess1   " /*20*/
   "Cess2   " /*21 */
+  "Entr:Yes" /*22 */
   ;
 
 /* */
@@ -547,13 +549,14 @@ menuInit(void)
 {
   MenuMode = MENU_MRESET;
 
-  assert ((ITEM_SIZEOF+sizeof(menu_arg_t)+sizeof(menu_arg_t)+4) < BUFSS_SIZE);
+  assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   
   assert(1 == sizeof(uint8_t));
-  assert((SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
+  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
   //  printf("(SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)):%d BUFSS_SIZE:%d\n", (SALE_SIZEOF+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
   //  printf("sizeof(item):%d sale_item:%d sale_info:%d uint32_t:%d sale:%d\n", sizeof(struct item), sizeof(struct sale_item), sizeof(struct sale_info), sizeof(uint32_t), sizeof(struct sale));
   //  assert(sizeof(void *) == sizeof(uint16_t));
+  assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
 }
 
 // Not unit tested
@@ -564,14 +567,21 @@ menuBilling(uint8_t mode)
   uint16_t ui16_1, ui16_2;
   UINT    brw;
 
-  struct sale *sl = (void *) bufSS;
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  uint8_t *buf = (void *)sl;
   for (ui8_2=0; ui8_2<SALE_SIZEOF; ui8_2++) {
-    bufSS[ui8_2] = 0;
+    buf[ui8_2] = 0;
   }
 
-  for (ui8_5=0; ui8_5<MAX_ITEMS_IN_BILL;) {
+  for (ui8_5=0; ;) {
     /* already added item, just confirm */
-    if (0 != sl->items[ui8_5].quantity) goto menuBillingConfirm;
+    if (0 != sl->items[ui8_5].quantity)
+      goto menuBillingConfirm;
+    /* can't take more items */
+    if (ui8_5 >= MAX_ITEMS_IN_BILL) {
+      ui8_5--;
+      goto menuBillingConfirm;
+    }
     
   menuBillingStartBilling:
     ui8_4 = 0;  /* item not found */
@@ -595,8 +605,19 @@ menuBilling(uint8_t mode)
     //    printf("not_empty:%d is_number:%d value:%d\n", ui8_3, ui8_2, ui16_2);
 
     /* Just Enter was hit, may be the user wants to proceed to billing */
-    if (0 == ui8_3)
-      break;
+    if (0 == ui8_3) {
+      LCD_WR_LINE_N(0, 0, menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+      LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, menu_str1+(MENU_STR1_IDX_ENTRYES*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+      LCD_refresh();
+      KBD_RESET_KEY;
+      KBD_GETCH;
+      if (ASCII_ENTER == KbdData) {
+	break;
+      } else {
+	ui8_5--;
+	goto menuBillingConfirm;
+      }
+    }
 
     for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
@@ -645,11 +666,11 @@ menuBilling(uint8_t mode)
     } while (MENU_ITEM_NONE == arg2.valid);
 
   menuBillingConfirm:
-    /* FIXME: Enable edit of earlier added item  */
+    /* Enable edit of earlier added item  */
     do {
       /* Display item for confirmation */
       LCD_WR_LINE_N(0, 0, menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, sl->it[0].name, 7);
+      LCD_WR_LINE_N_EE24XX(LCD_MAX_ROW-1, 0, ((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2)), 7);
       LCD_WR_FLOAT(LCD_MAX_ROW-1, 8, sl->items[ui8_5].quantity);
       LCD_refresh();
 
@@ -657,7 +678,6 @@ menuBilling(uint8_t mode)
       KBD_GETCH;
       if (ASCII_ENTER == KbdData) {
 	ui8_5++;
-	break;
       } else if ( (ASCII_LEFT == KbdData) ||
 		(ASCII_RIGHT == KbdData) ) {
 	/* FIXME: add default values from item data */
@@ -671,6 +691,7 @@ menuBilling(uint8_t mode)
 	  menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
 	  sl->items[ui8_5].discount = arg2.value.integer.i16;
 	} while (MENU_ITEM_NONE == arg2.valid);
+	LCD_CLRSCR;
 	sl->items[ui8_5].has_serv_tax = menuGetChoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
 	sl->items[ui8_5].has_cess1 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CESS1*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
 	sl->items[ui8_5].has_cess2 = menuGetChoice(menu_str1+(MENU_STR1_IDX_CESS2*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2) ? 0 : 1;
@@ -700,9 +721,14 @@ menuBilling(uint8_t mode)
 	    ui8_5++;
 	}
 	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
-	break;
-      }
-    } while (1);
+      } else if (ASCII_DEL == KbdData) {
+	for (ui8_2=ui8_5; sl->items[ui8_2+1].quantity>0; ui8_2++) {
+	  memcpy(&(sl->items[ui8_2]), &(sl->items[ui8_2+1]), ITEM_SIZEOF);
+	}
+	sl->items[ui8_2].quantity = 0;
+      } else
+	continue;
+    } while (0);
 
   }
 

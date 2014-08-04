@@ -182,6 +182,17 @@
   lcd_buf_prop |= LCD_PROP_DIRTY;		\
 }
 
+#define LCD_WR_LINE_N_EE24XX(x, y, str, len)  {	\
+  uint8_t ui1_t;			        \
+  lcd_buf_p = &(lcd_buf[x][y]);			\
+  ee24xx_read_bytes(((char *)str), lcd_buf_p, len);	\
+  for (ui1_t = len, lcd_buf_p+=len; ui1_t < LCD_MAX_COL; ui1_t++) {	\
+    lcd_buf_p[0] = ' ';				\
+    lcd_buf_p++;				\
+  }						\
+  lcd_buf_prop |= LCD_PROP_DIRTY;		\
+}
+
 #define LCD_POS(x, y)				\
   lcd_buf_p = &(lcd_buf[x][y])
 
@@ -252,12 +263,13 @@
 }
 
 #define LCD_WR_FLOAT(x, y, N) {			\
+  uint16_t n1 = N;				\
   uint8_t ui8_1, ui8_2;				\
   for (ui8_1=8; ui8_1>0; )  {			\
     ui8_1--;					\
-    lcd_buf[x][y+ui8_1] = '0'+N%10;		\
-    N /= 10;					\
-    if (N < 0.01) break;			\
+    lcd_buf[x][y+ui8_1] = '0'+n1%10;		\
+    n1 /= 10;					\
+    if (n1 < 0.01) break;			\
   }						\
 }
 
