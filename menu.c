@@ -601,7 +601,8 @@ menuBilling(uint8_t mode)
     for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
       ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
-      if (0 == sl->it[0].id)
+      /* invalid item */
+      if ((0 == sl->it[0].id) || (sl->it[0].is_disabled))
 	continue;
       if (ui8_2) { /* integer */
 	if (0 != sl->it[0].id) {
@@ -609,8 +610,8 @@ menuBilling(uint8_t mode)
 	    break;
 	}
       } else { /* string */
-	/* FIXME: List many matches to choose from */
-	ui8_4 = 1;
+	/* FIXME: Speed up search.. */
+	ui8_4 = 1 /* full match */;
 	for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++) {
 	  if ( (!isgraph(arg1.value.sptr[ui8_3])) &&
 	       (!isgraph(sl->it[0].name[ui8_3])) ) {
@@ -659,6 +660,7 @@ menuBilling(uint8_t mode)
 	break;
       } else if ( (ASCII_LEFT == KbdData) ||
 		(ASCII_RIGHT == KbdData) ) {
+	/* FIXME: add default values from item data */
 	do {
 	  arg2.valid = MENU_ITEM_NONE;
 	  menuGetOpt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
@@ -691,14 +693,13 @@ menuBilling(uint8_t mode)
       } else if ( (ASCII_UP == KbdData) ||
 		  (ASCII_DOWN == KbdData) ) {
 	if (ASCII_UP == KbdData) {
-	  ui8_5 ? ui8_5-- : 0;
+	  ui8_5 ? --ui8_5 : 0;
 	} else {
-	  if ((ui8_5 <= MAX_ITEMS_IN_BILL) &&
-	      (sl->items[ui8_5].quantity > 0))
+	  if ( (ui8_5 < MAX_ITEMS_IN_BILL) &&
+	       (sl->items[ui8_5].quantity > 0) )
 	    ui8_5++;
 	}
-	ui16_1 = menu_item_addr(ui8_5+1);
-	ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
+	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
 	break;
       }
     } while (1);
@@ -712,6 +713,20 @@ menuBilling(uint8_t mode)
   }
 
   /* FIXME: Calculate bill, confirm */
+  sl->t_tax = 0, sl->t_cess1 = 0, sl->t_cess2 = 0;
+  sl->t_discount = 0, sl->total = 0;
+  ui16_2 = 0;
+  for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
+    ui16_1 = sl->items[ui8_3].cost > sl->items[ui8_3].discount ?
+      (sl->items[ui8_3].cost - sl->items[ui8_3].discount) :
+      sl->items[ui8_3].cost;
+    ui16_1 *= sl->items[ui8_3].quantity;
+    if (sl->items[ui8_3].has_cess1) {
+    } else if (sl->items[ui8_3].has_cess2) {
+    } else if (sl->items[ui8_3].vat_sel) {
+    } else {
+    }
+  }
 
 //  /* Save the bill to SD */
 //  FATFS FatFs1;

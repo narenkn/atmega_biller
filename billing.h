@@ -42,14 +42,13 @@ struct sale_info {
 struct sale {
   struct sale_info info;                 /*           5 */
   struct sale_item items[MAX_ITEMS_IN_BILL]; /*18*9=162       45*9 = 405     */
-  uint32_t  taxable_total;               /*           4 */
-  uint32_t  non_taxable_total;           /*           4 */
-  uint32_t  cess1;                       /*           4 */
-  uint32_t  cess2;                       /*           4 */
-  uint32_t  discount;                    /*           4 */
+  uint32_t  t_tax;                       /*           4 */
+  uint32_t  t_cess1;                     /*           4 */
+  uint32_t  t_cess2;                     /*           4 */
+  uint32_t  t_discount;                  /*           4 */
   uint32_t  total;                       /*           4 */
   struct item      it[1];                /*          50 */
-} __attribute__((packed));               /* Tot   = 241              484     */
+} __attribute__((packed));               /* Tot   = 237              484     */
 
 /* constants */
 #define SALE_SIZEOF       sizeof(struct sale)
