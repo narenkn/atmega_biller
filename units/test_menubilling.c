@@ -43,6 +43,26 @@ test_init()
   eeprom_update_block("My Shop", (uint16_t *)(offsetof(struct ep_store_layout, shop_name)), sizeof("My Shop")-1);
 }
 
+#include <time.h>
+//******************************************************************
+//Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
+//******************************************************************
+uint32_t
+get_fattime (void)
+{
+  time_t now_t = time(NULL);
+  struct tm *now = localtime(&now_t);
+
+  return (((now->tm_year-80)&0x7F)<<25) |
+    ((now->tm_mon&0xF)<<21) |
+    ((now->tm_mday&0x1F)<<16) |
+    ((now->tm_hour&0x1F)<<11) |
+    ((now->tm_min&0x3F)<<5) |
+    (now->tm_sec&0x1F);
+}
+
 int
 main(void)
 {
@@ -51,11 +71,12 @@ main(void)
   struct item *it = (void *)bufSS;
 
   menuSDLoadItem(MENU_MSUPER);
+//  printf("lcd_buf:%s\n", lcd_buf[0]);
 //  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
 //       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
 //    ui16_2 = ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
 //    assert(ITEM_SIZEOF == ui16_2);
-//    if (0 == it->name[0]) break;
+//    if (0 == it->id) continue;
 //
 //    printf("addr:%x loop : ", ui16_1);
 //    for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2++) {
@@ -70,12 +91,10 @@ main(void)
 //    printf("item id:%d\n", it->id);
 //    //    printf("item prod_code:%s\n", it->prod_code);
 //    printf("item vat_sel:%d\n", it->vat_sel);
-//    printf("item has_cess2:%d\n", it->has_cess2);
+//    printf("item has_common_discount:%d\n", it->has_common_discount);
 //    printf("item has_weighing_mc:%d\n", it->has_weighing_mc);
 //    printf("item name_in_unicode:%d\n", it->name_in_unicode);
-//    printf("item has_cess1:%d\n", it->has_cess1);
 //    //    printf("item is_biller_item:%d\n", it->is_biller_item);
-//    printf("item has_common_discount:%d\n", it->has_common_discount);
 //    printf("item has_serv_tax:%d\n", it->has_serv_tax);
 //    printf("item is_disabled:%d\n", it->is_disabled);
 //    printf("item unused_5:%d\n", it->unused_5);
@@ -100,5 +119,6 @@ main(void)
   menuBilling(MENU_MSUPER);
 
   /* Prepare to exit */
+  KBD_GETCH;
   LCD_end();
 }

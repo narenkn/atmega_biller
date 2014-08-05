@@ -96,7 +96,7 @@ class csv2dat:
             print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset)
           if var not in data:
             pass
-          elif TYPE_UINT16 == vardict[var][2]:
+          elif (TYPE_UINT16 == vardict[var][2]) or (TYPE_UINT32 == vardict[var][2]):
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
                 pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
@@ -151,11 +151,10 @@ class item:
     'ITEM_PROD_CODE_BYTEL':16,
     }
   variables = {
-    'uint16_t' : {
-      'id': ['', 2, TYPE_UINT16],
-      'cost':['', 2, TYPE_UINT16],
-      'discount':['', 2, TYPE_UINT16],
-      'unused':['', 2, TYPE_UINT16],
+    'uint32_t' : {
+      'id': ['', 4, TYPE_UINT32],
+      'cost':['', 4, TYPE_UINT32],
+      'discount':['', 4, TYPE_UINT32],
       },
     'uint8_t'  : {
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
@@ -163,19 +162,18 @@ class item:
       'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_INTARR],
       'has_serv_tax':[':1', 0.1, TYPE_BIT],
       'has_common_discount':[':1', 0.1, TYPE_BIT],
-      'has_cess1':[':1', 0.1, TYPE_BIT],
-      'has_cess2':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
-      'vat_sel':[':2', 0.2, TYPE_BIT],
+      'vat_sel':[':3', 0.3, TYPE_BIT],
       'name_in_unicode':[':1', 0.1, TYPE_BIT],
+      'has_vat':[':1', 0.1, TYPE_BIT],
+      'is_disabled':[':1', 0.1, TYPE_BIT],
+      'unused_0':[':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
       'unused_3':[':1', 0.1, TYPE_BIT],
       'unused_4':[':1', 0.1, TYPE_BIT],
       'unused_5':[':1', 0.1, TYPE_BIT],
       'unused_6':[':1', 0.1, TYPE_BIT],
-      'unused_7':[':1', 0.1, TYPE_BIT],
-      'is_disabled':[':1', 0.1, TYPE_BIT],
       }
     }
 
@@ -187,16 +185,15 @@ class ep_store_layout:
     'HEADER_SZ_MAX' : 16*3,
     'SHOP_NAME_SZ_MAX' : 16,
     'FOOTER_SZ_MAX' : 24,
-    'EPS_MAX_VAT_CHOICE' : 4,
+    'EPS_MAX_VAT_CHOICE' : 6,
     'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,
     }
   variables = {
     'uint16_t' : {
-      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*4, TYPE_UINT16],
+      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*6, TYPE_UINT16],
       'service_tax' : ['', 2, TYPE_UINT16],
-      'cess1' : ['', 2, TYPE_UINT16],
-      'cess2' : ['', 2, TYPE_UINT16],
+      'common_discount' : ['', 2, TYPE_UINT16],
       'round_off' : ['', 2, TYPE_UINT16],
       ## bits [15:4] : Unused
       ## bits [3:0] : Printing
@@ -225,13 +222,11 @@ class dat2bill:
   sale_item = [
     ['ep_item_ptr', TYPE_UINT16, 2],
     ['quantity', TYPE_UINT16, 2],
-    ['cost', TYPE_UINT16, 2],
-    ['discount', TYPE_UINT16, 2],
-    ['unused', TYPE_BIT, 3],
+    ['cost', TYPE_UINT32, 4],
+    ['discount', TYPE_UINT32, 4],
+    ['unused', TYPE_BIT, 2],
     ['has_serv_tax', TYPE_BIT, 1],
-    ['has_cess1', TYPE_BIT, 1],
-    ['has_cess2', TYPE_BIT, 1],
-    ['vat_sel', TYPE_BIT, 2],
+    ['vat_sel', TYPE_BIT, 3],
   ]
   sale_info = [
     ['n_items', TYPE_BIT, SALE_INFO_ITEMS_NBITS],
@@ -246,8 +241,6 @@ class dat2bill:
   sale_end = [
     ['taxable_total', TYPE_UINT32, 4],
     ['non_taxable_total', TYPE_UINT32, 4],
-    ['cess1', TYPE_UINT32, 4],
-    ['cess2', TYPE_UINT32, 4],
     ['discount', TYPE_UINT32, 4],
     ['total', TYPE_UINT32, 4],
   ]

@@ -5,4 +5,4 @@ FIXME:
 4. Print duplicate bill
 5. Item, tax total
 6. VAT : 6 choices
-
+7. Add version string in all dat files & check compatible in menu.c
