@@ -609,7 +609,8 @@ menuBilling(uint8_t mode)
       LCD_refresh();
       KBD_RESET_KEY;
       KBD_GETCH;
-      if (ASCII_ENTER == KbdData) {
+      if ( (ASCII_ENTER == KbdData) ||
+	   (0 == sl->items[0].quantity) /* no items yet */ ) {
 	break;
       } else {
 	ui8_5--;
@@ -731,7 +732,6 @@ menuBilling(uint8_t mode)
   for (; sl->items[ui8_5].quantity>0; ui8_5++) ;
   if (0 == ui8_5) {
     LCD_ALERT("No bill items");
-    KBD_GETCH; /* FIXME: remove this line */
     return;
   }
 
@@ -784,8 +784,8 @@ menuBilling(uint8_t mode)
   //  change_sd(0);
   f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
   ui16_2 = get_fattime(); /* FIXME: */
-  sprintf( bufSS, "sale_%d_%d_%d.dat", (ui16_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK,
-	   (ui16_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK, (ui16_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK );
+  sprintf( bufSS, "sale_%02d_%02d_%04d.dat", (ui16_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK,
+	   (ui16_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK, ((ui16_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK)+1980 );
   if (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     /* Move to end of the file to append data */
     f_lseek(&Fil, f_size(&Fil));

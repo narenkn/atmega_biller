@@ -119,6 +119,5 @@ main(void)
   menuBilling(MENU_MSUPER);
 
   /* Prepare to exit */
-  KBD_GETCH;
   LCD_end();
 }

@@ -182,12 +182,13 @@ class item:
 
 class ep_store_layout:
   consts = {
-    'HEADER_SZ_MAX' : 16*3,
-    'SHOP_NAME_SZ_MAX' : 16,
-    'FOOTER_SZ_MAX' : 24,
+    'HEADER_SZ_MAX' : 16*6,
+    'SHOP_NAME_SZ_MAX' : 16*1,
+    'FOOTER_SZ_MAX' : 16*3,
     'EPS_MAX_VAT_CHOICE' : 6,
     'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,
+    'EPS_WORD_LEN' : 8,
     }
   variables = {
     'uint16_t' : {
@@ -195,11 +196,6 @@ class ep_store_layout:
       'service_tax' : ['', 2, TYPE_UINT16],
       'common_discount' : ['', 2, TYPE_UINT16],
       'round_off' : ['', 2, TYPE_UINT16],
-      ## bits [15:4] : Unused
-      ## bits [3:0] : Printing
-      ## value 0b0000 : don't ask, 0b00xx : copies without confirmation,
-      ## 0b01xx : confirm before print xx copies
-      'property' : ['', 2, TYPE_UINT16],
       'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },
     'uint8_t' : {
@@ -207,10 +203,18 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
-      'denomination_text' : ['[5]', 5, TYPE_STRING],
-      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16, TYPE_STRING],
-      'prn_header' : ['[HEADER_SZ_MAX]', 16*3, TYPE_STRING],
-      'prn_footer' : ['[FOOTER_SZ_MAX]', 24, TYPE_STRING],
+      'denomination_text' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'billid_prefix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
+      'prn_header' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
+      'prn_footer' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
+      'unused_0' : [':1', 0.1, TYPE_BIT],
+      'unused_1':[':1', 0.1, TYPE_BIT],
+      'unused_2':[':1', 0.1, TYPE_BIT],
+      'unused_3':[':1', 0.1, TYPE_BIT],
+      'unused_4':[':1', 0.1, TYPE_BIT],
+      'bill_confirmation_required':[':1', 0.1, TYPE_BIT],
+      'bill_copies':[':2', 0.2, TYPE_BIT],
       }
     }
   def __init__(self, name):

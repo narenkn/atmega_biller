@@ -2,10 +2,8 @@
 #define BILLING_H
 
 #if 256 == BUFSS_SIZE
-# define  SALE_INFO_ITEMS_NBITS    4
 # define MAX_ITEMS_IN_BILL         8
 #elif 512 == BUFSS_SIZE
-# define  SALE_INFO_ITEMS_NBITS    5
 # define MAX_ITEMS_IN_BILL        45
 #endif
 
@@ -28,8 +26,7 @@ struct sale_item {
 #define  SALE_INFO_DELETED      0x8
 #define  SALE_INFO_MODIFIED     0x4
 struct sale_info {
-  uint8_t   n_items:SALE_INFO_ITEMS_NBITS;
-  uint8_t   property:(8-SALE_INFO_ITEMS_NBITS);
+  uint8_t   n_items;
 
   uint16_t  date_yy:7;
   uint16_t  date_mm:4;

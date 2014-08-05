@@ -1,8 +1,6 @@
 FIXME:
-1. Increase Header & Footer size
-2. Have bill id prefix
 3. Choice to print words of total bill
 4. Print duplicate bill
 5. Item, tax total
-6. VAT : 6 choices
 7. Add version string in all dat files & check compatible in menu.c
+8.
