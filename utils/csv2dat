@@ -186,6 +186,7 @@ class ep_store_layout:
     'SHOP_NAME_SZ_MAX' : 16*1,
     'FOOTER_SZ_MAX' : 16*3,
     'EPS_MAX_VAT_CHOICE' : 6,
+    'EPS_CAPTION_SZ_MAX' : 10,
     'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
@@ -205,6 +206,7 @@ class ep_store_layout:
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
       'denomination_text' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'billid_prefix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
       'prn_header' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
       'prn_footer' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
@@ -292,7 +294,7 @@ if "__main__" == __name__:
 
   if options.crc16:
     cd = csv2dat(None)
-    print "#define GIT_HASH_CRC 0x%4x" % cd.crc16(bytearray(args[0]))
+    print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n"
     ds = data_struct()

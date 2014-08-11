@@ -21,8 +21,7 @@ printerStatus(void)
 {
   uint8_t ui8_1;
 
-  PRINTER_PRINT(ASCII_ESCAPE);
-  PRINTER_PRINT('v');
+  PRINTER_PAPER_STATUS;
   PRINTER_PRINT('n'); /* FIXME: not sure if this is right */
   if ('P' != uartReceiveByte())
     return 0;

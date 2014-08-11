@@ -188,10 +188,6 @@ void menuInit(void);
 void menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
 uint8_t menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 void menuHeader(uint8_t mode);
-//void menuSaleAdd(uint8_t *sale);
-//void menu_sale_delete_month(uint8_t del_month);
-//uint16_t menu_sale_find(uint8_t *dmy, uint16_t id);
-//void menu_sale_free_old_sector(void);
 
 /* User routines*/
 void menuSetPasswd(uint8_t mode);
@@ -208,8 +204,6 @@ void menuBilling(uint8_t mode);
 void menuShowBill(uint8_t mode);
 
 /* User option routines */
-//void menuPrnHeader(void);
-//void menuPrnFooter(void);
 void menuModVat(uint8_t mode);
 void menuSetServTax(uint8_t mode);
 void menuSetDateTime(uint8_t mode);

@@ -14,6 +14,7 @@
 
 #define TEST_KEY_ARR_SIZE 128
 
+#include "version.h"
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"

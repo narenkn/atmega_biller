@@ -118,11 +118,8 @@ FRESULT f_open (
 	BYTE mode
 )
 {
-  uint8_t fpath[FF_STR_LEN<<1];
-  
   assert(NULL != _fs);
-  fpath[0] = 0;
-  sprintf(fp->fpath, "%s/%s", _fs->mount_path, path);
+  sprintf(fp->fpath, "%s", path);
 
   /* */
   if (fp->is_active) {
@@ -131,7 +128,7 @@ FRESULT f_open (
   }
 
   /* */
-  fp->fp = fopen(fp->fpath, (FA_READ&mode)?"r":"w");
+  fp->fp = fopen(fp->fpath, (FA_READ&mode)?"r":"a");
   if (NULL == fp->fp) {
     return FR_DISK_ERR;
   }
@@ -169,7 +166,7 @@ FRESULT f_write (
 {
   uint32_t size;
   
-  size = fwrite(buff, btw, 1, fp->fp);
+  size = fwrite(buff, 1, btw, fp->fp);
   *bw = size;
   return (0 == size) ? FR_DISK_ERR : FR_OK;
 }
@@ -255,13 +252,13 @@ FRESULT f_error(FIL* fp)
 
 DWORD f_tell(FIL *fp)
 {
-  return ftell(fp->fp);
+  assert(0);
+  return 0;
 }
 
-FRESULT f_size(FIL *fp)
+DWORD f_size(FIL *fp)
 {
-  assert(0);
-  return FR_DISK_ERR;
+  return ftell(fp->fp);
 }
 
 

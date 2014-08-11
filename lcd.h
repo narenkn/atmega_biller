@@ -262,14 +262,13 @@
   assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
 }
 
-#define LCD_WR_FLOAT(x, y, N) {			\
-  uint16_t n1 = N;				\
-  uint8_t ui8_1, ui8_2;				\
-  for (ui8_1=8; ui8_1>0; )  {			\
-    ui8_1--;					\
-    lcd_buf[x][y+ui8_1] = '0'+n1%10;		\
-    n1 /= 10;					\
-    if (n1 < 0.01) break;			\
+#define LCD_WR_SPRINTF(x, y, BUF, FMT, N) {	\
+  uint8_t ui8_1;				\
+  sprintf(BUF, FMT, N);				\
+  lcd_buf_p = &(lcd_buf[x][y]);			\
+  for (ui8_1=0; 0!=BUF[ui8_1]; ui8_1++)  {	\
+    lcd_buf_p[0] = BUF[ui8_1];			\
+    lcd_buf_p++;				\
   }						\
 }
 
