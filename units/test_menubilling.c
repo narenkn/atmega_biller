@@ -71,6 +71,8 @@ main(void)
   uint16_t ui16_1, ui16_2;
   struct item *it = (void *)bufSS;
 
+  printerInit();
+
   menuSDLoadItem(MENU_MSUPER);
 //  printf("lcd_buf:%s\n", lcd_buf[0]);
 //  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);

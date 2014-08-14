@@ -5,12 +5,14 @@
 
 #undef  PRINTER_PRINT
 #define PRINTER_PRINT(c)			\
-  putchar(c)
+  putc(c, outf)
 
+FILE *outf = NULL;
 
 void
 printerInit(void)
 {
+  outf = fopen("stdout.log", "w");
 }
 
 void

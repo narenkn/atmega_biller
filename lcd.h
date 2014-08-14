@@ -185,7 +185,7 @@
 #define LCD_WR_LINE_N_EE24XX(x, y, str, len)  {	\
   uint8_t ui1_t;			        \
   lcd_buf_p = &(lcd_buf[x][y]);			\
-  ee24xx_read_bytes(((char *)str), lcd_buf_p, len);	\
+  ee24xx_read_bytes((uint16_t)(str), lcd_buf_p, len);			\
   for (ui1_t = len, lcd_buf_p+=len; ui1_t < LCD_MAX_COL; ui1_t++) {	\
     lcd_buf_p[0] = ' ';				\
     lcd_buf_p++;				\

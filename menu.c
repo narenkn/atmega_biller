@@ -789,7 +789,7 @@ menuBilling(uint8_t mode)
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
   for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
-    sl->info.user[ui8_2] = eeprom_read_byte(offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2);
+    sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
   /* Save the bill to SD */
   FATFS FatFs1;
@@ -860,6 +860,7 @@ menuBilling(uint8_t mode)
   f_mount(NULL, "", 0);
 
   /* Now print the bill */
+  KBD_GETCH;
   menuPrnBill(sl);
 }
 
@@ -1047,7 +1048,7 @@ menuPrnBill(struct sale *sl)
   /* Header */
   ui8_2 = 0;
   for (ui8_1=0; ui8_1<HEADER_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte(offsetof(struct ep_store_layout, prn_header)+ui8_1);
+    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, prn_header)+ui8_1));
     ui8_2 = ('\n' == ui8_3) ? 0 :
       ( (PRINTER_MAX_CHARS_ON_LINE == ui8_2) ? 0 : ui8_2+1 );
     if (0 == ui8_2) {
@@ -1059,7 +1060,7 @@ menuPrnBill(struct sale *sl)
 
   /* Caption, user, Date */
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte(offsetof(struct ep_store_layout, caption)+ui8_1);
+    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, caption)+ui8_1));
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
   }
@@ -1067,7 +1068,7 @@ menuPrnBill(struct sale *sl)
   PRINTER_PRINT('u'); PRINTER_PRINT('s'); PRINTER_PRINT('e');
   PRINTER_PRINT('r'); PRINTER_PRINT(':');
   for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
-    ui8_3 = eeprom_read_byte(offsetof(struct ep_store_layout, users)+ui8_1);
+    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, users)+ui8_1));
     assert ('\n' != ui8_3);
     PRINTER_PRINT(ui8_3);
   }
@@ -1083,7 +1084,7 @@ menuPrnBill(struct sale *sl)
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
     if (EEPROM_MAX_ADDRESS != sl->items[ui8_1].ep_item_ptr) {
       ee24xx_write_bytes(sl->items[ui8_1].ep_item_ptr,
-			 &(sl->it[0]), ITEM_SIZEOF);
+			 (void *)&(sl->it[0]), ITEM_SIZEOF);
       ui8_2 = 0;
     } else {
       ui8_2 = ui8_1;
@@ -1092,20 +1093,21 @@ menuPrnBill(struct sale *sl)
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
     PRINTER_SPRINTF(bufSS, " %4d", sl->items[ui8_3].cost);
+    PRINTER_SPRINTF(bufSS, "(-%4d)", sl->items[ui8_3].discount);
     PRINTER_SPRINTF(bufSS, " %4d", sl->items[ui8_3].quantity);
-    PRINTER_SPRINTF(bufSS, " %6d", sl->items[ui8_3].cost * sl->items[ui8_3].quantity);
+    PRINTER_SPRINTF(bufSS, " %6d\n", sl->items[ui8_3].cost * sl->items[ui8_3].quantity);
   }
 
   /* Total */
-  PRINTER_SPRINTF(bufSS, "Total Discount : %.2f", sl->t_discount);
-  PRINTER_SPRINTF(bufSS, "Total VAT      : %.2f", sl->t_vat);
-  PRINTER_SPRINTF(bufSS, "Total Serv Tax : %.2f", sl->t_stax);
-  PRINTER_SPRINTF(bufSS, "Bill Total (Rs): %.2f", sl->total);
+  PRINTER_SPRINTF(bufSS, "Total Discount : %.2f\n", sl->t_discount);
+  PRINTER_SPRINTF(bufSS, "Total VAT      : %.2f\n", sl->t_vat);
+  PRINTER_SPRINTF(bufSS, "Total Serv Tax : %.2f\n", sl->t_stax);
+  PRINTER_SPRINTF(bufSS, "Bill Total (Rs): %.2f\n", sl->total);
 
   /* Footer */
   ui8_2 = 0;
   for (ui8_1=0; ui8_1<FOOTER_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte(offsetof(struct ep_store_layout, prn_footer)+ui8_1);
+    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, prn_footer)+ui8_1));
     ui8_2 = ('\n' == ui8_3) ? 0 :
       ( (PRINTER_MAX_CHARS_ON_LINE == ui8_2) ? 0 : ui8_2+1 );
     if (0 == ui8_2) {
@@ -1674,6 +1676,8 @@ menuSDLoadItem(uint8_t mode)
   uint8_t ui8_1;
 
   /* */
+  memset(&FS, 0, sizeof(FS));
+  memset(&fp, 0, sizeof(fp));
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&fp, SD_ITEM_FILE, FA_READ)) {
     LCD_ALERT("File open error");
