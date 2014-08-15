@@ -204,9 +204,11 @@ void menuBilling(uint8_t mode);
 void menuShowBill(uint8_t mode);
 
 /* User option routines */
-void menuModVat(uint8_t mode);
-void menuSetServTax(uint8_t mode);
-void menuSetDateTime(uint8_t mode);
+void menuSettingString(uint16_t addr, const char *quest, uint8_t max_chars);
+void menuSettingUint32(uint16_t addr, const char *quest);
+void menuSettingUint16(uint16_t addr, const char *quest);
+void menuSettingUint8(uint16_t addr, const char *quest);
+void menuSettingChoice(uint16_t addr, uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, const char *quest, uint8_t max_idx);
 
 /* Report routines */
 void menuPrnBill(struct sale *sl);

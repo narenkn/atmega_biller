@@ -1337,75 +1337,76 @@ menuBillReports(uint8_t mode)
 
 // Not unit tested
 void
-menuModVat(uint8_t mode)
+menuSettingString(uint16_t addr, const char *quest, uint8_t max_chars)
 {
-//  uint16_t ui1; /* FIXME: ui1 should be of 32 bits */
-//  uint8_t  ui2, ui3, choice[MENU_PROMPT_LEN*4];
-//
-//  if (MENU_ITEM_NONE == arg1.valid)
-//    return;
-//
-//  for (ui2=0; ui2<4; ui2++) {
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.vat[ui2]), (uint8_t *)&ui1, sizeof(uint16_t));
-//    for (ui3=0; ui3<MENU_PROMPT_LEN; ui3++) {
-//      *(choice+(ui2*MENU_PROMPT_LEN)+MENU_PROMPT_LEN-1-ui3) = '0' + ui1%10;
-//      ui1 /= 10;
-//    }
-//  }
-//  ui3 = menu_getchoice(menu_str1+(MENU_STR1_IDX_REPLA*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, 4);
-//  assert(ui3 < 4);
-//
-//  ui1 = arg1.value.integer.i8;
-//  ui1 <<= 16;
-//  ui1 |= arg1.value.integer.i16;
-//  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.vat[ui3]), (uint8_t *)&ui1, sizeof(uint16_t));
-  menu_unimplemented(__LINE__);
+  uint8_t ui8_1, ui8_2, ui8_3;
+  for (ui8_1 = 0; ui8_1 < max_chars;) {
+    arg1.valid = MENU_ITEM_NONE;
+    menuGetOpt(quest, &arg1, MENU_ITEM_STR);
+    if (MENU_ITEM_STR != arg1.valid)
+      continue;
+    for (ui8_2=0, ui8_3=0; ui8_2<LCD_MAX_COL; ui8_2++) {
+      if (!isgraph(arg1.value.sptr[ui8_2]) && !isblank(arg1.value.sptr[ui8_2]))
+	break;
+      eeprom_update_byte((uint8_t *)(addr+ui8_1), arg1.value.sptr[ui8_3]);
+      ui8_1++;
+      ui8_3++;
+    }
+    if (0 == ui8_2) { /* Empty line */
+      for (ui8_2=0; ui8_2<LCD_MAX_COL; ui8_2++) {
+	eeprom_update_byte((uint8_t *)(addr+ui8_1), ' ');
+	ui8_1++;
+      }
+      break;
+    }
+  }
 }
 
 // Not unit tested
 void
-menuHeader(uint8_t mode)
+menuSettingUint32(uint16_t addr, const char *quest)
 {
-//  uint8_t chars = 0, ui2, ui3;
-//  uint8_t mode_max = ((mode&(~MENU_MODEMASK)) == MENU_MFOOTER) ? FOOTER_MAX_SZ : HEADER_MAX_SZ;
-//
-//  /* Enters with arg1 as valid */
-//  do {
-//    if (MENU_ITEM_NONE == arg1.valid)
-//      break;
-//
-//    /* check for valid chars */
-//    for (ui2=0, ui3=0; (ui2<LCD_MAX_COL) && (0==ui3); ui2++) {
-//      ui3 = (isgraph(lcd_buf[LCD_MAX_ROW-1][ui2])) ? 1 : 0;
-//    }
-//    if (ui3) {
-//      for (ui2=0; (ui2<LCD_MAX_COL) && (chars<mode_max); ui2++) {
-//	bufSS[ui2] = lcd_buf[LCD_MAX_ROW-1][ui2];
-//	chars++;
-//      }
-//    } else break;
-//
-//    /* store */
-//    if (((mode&(~MENU_MODEMASK)) != MENU_MFOOTER) && (MENU_ITEM_NONE != arg1.valid) && (0 != chars)) {
-//      bufSS[chars] = 0;
-//      EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.shop_name[0]), (uint8_t *)bufSS, sizeof(uint8_t)*chars);
-//      chars = 0;
-//      arg1.valid = MENU_ITEM_NONE;
-//    }
-//
-//    arg2.valid = MENU_ITEM_NONE;
-//    menu_getopt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg2, MENU_ITEM_STR);
-//  } while (chars < mode_max);
-//  bufSS[chars] = 0;
-//
-//  if (chars) {
-//    if ((mode&(~MENU_MODEMASK)) == MENU_MFOOTER) {
-//      EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.prn_footer[0]), (uint8_t *)bufSS, sizeof(uint8_t)*chars);
-//    } else {
-//      EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.prn_header[0]), (uint8_t *)bufSS, sizeof(uint8_t)*chars);
-//    }
-//  }
-  menu_unimplemented(__LINE__);
+  menu_unimplemented();
+}
+
+// Not unit tested
+void
+menuSettingUint16(uint16_t addr, const char *quest)
+{
+  arg1.valid = MENU_ITEM_NONE;
+  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  if (MENU_ITEM_ID != arg1.valid)
+    assert(0);
+
+  uint16_t val = arg1.value.integer.i16;
+  eeprom_update_byte(addr+1, val>>8);
+  eeprom_update_byte(addr, val);
+}
+
+// Not unit tested
+void
+menuSettingUint8(uint16_t addr, const char *quest)
+{
+  arg1.valid = MENU_ITEM_NONE;
+  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  if (MENU_ITEM_ID != arg1.valid)
+    assert(0);
+
+  eeprom_update_byte(addr, arg1.value.integer.i16);
+}
+
+// Not unit tested
+void
+menuSettingChoice(uint16_t addr, uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, const char *quest, uint8_t max_idx)
+{
+  uint8_t val;
+
+  arg1.valid = MENU_ITEM_NONE;
+  val = menuGetChoice(quest, opt_arr, choice_len, &arg1, MENU_ITEM_CONFIRM, max_idx);
+  if (MENU_ITEM_CONFIRM != arg1.valid)
+    assert(0);
+
+  eeprom_update_byte(addr, val);
 }
 
 // Not unit tested
@@ -1429,42 +1430,6 @@ menuDelAllBill(uint8_t mode)
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_start), (uint8_t *)&ui1, sizeof(uint16_t));
 //  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_end), (uint8_t *)&ui1, sizeof(uint16_t));
 //  FlashEraseSector(ui1);
-  menu_unimplemented(__LINE__);
-}
-
-// Not unit tested
-void
-menuSetServTax(uint8_t mode)
-{
-//  uint16_t ui1; /* FIXME: ui1 should be of 32 bits */
-//
-//  if (MENU_ITEM_NONE == arg1.valid)
-//    return;
-//
-//  ui1 = arg1.value.integer.i8;
-//  ui1 <<= 16;
-//  ui1 |= arg1.value.integer.i16;
-//  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.service_tax), (uint8_t *)&ui1, sizeof(uint16_t));
-}
-
-// Not unit tested
-void
-menuSetDateTime(uint8_t mode)
-{
-//  uint16_t ui1 = 0;
-//  uint8_t ymd[3];
-//
-//  if ((MENU_ITEM_NONE == arg1.valid) || (MENU_ITEM_NONE == arg2.valid))
-//    return;
-//
-//  timerTimeSet(arg1.value.time.hour, arg1.value.time.min);
-//
-//  /* if no change in date */
-//  timerDateGet(ymd);
-//  if ( (ymd[2] == arg1.value.date.year) && (ymd[1] == arg1.value.date.month) && (ymd[0] == arg1.value.date.date) )
-//    return;
-//
-//  menu_DelAllBill(mode);
   menu_unimplemented(__LINE__);
 }
 
