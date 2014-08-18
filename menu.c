@@ -102,7 +102,7 @@ const uint8_t MENU_MAX PROGMEM = MENU_ITEMS;
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
-static uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
+const uint8_t    menu_prompt_str[] PROGMEM = MENU_PROMPTS;
 static menu_arg_t arg1, arg2;
 uint8_t bufSS[BUFSS_SIZE];
 uint8_t    menu_error;
@@ -129,7 +129,7 @@ uint8_t    menu_error;
 #define MENU_STR1_IDX_ENTRYES   20
 #define MENU_STR1_IDX_COMNDISC  21
 #define MENU_STR1_IDX_NUM_ITEMS 22
-uint8_t menu_str1[] PROGMEM =
+const uint8_t menu_str1[] PROGMEM =
   "Price   " /* 0 */
   "Discount" /* 1 */
   "Serv.Tax" /* 2 */
@@ -153,6 +153,10 @@ uint8_t menu_str1[] PROGMEM =
   "Entr:Yes" /*20 */
   "ComnDisc" /*21 */
   ;
+
+/* */
+#define BILLFILENAME "billing.csv"
+const uint8_t BillFileName[] PROGMEM = BILLFILENAME;
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
@@ -1335,6 +1339,13 @@ menuBillReports(uint8_t mode)
 //  printer_prn_uint16(bp->ui13);
 //}
 
+const struct menu_vars MenuVars[] PROGMEM = {
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[0]"), offsetof(struct ep_store_layout, vat[0])},
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[1]"), offsetof(struct ep_store_layout, vat[1])},
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[2]"), offsetof(struct ep_store_layout, vat[2])},
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[3]"), offsetof(struct ep_store_layout, vat[3])},
+};
+
 // Not unit tested
 void
 menuSettingString(uint16_t addr, const char *quest, uint8_t max_chars)
@@ -1413,24 +1424,24 @@ menuSettingChoice(uint16_t addr, uint8_t *quest, uint8_t *opt_arr, uint8_t choic
 void
 menuDelAllBill(uint8_t mode)
 {
-//  uint16_t ui1 = 0;
-//  uint8_t  ui2;
-//
-//  /* Remove all data when date is changed */
-//  LCD_ALERT("Delete AllData");
-//  if (0 != menu_getchoice(menu_str1+(MENU_STR1_IDX_DADAT*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2))
-//    return;
-//
-//  /* */
-//  timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.date);
-//  for (ui2=0; ui2<(13*4); ui2++) {
-//    EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_date_ptr[ui2]), (uint8_t *)&ui1, sizeof(uint16_t));
-//  }
-//  ui1 = FLASH_DATA_START;
-//  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_start), (uint8_t *)&ui1, sizeof(uint16_t));
-//  EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.sale_end), (uint8_t *)&ui1, sizeof(uint16_t));
-//  FlashEraseSector(ui1);
-  menu_unimplemented(__LINE__);
+  FATFS FS;
+  uint16_t ui16_1;
+  uint8_t ui8_1, ui8_2;
+  uint8_t *ui8_1p = (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+
+  /* init */
+  PSTR2STR(BillFileName, ui8_1p, ui8_1, ui8_2);
+
+  /* */
+  memset(&FS, 0, sizeof(FS));
+  f_mount(&FS, ".", 1);
+  if (FR_OK == f_unlink(ui8_1p)) {
+    LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR(BILLFILENAME " Del'd"), 16);
+    _delay_ms(1000);
+  }
+
+  /* */
+  f_mount(NULL, "", 0);
 }
 
 // Not unit tested

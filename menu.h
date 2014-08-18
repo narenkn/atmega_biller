@@ -102,6 +102,22 @@ typedef struct {
                              "SD Card" \
                              "Diagnos"
 
+#define MENU_VAR_TYPE_NONE   0
+#define MENU_VAR_TYPE_U8     1
+#define MENU_VAR_TYPE_U16    2
+#define MENU_VAR_TYPE_U32    3
+#define MENU_VAR_TYPE_FLOAT  4
+#define MENU_VAR_TYPE_STRING 5
+#define MENU_VAR_TYPE_CHOICE 6
+
+struct menu_vars {
+uint8_t type;
+uint8_t size;
+uint8_t size2;
+uint8_t name[9];
+uint16_t ep_ptr;
+};
+
 #define MENU_ITEMS \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Billing     ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NAME, MENU_ITEM_STR|MENU_ITEM_OPTIONAL|MENU_ITEM_DONTCARE_ON_PREV) ROW_JOIN \
@@ -182,6 +198,15 @@ typedef struct {
 
 extern uint8_t menu_error;
 extern uint8_t bufSS[BUFSS_SIZE];
+
+#define PSTR2STR(pstr, str, ui_1, ui_2)		\
+  for (ui_2=0; ;ui_2++) {			\
+    ui_1 = pgm_read_mem(pstr+ui_2);		\
+    str[ui_2] = ui_1;				\
+    if (0 == ui_1) break;			\
+  }
+  
+  
 
 /* Helper routines */
 void menuInit(void);
