@@ -1344,6 +1344,8 @@ const struct menu_vars MenuVars[] PROGMEM = {
   {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[1]"), offsetof(struct ep_store_layout, vat[1])},
   {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[2]"), offsetof(struct ep_store_layout, vat[2])},
   {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[3]"), offsetof(struct ep_store_layout, vat[3])},
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[4]"), offsetof(struct ep_store_layout, vat[4])},
+  {MENU_VAR_TYPE_U16, 2, 0, PSTR("vat[5]"), offsetof(struct ep_store_layout, vat[5])},
 };
 
 // Not unit tested
@@ -1418,6 +1420,13 @@ menuSettingChoice(uint16_t addr, uint8_t *quest, uint8_t *opt_arr, uint8_t choic
     assert(0);
 
   eeprom_update_byte(addr, val);
+}
+
+// Not unit tested
+void
+menuSettingSet(uint8_t mode)
+{
+  
 }
 
 // Not unit tested
