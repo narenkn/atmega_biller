@@ -132,6 +132,9 @@
   lcd_buf_prop |= LCD_PROP_DIRTY;		\
 }
 
+#define LCD_CUR_POS_P lcd_buf_p
+#define LCD_CUR_POS   (&(lcd_buf[0][0])-lcd_buf_p)
+
 #define LCD_WR_LINE(x, y, str)  {	\
   uint8_t ui1_t, ui2_t;				\
   lcd_buf_p = &(lcd_buf[x][y]);			\

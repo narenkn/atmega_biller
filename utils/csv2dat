@@ -6,12 +6,13 @@ import re
 import sys
 import csv
 
+TYPE_NONE    = 0
 TYPE_UINT8   = 1
 TYPE_UINT16  = 2
-TYPE_UINT32  = 3
-TYPE_STRING  = 4
-TYPE_BIT     = 5
-TYPE_INTARR  = 6
+TYPE_UINT32  = 4
+TYPE_STRING  = 5
+TYPE_BIT     = 6
+TYPE_ARR     = 7
 
 class data_struct:
   error = 0
@@ -25,6 +26,61 @@ class data_struct:
         print "  %10s %25s%s;" % (t_var, var, s_var[0])
     print "} __attribute__((packed));"
     print "#define %s_SIZEOF sizeof(struct %s)" % (cl.name.upper(), cl.name)
+
+  def get_type(self, type_val):
+    if TYPE_NONE == type_val:
+      return "TYPE_NONE"
+    elif TYPE_UINT8 == type_val:
+      return "TYPE_UINT8"
+    elif TYPE_UINT16 == type_val:
+      return "TYPE_UINT16"
+    elif TYPE_UINT32 == type_val:
+      return "TYPE_UINT32"
+    elif TYPE_STRING == type_val:
+      return "TYPE_STRING"
+    elif TYPE_BIT == type_val:
+      return "TYPE_BIT"
+    elif TYPE_ARR == type_val:
+      return "TYPE_ARR"
+    assert 0, "Can't match types.."
+
+  def menu_var_table(self, cl):
+    re_1 = re.compile(r'unused')
+    print '#define TYPE_NONE    ', TYPE_NONE
+    print '#define TYPE_UINT8   ', TYPE_UINT8
+    print '#define TYPE_UINT16  ', TYPE_UINT16
+    print '#define TYPE_UINT32  ', TYPE_UINT32
+    print '#define TYPE_STRING  ', TYPE_STRING
+    print '#define TYPE_BIT     ', TYPE_BIT
+    print '#define TYPE_ARR  ', TYPE_ARR
+    print '#define MENU_VAR_TABLE \\'
+    goffset = 0
+    num_vars = 0
+    for t_var, tvars in sorted(cl.variables.items()):
+      for var, s_var in sorted(tvars.items(), key=lambda x: x[1], reverse=True):
+        if re_1.match(var) or ('passwds' == var) or ('users' == var):
+          if int(((goffset+s_var[1]) * 10) % 10) > 8:
+            goffset += 1
+            goffset = int(goffset)
+          goffset += s_var[1]
+          continue
+        if TYPE_ARR == s_var[2]:
+          for idx in range(0, s_var[1], s_var[3]):
+            num_vars += 1;
+            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s[%d])}, \\" % (self.get_type(s_var[2]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3])
+        elif TYPE_BIT == s_var[2]:
+          num_vars += 1;
+          print "\t{%s, %d, %d, \"%s\", %d}, \\" % (self.get_type(s_var[2]), int((s_var[1]*10)%10), int((goffset*10)%10), var, int(goffset))
+        else:
+          num_vars += 1;
+          print "\t{%s, %d, %d, \"%s\", offsetof(struct ep_store_layout, %s)}, \\" % (self.get_type(s_var[2]), int(s_var[1]), int((s_var[1]*10)%10), var, var)
+        assert (s_var[1]<256), "size holder overflow"
+        if int(((goffset+s_var[1]) * 10) % 10) > 8:
+          goffset += 1
+          goffset = int(goffset)
+        goffset += s_var[1]
+    print ''
+    print '#define MENU_VARS_SIZE ', num_vars
 
 class csv2dat:
   error = 0
@@ -100,7 +156,7 @@ class csv2dat:
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
                 pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
-          elif TYPE_INTARR == vardict[var][2]:
+          elif TYPE_ARR == vardict[var][2]:
             i,j,k,l = 0,0,0,0
             while ((i < vardict[var][1]) and (j < len(data[var][li]))): ## each bytes
               c = data[var][li][j]
@@ -159,7 +215,7 @@ class item:
     'uint8_t'  : {
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
       'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
-      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_INTARR],
+      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
       'has_serv_tax':[':1', 0.1, TYPE_BIT],
       'has_common_discount':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
@@ -193,10 +249,10 @@ class ep_store_layout:
     }
   variables = {
     'uint16_t' : {
-      'vat' : ['[EPS_MAX_VAT_CHOICE]', 2*6, TYPE_UINT16],
-      'service_tax' : ['', 2, TYPE_UINT16],
-      'common_discount' : ['', 2, TYPE_UINT16],
-      'round_off' : ['', 2, TYPE_UINT16],
+      'Vat' : ['[EPS_MAX_VAT_CHOICE]', 2*6, TYPE_ARR, TYPE_UINT16],
+      'ServTax' : ['', 2, TYPE_UINT16],
+      'ComnDis' : ['', 2, TYPE_UINT16],
+      'RndOff' : ['', 2, TYPE_UINT16],
       'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },
     'uint8_t' : {
@@ -204,19 +260,19 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
-      'denomination_text' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
-      'billid_prefix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
-      'prn_header' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
-      'prn_footer' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
+      'b_head' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
+      'b_foot' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
       'unused_0' : [':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
       'unused_3':[':1', 0.1, TYPE_BIT],
       'unused_4':[':1', 0.1, TYPE_BIT],
-      'bill_confirmation_required':[':1', 0.1, TYPE_BIT],
-      'bill_copies':[':2', 0.2, TYPE_BIT],
+      'b_conf':[':1', 0.1, TYPE_BIT],
+      'b_copies':[':2', 0.2, TYPE_BIT],
       }
     }
   def __init__(self, name):
@@ -300,6 +356,7 @@ if "__main__" == __name__:
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)
+    ds.menu_var_table(ep)
     print "\n\n#endif"
     error += ds.error
   elif options.to_dat:

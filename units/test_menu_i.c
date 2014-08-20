@@ -13,6 +13,7 @@
 
 #define TEST_KEY_ARR_SIZE 128
 
+#include "version.h"
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"
@@ -33,6 +34,26 @@ void menu_handler(uint8_t ui);
 #include "ff.c"
 #include "a1micro2mm.c"
 #include "menu.c"
+
+#include <time.h>
+//******************************************************************
+//Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
+//******************************************************************
+uint32_t
+get_fattime (void)
+{
+  time_t now_t = time(NULL);
+  struct tm *now = localtime(&now_t);
+
+  return (((now->tm_year-80)&0x7F)<<25) |
+    ((now->tm_mon&0xF)<<21) |
+    ((now->tm_mday&0x1F)<<16) |
+    ((now->tm_hour&0x1F)<<11) |
+    ((now->tm_min&0x3F)<<5) |
+    (now->tm_sec&0x1F);
+}
 
 void
 menu_handler(uint8_t ui)
@@ -58,7 +79,7 @@ main(void)
 
   printw("Press F2 to exit");
   menuMain();
-  menuGetChoice(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), menu_str1+(MENU_STR1_IDX_YesNo*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 2);
+  menuGetYesNo(menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 
   /* Prepare to exit */
   LCD_end();

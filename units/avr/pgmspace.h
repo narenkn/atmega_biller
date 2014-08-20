@@ -6,5 +6,7 @@
 
 #define pgm_read_mem(A)  (A)[0]
 
+#define PSTR(A)          ((const char *)A)
+
 #endif
 

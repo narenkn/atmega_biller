@@ -15,7 +15,6 @@
 #define MENU_ITEM_MONTH                4
 #define MENU_ITEM_FLOAT                5
 #define MENU_ITEM_TIME                 6
-#define MENU_ITEM_CONFIRM              7
 #define MENU_ITEM_TYPE_MASK         0x1F
 #define MENU_ITEM_OPTIONAL         (1<<7)
 #define MENU_ITEM_DONTCARE_ON_PREV (1<<6)
@@ -50,6 +49,7 @@ typedef struct {
       /* Total 24 bit max */
       uint8_t  i8;  /* msb */
       uint16_t i16;
+      uint32_t i32;
     } integer;
     struct {
       uint8_t day;
@@ -102,20 +102,13 @@ typedef struct {
                              "SD Card" \
                              "Diagnos"
 
-#define MENU_VAR_TYPE_NONE   0
-#define MENU_VAR_TYPE_U8     1
-#define MENU_VAR_TYPE_U16    2
-#define MENU_VAR_TYPE_U32    3
-#define MENU_VAR_TYPE_FLOAT  4
-#define MENU_VAR_TYPE_STRING 5
-#define MENU_VAR_TYPE_CHOICE 6
-
+#define MENU_VAR_NAME_LEN    9
 struct menu_vars {
-uint8_t type;
-uint8_t size;
-uint8_t size2;
-uint8_t name[9];
-uint16_t ep_ptr;
+  uint8_t type;
+  uint8_t size;
+  uint8_t size2;
+  uint8_t name[MENU_VAR_NAME_LEN];
+  uint16_t ep_ptr;
 };
 
 #define MENU_ITEMS \
@@ -161,22 +154,18 @@ uint16_t ep_ptr;
     ARG1(MENU_PR_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_DATE, MENU_ITEM_DATE) ROW_JOIN \
   /* MENU_HIER(MENU_HIER_HISTORY) MENU_MODE(MENU_MSUPER) MENU_NAME("All Tax Repo") COL_JOIN MENU_FUNC(menuTaxReport) COL_JOIN */ \
   /*  ARG1(MENU_PR_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_DATE, MENU_ITEM_DATE) ROW_JOIN */ \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Modify VAT  ") COL_JOIN MENU_FUNC(menuModVat) COL_JOIN \
-    ARG1(MENU_PR_FLOAT, MENU_ITEM_FLOAT) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Mod Setting") COL_JOIN MENU_FUNC(menuSettingSet) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_HISTORY) MENU_MODE(MENU_MSUPER) MENU_NAME("Del All Bill") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MVALIDATE) MENU_NAME("Change Passw") COL_JOIN MENU_FUNC(menuSetPasswd) COL_JOIN \
     ARG1(MENU_PR_OLDPASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) COL_JOIN ARG2(MENU_PR_PASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Set Serv Tax") COL_JOIN MENU_FUNC(menuSetServTax) COL_JOIN \
-    ARG1(MENU_PR_FLOAT, MENU_ITEM_FLOAT) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Set DateTime") COL_JOIN MENU_FUNC(menuSetDateTime) COL_JOIN \
     ARG1(MENU_PR_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_TIME) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER)  MENU_NAME("Chg Usr,Pass") COL_JOIN MENU_FUNC(menuSetUserPasswd) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("User  Logout") COL_JOIN MENU_FUNC(menuUserLogout) COL_JOIN \
-    ARG1(MENU_PR_ID,  MENU_ITEM_CONFIRM) COL_JOIN ARG2(MENU_PR_ID,  MENU_ITEM_NONE) ROW_JOIN \
+    ARG1(MENU_PR_ID,  MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID,  MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MRESET)  MENU_NAME("User Login  ") COL_JOIN MENU_FUNC(menuUserLogin) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MRESET) MENU_NAME("Run Diagnost") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
@@ -203,13 +192,18 @@ extern uint8_t bufSS[BUFSS_SIZE];
     str[ui_2] = ui_1;				\
     if (0 == ui_1) break;			\
   }
-  
-  
+
+#define PSTR2STRN(pstr, str, ui_1, ui_2, N)	\
+  for (ui_2=0; ui_2<N;ui_2++) {			\
+    ui_1 = pgm_read_mem(pstr+ui_2);		\
+    str[ui_2] = ui_1;				\
+  }
 
 /* Helper routines */
 void menuInit(void);
-void menuGetOpt(uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
-uint8_t menuGetChoice(uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
+void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
+uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
+uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
 
 /* User routines*/
 void menuSetPasswd(uint8_t mode);
@@ -226,11 +220,13 @@ void menuBilling(uint8_t mode);
 void menuShowBill(uint8_t mode);
 
 /* User option routines */
-void menuSettingString(uint16_t addr, const char *quest, uint8_t max_chars);
-void menuSettingUint32(uint16_t addr, const char *quest);
-void menuSettingUint16(uint16_t addr, const char *quest);
-void menuSettingUint8(uint16_t addr, const char *quest);
-void menuSettingChoice(uint16_t addr, uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, const char *quest, uint8_t max_idx);
+void menuSettingString(uint16_t addr, const uint8_t *quest, uint8_t max_chars);
+void menuSettingUint32(uint16_t addr, const uint8_t *quest);
+void menuSettingUint16(uint16_t addr, const uint8_t *quest);
+void menuSettingUint8(uint16_t addr, const uint8_t *quest);
+void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
+void menuSettingSet(uint8_t mode);
+void menuSetDateTime(uint8_t mode);
 
 /* Report routines */
 void menuPrnBill(struct sale *sl);
