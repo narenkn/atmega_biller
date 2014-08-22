@@ -411,9 +411,8 @@ menuFactorySettings(uint8_t mode)
   }
 }
 
-/* FIXME: Needs to be removed */
 void
-menu_unimplemented(uint32_t idx)
+menuUnimplemented(uint32_t idx)
 {
   LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, "unimplemented ", 14);
   LCD_PUT_UINT8X(idx);
@@ -893,13 +892,6 @@ menuBilling(uint8_t mode)
 
 // Not unit tested
 void
-menuShowBill(uint8_t mode)
-{
-  menu_unimplemented(__LINE__);
-}
-
-// Not unit tested
-void
 menuAddItem(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
@@ -1149,218 +1141,36 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
-//  uint16_t ui1, next_record;
-//  uint8_t ui3, ui4, ui5;
-//  billing *bp = (void *)bufSS;
-//
-//  uint16_t start_record = menu_sale_find((uint8_t *)&(arg1.value.date), 1);
-//
-//  /* Only process valid records... */
-//  if (FLASH_ADDR_INVALID == start_record)
-//    return;
-//
-//  /* */
-//  menu_PrnHeader();
-//  bp->ui1 = bp->ui3 = bp->ui5 = bp->ui7 = 0;
-//  bp->ui2 = bp->ui4 = bp->ui6 = bp->flags = 0;
-//  bp->ui9 = bp->ui11 = bp->ui13 = bp->ui15 = 0;
-//
-//  next_record = start_record;
-//  while (1) {
-//    /* Only process valid records... */
-//    if (FLASH_ADDR_INVALID == start_record)
-//      break;
-//
-//    /* retrieve this bill data, exit if invalid condition */
-//    for (ui4=0; ui4<SALE_INFO_SIZEOF; ui4++) {
-//      bufSS[ui4] = FlashReadByte(next_record+ui4);
-//    }
-//    ui3 = mode & ~MENU_MODEMASK;
-//    if ( (ui3 >= MENU_MDAYITEM) && (ui3 <= MENU_MMONTAX) && (bp->info.date_mm != arg1.value.date.month) ) {
-//      assert(start_record != next_record);
-//      break;
-//    }
-//
-//    if ( (ui3 >= MENU_MDAYITEM) && (ui3 <= MENU_MDAYTAX) && (bp->info.date_dd != arg1.value.date.date) ) {
-//      assert(start_record != next_record);
-//      break;
-//    }
-//    for (ui3=0; ui3<(ITEM_SIZEOF*(bp->info.n_items)); ui3++, ui4++) {
-//      bufSS[ui4] = FlashReadByte(next_record+ui4);
-//    }
-//    /* populate pointers */
-//    for (ui3=0; ui3<(bp->info.n_items); ui3++) {
-//      ui4 = (uint8_t)&(((billing *)0)->temp);
-//      ui1 = flash_item_find(bp->items[ui3].item_id);
-//      for (ui5=0; ui5<ITEM_SIZEOF; ui4++, ui5++) {
-//	bufSS[ui4] = FlashReadByte(ui1+ui5);
-//      }
-//      bp->bi[ui3].vat_sel = bp->temp.vat_sel;
-//      bp->bi[ui3].has_serv_tax = bp->temp.has_serv_tax;
-//    }
-//
-//    /* print after skipping deleted record */
-//    if (0 == bp->info.property) {
-//      ui3 = mode & ~MENU_MODEMASK;
-//      if ((MENU_MDAYITEM == ui3) || (MENU_MMONITEM == ui3) || (MENU_MALLITEM == ui3))
-//	menu_PrnItemBill(bp);
-//      else if ((MENU_MDAYFULL == ui3) || (MENU_MMONFULL == ui3) || (MENU_MALLFULL == ui3))
-//	menu_PrnFullBill(bp);
-//      else if ((MENU_MDAYTAX == ui3) || (MENU_MMONTAX == ui3))
-//	menu_PrnTaxReport(bp);
-//    }
-//
-//    /* atleast one record, move past this */
-//    assert(start_record != next_record);
-//    next_record += ui4;
-//  }
-//
-//  ui3 = mode & ~MENU_MODEMASK;
-//  if ((MENU_MDAYITEM == ui3) || (MENU_MMONITEM == ui3) || (MENU_MALLITEM == ui3))
-//    menu_PrnItemBillFooter();
-//  else if ((MENU_MDAYFULL == ui3) || (MENU_MMONFULL == ui3) || (MENU_MALLFULL == ui3))
-//    menu_PrnFooter();
-//  else if ((MENU_MDAYTAX == ui3) || (MENU_MMONTAX == ui3))
-//    menu_PrnTaxReportFooter(bp);
-  menu_unimplemented(__LINE__);
+  menuUnimplemented(__LINE__);
 }
 
 // Not unit tested
-//void
-//menuPrnItemBill(billing *bp)
-//{
-//  menu_unimplemented(__LINE__);
-//}
-//
+void
+menuShowBill(uint8_t mode)
+{
+  menuUnimplemented(__LINE__);
+}
+
 // Not unit tested
-//void
-//menuPrnItemBillFooter(void)
-//{
-//  menu_unimplemented(__LINE__);
-//}
-//
+void
+menuPrnAllBill(uint8_t mode)
+{
+  menuUnimplemented(__LINE__);
+}
+
 // Not unit tested
-//void
-//menuPrnFullBill(billing *bp)
-//{
-//  assert(0 == bp->info.property);
-//
-//  /* #, Date */
-//  bp->ui1++;
-//  if (bp->flags & BILLING_PRINT) {
-//    uint8_t ymd[3];
-//
-//    printer_prn_str("Bill No:");
-//    printer_prn_uint16(bp->ui1);
-//    PRINTER_PRINT(' ');
-//
-//    ymd[0] = bp->info.date_dd;
-//    ymd[1] = bp->info.date_mm;
-//    //    ymd[2] = bp->info.date_yy;
-//    printer_prn_date(ymd);
-//  }
-//
-//  /* Item */
-//  {
-//    uint16_t tot_tax = 0, tot_bill = 0, serv_tax = 0, ui1, ui1_2;
-//    uint8_t ui2, ui3, ui4, ui5;
-//    ui3 = bp->info.n_items;
-//    for (ui2=0; ui2<ui3; ui2++) {
-//      printer_prn_uint16(bp->items[ui2].item_id);
-//      if (bp->flags & BILLING_PRINT)
-//	PRINTER_PRINT(' ');
-//      ui1 = flash_item_find(bp->items[ui2].item_id);
-//      for (ui4=0; ui4<ITEM_NAME_BYTEL; ui4++, ui1++) {
-//	ui5 = FlashReadByte(ui1);
-//	if (0 == ui5) break;
-//	if (bp->flags & BILLING_PRINT)
-//	  PRINTER_PRINT(ui5);
-//      }
-//
-//      ui1 = flash_item_find(bp->items[ui2].item_id);
-//      ui5 = (uint8_t)&(((billing *)0)->temp);
-//      for (ui4=0; ui4<ITEM_SIZEOF; ui5++, ui4++) {
-//	bufSS[ui5] = FlashReadByte(ui1+ui4);
-//      }
-//      if (bp->flags & BILLING_PRINT) {
-//	PRINTER_PRINT(' ');
-//	printer_prn_uint16(bp->temp.cost);
-//	PRINTER_PRINT(' ');
-//	printer_prn_uint16(bp->temp.discount);
-//	PRINTER_PRINT(' ');
-//	printer_prn_uint16(bp->items[ui2].num_sale);
-//	PRINTER_PRINT(' ');
-//      }
-//      assert(bp->temp.cost > bp->temp.discount);
-//      ui1 = (bp->temp.cost - bp->temp.discount) * bp->items[ui2].num_sale;
-//      if (bp->flags & BILLING_PRINT)
-//	printer_prn_uint16(ui1);
-//      /* */
-//      tot_bill += ui1;
-//      if (bp->bi[ui2].has_serv_tax) {
-//	serv_tax += ui1;
-//      }
-//      EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.vat[bp->bi[ui2].vat_sel]), (uint8_t *)&ui1_2, sizeof(uint16_t));
-//      tot_tax += ui1 * ui1_2;
-//    }
-//    /* */
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.service_tax), (uint8_t *)&ui1, sizeof(uint16_t));
-//    serv_tax *= ui1;
-//
-//    /* Total */
-//    if (bp->flags & BILLING_PRINT)
-//      printer_prn_uint16(tot_tax);
-//    if (bp->flags & BILLING_PRINT)
-//      printer_prn_uint16(serv_tax);
-//    if (bp->flags & BILLING_PRINT)
-//      printer_prn_uint16(tot_bill);
-//    bp->ui3 = tot_bill;
-//    bp->ui5 = serv_tax;
-//    bp->ui7 = tot_tax;
-//  }
-//}
-//
+void
+menuPrnItemBill(billing *bp)
+{
+  menuUnimplemented(__LINE__);
+}
+
 // Not unit tested
-//void
-//menuPrnTaxReport(billing *bp)
-//{
-//  bp->flags &= ~BILLING_PRINT;
-//  menu_PrnFullBill(bp);
-//  bp->flags |= BILLING_PRINT;
-//
-//  /* Bill No, Date */
-//  {
-//    uint8_t ymd[3];
-//
-//    printer_prn_str("Bill No:");
-//    printer_prn_uint16(bp->ui1);
-//    PRINTER_PRINT(' ');
-//
-//    ymd[0] = bp->info.date_dd;
-//    ymd[1] = bp->info.date_mm;
-//    //    ymd[2] = bp->info.date_yy;
-//    printer_prn_date(ymd);
-//  }
-//
-//  /* This bill */
-//  printer_prn_uint16(bp->ui3); /* tot_bill */
-//  printer_prn_uint16(bp->ui5); /* serv_tax */
-//  printer_prn_uint16(bp->ui7); /* tot_tax */
-//
-//  /* Total */
-//  bp->ui9 += bp->ui3;
-//  bp->ui11 += bp->ui5;
-//  bp->ui13 += bp->ui7;
-//}
-//
-// Not unit tested
-//void
-//menu_PrnTaxReportFooter(billing *bp)
-//{
-//  printer_prn_uint16(bp->ui9);
-//  printer_prn_uint16(bp->ui11);
-//  printer_prn_uint16(bp->ui13);
-//}
+void
+menuPrnTaxReport(billing *bp)
+{
+  menuUnimplemented(__LINE__);
+}
 
 const struct menu_vars MenuVars[] PROGMEM = { MENU_VAR_TABLE };
 
@@ -1375,20 +1185,17 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint8_t max_chars)
     if (MENU_ITEM_STR != arg1.valid)
       continue;
     for (ui8_2=0, ui8_3=0; ui8_2<LCD_MAX_COL; ui8_2++) {
-      if (!isgraph(arg1.value.sptr[ui8_2]) && !isblank(arg1.value.sptr[ui8_2]))
+      if (!isgraph(arg1.value.sptr[ui8_3]) && !isblank(arg1.value.sptr[ui8_3]))
 	break;
+      if (ui8_1 >= max_chars) break;
       eeprom_update_byte((uint8_t *)(addr+ui8_1), arg1.value.sptr[ui8_3]);
       ui8_1++;
       ui8_3++;
     }
-    /* FIXME: redo this code */
-    if (0 == ui8_2) { /* Empty line */
-      for (ui8_2=0; ui8_2<LCD_MAX_COL; ui8_2++) {
-	if (ui8_1 >= max_chars) break;
-	eeprom_update_byte((uint8_t *)(addr+ui8_1), ' ');
-	ui8_1++;
-      }
-      break;
+    for (;ui8_2<LCD_MAX_COL;ui8_2++) {
+      if (ui8_1 >= max_chars) break;
+      eeprom_update_byte((uint8_t *)(addr+ui8_1), ' ');
+      ui8_1++;
     }
   }
 }
@@ -1512,7 +1319,7 @@ menuSettingSet(uint8_t mode)
 void
 menuSetDateTime(uint8_t mode)
 {
-  if (MENU_PR_DATE == arg1.valid) {
+  if (MENU_PR_FROM_DATE == arg1.valid) {
     timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
   }
   if (MENU_PR_TIME == arg2.valid) {
@@ -1548,25 +1355,42 @@ menuDelAllBill(uint8_t mode)
 void
 menuRunDiag(uint8_t mode)
 {
-//  uint8_t  ui2, ui3, ui4;
-//
-//  /* Run LCD
-//     Run slowly and make user see if there is any error
-//   */
-//  /* Run Printer : Print test page
-//   */
-//  /* Verify unused EEPROM spacesd : Write/readback
-//   */
-//  /* FIXME: randomize ui3 */
-//  /*
-//  for (ui2=0; ui2<NUM_TESTING_BYTES; ui2++) {
-//    EEPROM_STORE_WRITE((uint16_t)&(EEPROM_DATA.testing[ui2]), &ui3, sizeof(uint8_t)*LCD_MAX_COL);
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.testing[ui2]), &ui3, sizeof(uint8_t)*LCD_MAX_COL);
-//  }
-//  */
-//  /* Verify Keypad : Ask user to press a key and display it
-//   */
-  menu_unimplemented(__LINE__);
+  uint8_t  ui2, ui3, ui4;
+
+  /* FIXME: Verify LCD */
+
+  /* FIXME: Verify TFT */
+
+  /* FIXME: Adjust LCD/TFT brightness */
+
+  /* FIXME: Run Printer : Print test page */
+
+  /* FIXME: Verify unused EEPROM spacesd : Write/readback */
+
+  /* FIXME: Verify 24c512 */
+
+  /* FIXME: Test timer */
+
+  /* FIXME: Verify Flash */
+
+  /* FIXME: Verify Keypad : Ask user to press a key and display it */
+
+  /* FIXME: Verify Keyboard */
+
+  /* FIXME: Verify Printer */
+
+  /* FIXME: Diagonise Battery charging */
+
+  /* FIXME: Check weighing machine connectivity */
+
+  /* FIXME: Verify SD card */
+
+  /* FIXME: Verify Clock speed */
+
+  /* FIXME: Verify Buzzer */
+
+  /* FIXME: Remove unimplemented line */
+  menuUnimplemented(__LINE__);
 }
 
 #define ROW_JOIN ,
