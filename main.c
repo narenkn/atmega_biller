@@ -45,7 +45,7 @@ main(void)
 //                  Hour[15:11], Min[10:5], Sec[4:0]
 //******************************************************************   
 uint32_t
-get_fattime (void)
+getFatTime (void)
 {
   uint8_t ui1, buf[3];
   uint32_t dtFat;
@@ -92,4 +92,24 @@ get_fattime (void)
   dtFat |= ui1;
 
   return dtFat;
+}
+
+uint8_t
+validTime(uint8_t day, uint8_t month, uint8_t year)
+{
+  uint8_t max_days_in_month;
+  uint32_t ui32_1;
+
+  if (1 == month) {
+    ui32_1 = year+1980;
+    max_days_in_month = ((0 == (ui32_1%4)) && (0 != (ui32_1%100)))? 29 : 28;
+  } else if ( (0 == month) || (2 == month) ||
+	    (4 == month) || (6 == month) ||
+	    (7 == month) || (9 == month) ||
+	    (11 == month) )
+    max_days_in_month = 31;
+  else
+    max_days_in_month = 30;
+
+  return (month<=11) && (day < max_days_in_month);
 }

@@ -25,6 +25,7 @@ struct sale_item {
 /* */
 #define  SALE_INFO_DELETED      0x8
 #define  SALE_INFO_MODIFIED     0x4
+#define  SALE_INFO_INVALID      0x1
 struct sale_info {
   uint8_t   n_items;
   uint8_t   prop;

@@ -247,7 +247,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   } else if ((MENU_ITEM_DATE == item_type) || (MENU_ITEM_MONTH == item_type)) {
     /* format DDMMYYYY || format MMYYYY */
     menu_error = 0;
-    for (ui1=0; ui1<(item_type+2); ui1++) { /* cleaverly spaced item_type apart */
+    for (ui1=0; ui1<(item_type+2); ui1++) {
       if ((lbp[ui1] < '0') || (lbp[ui1] > '9'))
 	menu_error++;
     }
@@ -278,8 +278,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 	val += lbp[0] - '0';
 	lbp++;
       }
-      if ((val < 2000) || (val > 2100)) menu_error++;
-      arg->value.date.year = val-2000;
+      if (val < 2014) menu_error++;
+      arg->value.date.year = val-1980;
     }
   } else if (MENU_ITEM_TIME == item_type) {
     /* format HHMM */
@@ -805,7 +805,7 @@ menuBilling(uint8_t mode)
 
   /* set sale-info */
   sl->info.n_items = ui8_5;
-  ui32_2 = get_fattime();
+  ui32_2 = getFatTime();
   sl->info.date_dd = ((ui32_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK)+1;
   sl->info.date_mm = ((ui32_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK)+1;
   sl->info.date_yy = ((ui32_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK);
@@ -1141,35 +1141,141 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
-  menuUnimplemented(__LINE__);
+  FATFS FS;
+  FIL   Fil;
+  UINT  ret_val;
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+
+  /* */
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
+    LCD_ALERT("File open error");
+    return;
+  }
+
+  /* check that dates are in order */
+  if ((MENU_ITEM_DATE != arg1.valid) || (MENU_ITEM_DATE != arg2.valid))
+    return;
+  if ( ! ( (arg1.value.date.year < arg2.value.date.year) ||
+	   ( (arg1.value.date.year == arg2.value.date.year) &&
+	     (arg1.value.date.month < arg2.value.date.month) ) ||
+	   ( (arg1.value.date.year == arg2.value.date.year) &&
+	     (arg1.value.date.month == arg2.value.date.month) &&
+	     (arg1.value.date.day < arg2.value.date.day) ) ) ) {
+    LCD_ALERT("Date Wrong Order");
+    return;
+  }
+  if ( !validTime(arg1.value.date.day, arg1.value.date.month, arg1.value.date.year) ||
+       !validTime(arg2.value.date.day, arg2.value.date.month, arg2.value.date.year) ) {
+    LCD_ALERT("Invalid Date");
+    return;
+  }
+
+  /* If version doesn't match, escape... */
+  f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
+  assert(2 == ret_val);
+  ui16_1 = bufSS[LCD_MAget_fattimeX_COL+2+LCD_MAX_COL+2];
+  ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
+  if (GIT_HASH_CRC != ui16_2) {
+    LCD_ALERT("Old Format   ");
+    return;
+  }
+
+  /* Find # records */
+  ui32_1 = (f_size(&Fil)-2) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
+  assert (0 == ((f_size(&Fil)-2) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
+
+  /* FIXME: complete this.. */
+
+  /* */
+  f_mount(NULL, "", 0);
 }
 
 // Not unit tested
 void
 menuShowBill(uint8_t mode)
 {
-  menuUnimplemented(__LINE__);
-}
+  FATFS FS;
+  FIL   Fil;
+  UINT  ret_val;
+  uint8_t  ui8_1;
+  uint16_t ui16_1;
+  uint32_t ui32_1, ui32_2;
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
-// Not unit tested
-void
-menuPrnAllBill(uint8_t mode)
-{
-  menuUnimplemented(__LINE__);
-}
+  if (MENU_ITEM_STR != arg2.valid) {
+    assert(MENU_ITEM_NONE == arg2.valid);
+  }
 
-// Not unit tested
-void
-menuPrnItemBill(billing *bp)
-{
-  menuUnimplemented(__LINE__);
-}
+  /* */
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
+    LCD_ALERT("File open error");
+    return;
+  }
 
-// Not unit tested
-void
-menuPrnTaxReport(billing *bp)
-{
-  menuUnimplemented(__LINE__);
+  /* If version doesn't match, escape... */
+  f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
+  assert(2 == ret_val);
+  ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
+  ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
+  if (GIT_HASH_CRC != ui16_2) {
+    LCD_ALERT("Old Format   ");
+    return;
+  }
+
+  /* Find # records */
+  ui32_1 = (f_size(&Fil)-2) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
+  assert (0 == ((f_size(&Fil)-2) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
+
+  /* iterate records */
+  for (ui32_2=0, ui8_1=1; ;) {
+    /* Display this item */
+    f_lseek( &Fil, 2+(ui32_2*(sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))) );
+    f_read(&Fil, (void *)sl, sizeof(struct sale), &ret_val);
+    if (MENU_ITEM_DATE == arg1.valid) {
+      if ( (sl->info.date_yy != arg1.value.date.year) ||
+	   (sl->info.date_mm != arg1.value.date.month) ||
+	   (sl->info.date_dd != arg1.value.date.day) ) {
+	if ((0 == (ui8_1&1)) && (ui32_2>1)) { /* prev */
+	  ui32_2--;
+	  continue;
+	} else if ((1 == (ui8_1&1)) && (ui32_2<(ui32_1-1))) { /* next */
+	  ui32_2++;
+	  continue;
+	} else if ((ui8_1 & 0xF0) > 0x10) {
+	  break;
+	} else { /* not found, change dir */
+	  ui8_1 += 0x10;
+	  ui8_1 ^= 1;
+	  continue;
+	}
+      }
+    }
+    assert(sizeof(struct sale) == ret_val);
+
+    /* FIXME: Display bill */
+
+    /* according to user's wish */
+    KBD_RESET_KEY;
+    KBD_GETCH;
+    if ((ASCII_ENTER == KbdData) || (ASCII_PRNSCRN == KbdData)) {
+      menuPrnBill(sl);
+    } else if ( ASCII_UP == KbdData ) {
+      ui8_1 = 0;
+    } else if ( ASCII_DOWN == KbdData ) {
+      ui8_1 = 1;
+    } else if ( (ASCII_LEFT == KbdData) || (ASCII_RIGHT == KbdData) ) {
+      break;
+    }
+  }
+
+  /* */
+  f_mount(NULL, "", 0);
 }
 
 const struct menu_vars MenuVars[] PROGMEM = { MENU_VAR_TABLE };

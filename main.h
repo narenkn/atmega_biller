@@ -20,6 +20,7 @@ void main_init(void);
 #define  FAT_MONTH_MASK          0xF
 #define  FAT_YEAR_OFFSET          25
 #define  FAT_YEAR_MASK          0x7F
-uint32_t get_fattime(void);
+uint32_t getFatTime(void);
+uint8_t  validTime(uint8_t day, uint8_t month, uint8_t year);
 
 #endif
