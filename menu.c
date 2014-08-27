@@ -412,10 +412,10 @@ menuFactorySettings(uint8_t mode)
 }
 
 void
-menuUnimplemented(uint32_t idx)
+menuUnimplemented(uint32_t line)
 {
   LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, "unimplemented ", 14);
-  LCD_PUT_UINT8X(idx);
+  LCD_PUT_UINT8X(line);
   LCD_refresh();
 }
 
@@ -805,7 +805,7 @@ menuBilling(uint8_t mode)
 
   /* set sale-info */
   sl->info.n_items = ui8_5;
-  ui32_2 = getFatTime();
+  ui32_2 = get_fattime();
   sl->info.date_dd = ((ui32_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK)+1;
   sl->info.date_mm = ((ui32_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK)+1;
   sl->info.date_yy = ((ui32_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK);
@@ -1145,6 +1145,9 @@ menuBillReports(uint8_t mode)
   FIL   Fil;
   UINT  ret_val;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  uint16_t ui16_1, ui16_2;
+  uint32_t ui32_1, ui32_2;
+  uint8_t ui8_1;
 
   /* */
   memset(&FS, 0, sizeof(FS));
@@ -1167,8 +1170,8 @@ menuBillReports(uint8_t mode)
     LCD_ALERT("Date Wrong Order");
     return;
   }
-  if ( !validTime(arg1.value.date.day, arg1.value.date.month, arg1.value.date.year) ||
-       !validTime(arg2.value.date.day, arg2.value.date.month, arg2.value.date.year) ) {
+  if ( !validDate(arg1.value.date.day, arg1.value.date.month, arg1.value.date.year) ||
+       !validDate(arg2.value.date.day, arg2.value.date.month, arg2.value.date.year) ) {
     LCD_ALERT("Invalid Date");
     return;
   }
@@ -1176,7 +1179,7 @@ menuBillReports(uint8_t mode)
   /* If version doesn't match, escape... */
   f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
   assert(2 == ret_val);
-  ui16_1 = bufSS[LCD_MAget_fattimeX_COL+2+LCD_MAX_COL+2];
+  ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
     LCD_ALERT("Old Format   ");
@@ -1187,7 +1190,15 @@ menuBillReports(uint8_t mode)
   ui32_1 = (f_size(&Fil)-2) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
   assert (0 == ((f_size(&Fil)-2) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
 
-  /* FIXME: complete this.. */
+  /* iterate records */
+  for (ui32_2=0, ui8_1=1; ;) {
+    /* Display this item */
+    f_lseek( &Fil, 2+(ui32_2*(sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))) );
+    f_read(&Fil, (void *)sl, sizeof(struct sale), &ret_val);
+    assert(sizeof(struct sale) == ret_val);
+
+    /* FIXME: complete this.. */
+  }
 
   /* */
   f_mount(NULL, "", 0);
@@ -1201,7 +1212,7 @@ menuShowBill(uint8_t mode)
   FIL   Fil;
   UINT  ret_val;
   uint8_t  ui8_1;
-  uint16_t ui16_1;
+  uint16_t ui16_1, ui16_2;
   uint32_t ui32_1, ui32_2;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 

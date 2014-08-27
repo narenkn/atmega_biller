@@ -520,3 +520,108 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 
   return total;
 }
+
+//******************************************************************
+//Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
+//******************************************************************  
+uint32_t
+get_fattime (void)
+{
+  uint8_t ui1, buf[3];
+  uint32_t dtFat;
+
+  /* init with 6/1/2014 */
+  dtFat = ((2014-1980)<<25) | (0<<21) | (5<<16);
+
+  /* Process date */
+  timerDateGet(buf);
+  dtFat = buf[2];
+  dtFat <<= 4;
+  dtFat |= buf[1];
+  dtFat <<= 5;
+  dtFat |= buf[0];
+
+  /* Process time */
+  timerTimeGet(buf);
+  dtFat <<= 5;
+  dtFat |= buf[0];
+  dtFat <<= 6;
+  dtFat |= buf[1];
+  /* FAT32 fromat accepts dates with 2sec resolution
+     (e.g. value 5 => 10sec) */
+  dtFat <<= 5;
+  dtFat |= buf[2]>>1;
+
+  return dtFat;
+}
+
+#ifndef DS1307
+
+// Global time
+volatile uint8_t rtc_sec;
+volatile uint8_t rtc_min;
+volatile uint8_t rtc_hour;
+volatile uint8_t rtc_date;
+volatile uint8_t rtc_month;
+volatile uint8_t rtc_year;
+
+// Interrupt handler on compare match (TCNT0 is cleared automatically)
+ISR(TIMER0_COMP_vect)
+{
+  uint8_t max_days_in_month;
+  
+  // Increment time
+  if (++rtc_sec == 60) {
+    rtc_sec = 0;
+    if (++rtc_min == 60) {
+      rtc_min = 0;
+      if (++rtc_hour == 24) {
+	rtc_hour = 0;
+	rtc_days++;
+
+	/* find max time, keep date */
+	if (1 == rtc_month) {
+	  max_days_in_month = ((0 == (ui32_1%4)) && (0 != (ui32_1%100)))? 29 : 28;
+	} else if ( (0 == month) || (2 == month) ||
+		    (4 == month) || (6 == month) ||
+		    (7 == month) || (9 == month) ||
+		    (11 == month) )
+	  max_days_in_month = 31;
+	else
+	  max_days_in_month = 30;
+	if (rtc_days >= max_days_in_month) {
+	  rtc_days = 0;
+	  if (++rtc_month >= 12) {
+	    rtc_month = 0;
+	    rtc_year++;
+	  }
+	}
+      }
+      
+    }
+  }
+}
+
+void
+tmr_init(void)
+{
+  /* Start timer 0 with clock prescaler CLK/1024 and CTC Mode ("Clear Timer on Compare")*/
+  /* Resolution is 32.25 ms */
+  TCCR0 = (0<<FOC0)|(0<<WGM00)|(0<<COM01)|(0<<COM00)|(1<<WGM01)|(1<<CS02)|(1<<CS01)|(1<<CS00);
+
+  // Reset time
+  TCNT0 = 0;
+
+  // Calculate and set period
+  OCR0  = (uint16_t)(((RTC_F/1024)*RTC_PERIOD_MS)/1000) - 1;
+
+  // Enable interrupt on compare match
+  TIMSK |= (1<<OCIE0);
+
+  // Select asynchronous timer 0 operation to use external 32.768 kHz crystal
+  ASSR |= (1<<AS0);
+}
+
+#endif

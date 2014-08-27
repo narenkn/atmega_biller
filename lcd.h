@@ -1,13 +1,13 @@
 #ifndef LCD__H
 #define LCD__H
 
-#define LCD_MAX_ROW           10
+#define LCD_MAX_ROW            2
 #define LCD_MAX_COL           16
 
 #if 8 == LCD_DPORT_SIZE
 # define LCD_PORT(val)  P1 = val
 #elif 4 == LCD_DPORT_SIZE
-# define LCD_PORT(val)       \
+# define LCD_PORT(val)				\
   PORTA = (PORTA & ~0xF) | ((val) & 0xF)
 #endif
 #define LCD_en_high  PORTC |= 0x80

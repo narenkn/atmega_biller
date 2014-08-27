@@ -3,4 +3,8 @@ FIXME:
 4. Print duplicate bill
 5. Item, tax total
 7. Add version string in all dat files & check compatible in menu.c
-8.
+8. When start, check billing.csv for proper version and move it to _x.old files if wrong version
+9. user wise report
+10. Track purchase bills
+11. Seperate purchase reports
+12. Take care of disk full and abort saves.

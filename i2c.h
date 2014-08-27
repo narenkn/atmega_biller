@@ -25,6 +25,7 @@
 #define TIMER_ADDR_MONTH           5
 #define TIMER_ADDR_YEAR            6
 
+#ifdef  DS1307
 #define timerDateSet(year, month, date) \
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
@@ -43,7 +44,10 @@
   ymd[2] = i2c_receiveData_ACK();			\
   ymd[1] = i2c_receiveData_ACK();			\
   ymd[0] = i2c_receiveData_NACK();			\
-  i2c_stop()
+  i2c_stop();						\
+  ymd[2] = (((ymd[2]>>4) & 0x0F)*10) + (ymd[2]&0x0F);	\
+  ymd[1] = (((ymd[1]>>4) & 0x0F)*10) + (ymd[1]&0x0F);	\
+  ymd[0] = (((ymd[0]>>4) & 0x0F)*10) + (ymd[0]&0x0F)
 
 #define timerTimeSet(hour, min)				\
   i2c_start();						\
@@ -54,7 +58,7 @@
   i2c_sendData(hour);					\
   i2c_stop()
 
-#define timerTimeGet(hm)				\
+#define timerTimeGet(hms)				\
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
   i2c_sendData(TIMER_ADDR_SEC);				\
@@ -63,7 +67,47 @@
   hm[2] = i2c_receiveData_ACK();			\
   hm[1] = i2c_receiveData_ACK();			\
   hm[0] = i2c_receiveData_NACK();			\
-  i2c_stop()
+  i2c_stop();						\
+  hm[2] = (((hm[2]>>4) & 0x0F)*10) + (hm[2]&0x0F);	\
+  hm[1] = (((hm[1]>>4) & 0x0F)*10) + (hm[1]&0x0F);	\
+  hm[0] = (((hm[0]>>4) & 0x0F)*10) + (hm[0]&0x0F)
+
+
+#else /* 32KHz RTC implemented */
+
+// External crystal frequency
+#define RTC_F           32768
+
+// Define delay
+#define RTC_PERIOD_MS   1000
+
+extern volatile uint8_t rtc_sec;
+extern volatile uint8_t rtc_min;
+extern volatile uint8_t rtc_hour;
+extern volatile uint8_t rtc_date;
+extern volatile uint8_t rtc_month;
+extern volatile uint8_t rtc_year;
+
+#define timerDateSet(year, month, date)		\
+  rtc_year = year-1980;				\
+  rtc_month = month%12;				\
+  rtc_date = date%31
+
+#define timerDateGet(ymd)			\
+  ymd[2] = rtc_year;				\
+  ymd[1] = rtc_month;				\
+  ymd[0] = rtc_date
+
+#define timerTimeSet(hour, min)			\
+  rtc_hour = hour;				\
+  rtc_min = min
+
+#define timerTimeGet(hms)			\
+  hms[2] = rtc_hour;				\
+  hms[1] = rtc_min;				\
+  hms[0] = rtc_sec
+
+#endif
 
 void     i2c_init(void);
 uint8_t  i2c_start(void);
@@ -156,5 +200,7 @@ uint8_t twst;
 
 /* */
 #define EEPROM_MAX_ADDRESS     ((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)
+
+uint32_t get_fattime(void);
 
 #endif

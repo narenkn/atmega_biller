@@ -13,6 +13,7 @@
 #include <util/crc16.h>
 
 #define TEST_KEY_ARR_SIZE 128
+#define NO_MAIN
 
 #include "version.h"
 #include "lcd.h"
@@ -28,6 +29,14 @@
 /* All Header overrides */
 #undef  SD_ITEM_FILE
 #define SD_ITEM_FILE "test_data/items_1.dat"
+#define LCD_ALERT(str)				\
+  LCD_WR_LINE(0, 0, str);			\
+  KBD_RESET_KEY; KBD_GETCH
+
+#define LCD_ALERT_16N(str, n)			\
+  LCD_WR_LINE(0, 0, str);			\
+  LCD_PUT_UINT16X(n);				\
+  KBD_RESET_KEY; KBD_GETCH
 
 #include "lcd.c"
 #include "kbd_ncurses.c"
@@ -37,6 +46,7 @@
 #include "ff.c"
 #include "a1micro2mm.c"
 #include "menu.c"
+#include "main.c"
 
 void
 test_init()

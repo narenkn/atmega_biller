@@ -24,7 +24,7 @@
 
 /* Prompt for Menu argument */
 #define MENU_PROMPT_LEN 8
-#define MENU_PROMPTS \
+#define MENU_PROMPTS	\
   "None    " /* 0 */    \
   "Id      " /* 1 */    \
   "Name    " /* 2 */    \
@@ -197,6 +197,7 @@ void menuDelItem(uint8_t mode);
 /* billing routines */
 void menuBilling(uint8_t mode);
 void menuShowBill(uint8_t mode);
+void menuPrnBill(struct sale *sl);
 
 /* User option routines */
 void menuSettingString(uint16_t addr, const uint8_t *quest, uint8_t max_chars);
@@ -218,7 +219,7 @@ void menuSDLoadSettings(uint8_t mode);
 void menuSDSaveSettings(uint8_t mode);
 
 /* Other routines */
-void menuUnimplemented(uint8_t line);
+void menuUnimplemented(uint32_t line);
 void menuRunDiag(uint8_t mode);
 void menuMain(void);
 

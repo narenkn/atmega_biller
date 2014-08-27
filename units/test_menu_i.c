@@ -12,6 +12,7 @@
 #include <util/crc16.h>
 
 #define TEST_KEY_ARR_SIZE 128
+#define NO_MAIN
 
 #include "version.h"
 #include "lcd.h"
@@ -34,6 +35,7 @@ void menu_handler(uint8_t ui);
 #include "ff.c"
 #include "a1micro2mm.c"
 #include "menu.c"
+#include "main.c"
 
 #include <time.h>
 //******************************************************************
