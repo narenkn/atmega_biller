@@ -598,6 +598,11 @@ menuBilling(uint8_t mode)
     ((uint8_t *)sl)[ui8_2] = 0;
   }
 
+  /* if modification of bill is requested... */
+  if (mode & MENU_MMODBILL) {
+    /* FIXME: */
+  }
+
   for (ui8_5=0; ;) {
     /* already added item, just confirm */
     if (0 != sl->items[ui8_5].quantity)
