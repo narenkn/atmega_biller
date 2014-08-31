@@ -1042,6 +1042,35 @@ menuDelItem(uint8_t mode)
 		     bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
 }
 
+// Not unit tested
+/* Indexing at the following levels
+   1. Complete product code
+   2. Complete name
+#ifdef ITEM_SUBIDX_NAME == 4
+   3. First word of name
+   4. First 3 letters of name
+#endif
+
+  Normally 5K items are needed to be supported :
+    So, need 5K*4*2(bytes/sig) = 40K bytes to index it
+    In this case indexing could be stored in Flash
+  Medical purpose, max of 20K items :
+    So, need 20K*2*2 = 200K bytes : ITEM_SUBIDX_NAME undefined
+ */
+const uint16_t itemIdxs[ITEM_MAX * 2 * ITEM_SUBIDX_NAME] PROGMEM;
+void
+menuIndexItem(uint16_t id, struct item *)
+{
+  
+}
+
+// Not unit tested
+uint16_t
+menuItemFind(const uint8_t *name, const uint8_t *prod_code)
+{
+  /* FIXME: */
+}
+
 // Not tested
 void
 menuPrintTestPage(uint8_t mode)

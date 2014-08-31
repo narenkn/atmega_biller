@@ -202,6 +202,7 @@ class csv2dat:
 
 class item:
   consts = {
+    'ITEM_MAX':5000,
     'ITEM_NAME_BYTEL':10,
     'ITEM_NAME_UNI_BYTEL':16,
     'ITEM_PROD_CODE_BYTEL':16,

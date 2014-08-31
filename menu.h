@@ -189,6 +189,9 @@ void menuUserLogin(uint8_t mode);
 /* Item routines */
 void menuAddItem(uint8_t mode);
 void menuDelItem(uint8_t mode);
+#define menu_item_addr(id) ((id-1)*(uint16_t)ITEM_SIZEOF)
+void menuIndexItem(uint16_t id, struct item *);
+uint16_t menuItemFind(const uint8_t *name, const uint8_t *prod_code);
 
 /* billing routines */
 void menuBilling(uint8_t mode);
@@ -218,8 +221,6 @@ void menuSDSaveSettings(uint8_t mode);
 void menuUnimplemented(uint32_t line);
 void menuRunDiag(uint8_t mode);
 void menuMain(void);
-
-#define menu_item_addr(id) ((id-1)*(uint16_t)ITEM_SIZEOF)
 
 #define SD_ITEM_FILE      "items.dat"
 #define SD_SETTINGS_FILE  "settings.dat"
