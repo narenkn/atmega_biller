@@ -480,7 +480,7 @@ TftShowChar(uint16_t x,uint16_t y,uint8_t num,uint8_t mode)
       for(t=0;t<8;t++) {
 	if(temp&0x01)POINT_COLOR=colortemp;
 	else POINT_COLOR=BACK_COLOR;
-	TFT_WR_DATA(POINT_COLOR);	
+	TFT_WR_DATA(POINT_COLOR);
 	temp>>=1;
 	x++;
       }

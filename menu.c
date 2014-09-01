@@ -1055,13 +1055,47 @@ menuDelItem(uint8_t mode)
     So, need 5K*4*2(bytes/sig) = 40K bytes to index it
     In this case indexing could be stored in Flash
   Medical purpose, max of 20K items :
-    So, need 20K*2*2 = 200K bytes : ITEM_SUBIDX_NAME undefined
+    So, need 20K*2*2 = 80K bytes : ITEM_SUBIDX_NAME undefined
  */
 const uint16_t itemIdxs[ITEM_MAX * 2 * ITEM_SUBIDX_NAME] PROGMEM;
+// Not unit tested
+/* Index this one item */
 void
-menuIndexItem(uint16_t id, struct item *)
+menuIndexItem(uint16_t itIdx)
 {
-  
+  uint16_t ui16_1;
+  uint8_t ui8_1, ui8_2;
+  struct item *it = menuItemAddr(itIdx);
+
+  if ((it->is_disabled) || (0 == it->id)) {
+  } else {
+    /* */
+    ui16_1 = 0;
+    for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
+      ui16_1 = _crc16_update(ui16_1, it->prod_code[ui8_1]);
+    /* */
+    ui8_2 = -1;
+    ui16_1 = 0;
+    for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+      ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+      if ((ui8_1 > 0) && (' ' == it->name[ui8_1]) && (' ' != it->name[ui8_1-1]))
+	ui8_2 = ui8_1;
+    }
+    /* first word of name */
+    if (-1 == ui8_2) {
+      /* empty or very big name */
+    } else {
+      /* */
+      ui16_1 = 0;
+      for (ui8_1=0; ui8_1<ui8_2; ui8_1++)
+	ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+    }
+    /* first 3 letters of name */
+    assert(3 <=ITEM_NAME_BYTEL);
+    ui16_1 = 0;
+    for (ui8_1=0; ui8_1<3; ui8_1++)
+      ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+  }
 }
 
 // Not unit tested
@@ -1774,7 +1808,7 @@ menuSDLoadItem(uint8_t mode)
     if (ITEM_SIZEOF != ret_size) break; /* reached last */
     if (0 == it->id) continue;
     //printf("loading id:%d\n", it->id);
-    ui16_1 = menu_item_addr(it->id);
+    ui16_1 = menuItemAddr((it->id-1));
     ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
   }
   assert(2 == ret_size); /* crc would be pending */
