@@ -12,4 +12,5 @@ FIXME:
 14. CAPITALIZE product code & item name, so to make search ignore case
 15. Refund item
 16. Limit max items for different versions of product
-17. 
+17. Super user name should be admin & can't be overrided
+18. 
