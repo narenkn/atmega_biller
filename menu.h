@@ -190,6 +190,7 @@ void menuUserLogin(uint8_t mode);
 void menuAddItem(uint8_t mode);
 void menuDelItem(uint8_t mode);
 #define menuItemAddr(id) (id*(uint16_t)ITEM_SIZEOF) /* 0 == id is invalid */
+#define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
 void menuIndexItem(uint16_t id, struct item *);
 uint16_t menuItemFind(const uint8_t *name, const uint8_t *prod_code);
 

@@ -1,5 +1,5 @@
 
-CFLAGS += -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=256 -DDS1307
+CFLAGS += -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=256 -DDS1307 -DITEM_SUBIDX_NAME=4
 
 ../version.h : ../utils/csv2dat
 	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@

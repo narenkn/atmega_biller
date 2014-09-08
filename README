@@ -13,4 +13,5 @@ FIXME:
 15. Refund item
 16. Limit max items for different versions of product
 17. Super user name should be admin & can't be overrided
-18. 
+18. Show stock status
+19. Provision for batch name, associated cost

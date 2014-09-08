@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
+#include <avr/boot.h>
 
 #include "menu.h"
 
@@ -1046,7 +1047,7 @@ menuDelItem(uint8_t mode)
 /* Indexing at the following levels
    1. Complete product code
    2. Complete name
-#ifdef ITEM_SUBIDX_NAME == 4
+#ifdef 4 == ITEM_SUBIDX_NAME
    3. First word of name
    4. First 3 letters of name
 #endif
@@ -1055,24 +1056,103 @@ menuDelItem(uint8_t mode)
     So, need 5K*4*2(bytes/sig) = 40K bytes to index it
     In this case indexing could be stored in Flash
   Medical purpose, max of 20K items :
-    So, need 20K*2*2 = 80K bytes : ITEM_SUBIDX_NAME undefined
+    So, need 20K*2*2 = 80K bytes : (2 == ITEM_SUBIDX_NAME)
  */
-const uint16_t itemIdxs[ITEM_MAX * 2 * ITEM_SUBIDX_NAME] PROGMEM;
+const uint16_t itemIdxs[ITEM_MAX * 2 * ITEM_SUBIDX_NAME] PROGMEM =
+  { [ 0 ... (ITEM_MAX * 2 * ITEM_SUBIDX_NAME - 1) ] = 0 };
+
+// Not unit tested
+void
+menuIndexAllItems()
+{
+  uint16_t ui16_1, ui16_2;
+  uint8_t *buf = bufSS;
+  uint8_t sreg, mods;
+
+  // Disable interrupts.
+  sreg = SREG;
+  cli();
+  eeprom_busy_wait();
+
+#define MIAI_PAGE_OPENED 0x10
+  assert( 0 == (SPM_PAGESIZE % (ITEM_SUBIDX_NAME*sizeof(uint16_t))) );
+  mods = 0;
+  for (ui16_1=0; ui16_1<ITEM_MAX; ui16_1++) {
+    /* copy page on start of buffer */
+    if (!(mods & MIAI_PAGE_OPENED)) {
+      for (ui16_2=0; ui16_2<SPM_PAGESIZE; ui16_2++) {
+	buf[ui16_2] = pgm_read_mem(((uint8_t *)itemIdxs) + (ui16_1*ITEM_SUBIDX_NAME*sizeof(uint16_t)) + ui16_2);
+      }
+      mods = 0;
+    }
+
+    mods |= menuIndexItem(ui16_1) ? 1 : 0;
+
+    if ( (0 != mods) &&
+	 (0 == ((ui16_1+1)%(SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t))))) ) {
+      boot_page_erase(page);
+      boot_spm_busy_wait();      // Wait until the memory is erased.
+      boot_page_write(page);     // Store buffer in flash page.
+      boot_spm_busy_wait();      // Wait until the memory is written.
+    }
+  }
+  if (0 != mods) {
+    boot_page_erase(page);
+    boot_spm_busy_wait();
+    boot_page_write(page);
+    boot_spm_busy_wait();
+  }
+#undef MIAI_PAGE_OPENED
+
+  // Reenable RWW-section again. We need this if we want to jump back
+  // to the application after bootloading.
+  boot_rww_enable ();
+
+  // Re-enable interrupts (if they were ever enabled).
+  SREG = sreg;
+}
+
 // Not unit tested
 /* Index this one item */
-void
+uint8_t
 menuIndexItem(uint16_t itIdx)
 {
   uint16_t ui16_1;
-  uint8_t ui8_1, ui8_2;
+  uint8_t ui8_1, ui8_2, ret;
   struct item *it = menuItemAddr(itIdx);
 
+  ret = 0;
   if ((it->is_disabled) || (0 == it->id)) {
+    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+0)) &&
+	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+1)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+0]), 0);
+      ret++;
+    }
+    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+2)) &&
+	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+3)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+1]), 0);
+      ret++;
+    }
+    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+4)) &&
+	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+5)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+2]), 0);
+      ret++;
+    }
+    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
+	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+7)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+3]), 0);
+      ret++;
+    }
   } else {
     /* */
     ui16_1 = 0;
     for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
       ui16_1 = _crc16_update(ui16_1, it->prod_code[ui8_1]);
+    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+0)) &&
+	 (((ui16_1>>8)&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+1)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+0]), ui16_1);
+      ret++;
+    }
     /* */
     ui8_2 = -1;
     ui16_1 = 0;
@@ -1081,21 +1161,40 @@ menuIndexItem(uint16_t itIdx)
       if ((ui8_1 > 0) && (' ' == it->name[ui8_1]) && (' ' != it->name[ui8_1-1]))
 	ui8_2 = ui8_1;
     }
+    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+2)) &&
+	 (((ui16_1>>8)&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+3)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+1]), ui16_1);
+      ret++;
+    }
+#if 4 == ITEM_SUBIDX_NAME
     /* first word of name */
+    ui16_1 = 0;
     if (-1 == ui8_2) {
       /* empty or very big name */
     } else {
       /* */
-      ui16_1 = 0;
       for (ui8_1=0; ui8_1<ui8_2; ui8_1++)
 	ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+    }
+    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+4)) &&
+	 (((ui16_1>>8)&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+5)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+2]), ui16_1);
+      ret++;
     }
     /* first 3 letters of name */
     assert(3 <=ITEM_NAME_BYTEL);
     ui16_1 = 0;
     for (ui8_1=0; ui8_1<3; ui8_1++)
       ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
+	 (((ui16_1>>8)&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+7)) ) {
+      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+3]), ui16_1);
+      ret++;
+    }
+#endif
   }
+
+  return ret;
 }
 
 // Not unit tested
