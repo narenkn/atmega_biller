@@ -1216,11 +1216,59 @@ menuIndexItem(uint16_t itIdx)
 uint16_t
 menuItemFind(const uint8_t *name, const uint8_t *prod_code)
 {
-  uint16_t crc_n, crc_pc;
+  uint16_t crc_n, crc_pc, idx, ui16_1;
+  uint8_t  ui8_1, ui8_2;
+
+  crc_n = 0; ui8_2 = -1;
+  for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+    crc_n = _crc16_update(crc_n, name[ui8_1]);
+    if ((ui8_1 > 0) && (' ' == it->name[ui8_1]) && (' ' != it->name[ui8_1-1]))
+      ui8_2 = ui8_1;
+  }
+  crc_pc = 0;
+  for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
+    crc_pc = _crc16_update(crc_pc, prod_code[ui8_1]);
 #if 4 == ITEM_SUBIDX_NAME
   uint16_t crc_nw, crc_n3;
+  crc_nw = 0;
+  if (-1 != ui8_2) {
+    for (ui8_1=0; ui8_1<ui8_2; ui8_1++)
+      crc_nw = _crc16_update(crc_nw, name[ui8_1]);
+  }
+  crc_n3 = 0;
+  for (ui8_1=0; ui8_1<3; ui8_1++)
+    crc_n3 = _crc16_update(crc_n3, name[ui8_1]);
 #endif
-    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
+
+  for (idx=0, ui16_1=0; idx<ITEM_MAX; idx++, ui16_1+=ITEM_SIZEOF) {
+    if ( (crc_n == pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(idx)]))+0))
+	 || (crc_pc == pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(idx)]))+1))
+#if 4 == ITEM_SUBIDX_NAME
+	 || (crc_nw != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(idx)]))+2))
+	 || (crc_n3 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(idx)]))+3))
+#endif
+	 ) {
+      if (NULL != name) {
+	for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+	  if (name[ui8_1] != eeprom_read_byte(ui16_1+offsetof(struct item, name)+ui8_1))
+	    break;
+	  if (ui8_1 == ITEM_NAME_BYTEL)
+	    return idx;
+	}
+      } else {
+	assert(NULL != prod_code);
+	for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+	  if (name[ui8_1] != eeprom_read_byte(ui16_1+offsetof(struct item, prod_code)+ui8_1))
+	    break;
+	  if (ui8_1 == ITEM_PROD_CODE_BYTEL)
+	    return idx;
+	}
+      }
+    }
+  }
+
+  assert(ITEM_MAX < ((uint16_t)-1));
+  return -1;
 }
 
 // Not tested
