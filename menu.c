@@ -1002,12 +1002,13 @@ menuAddItem(uint8_t mode)
   if (0 != menuGetYesNo(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 
-  /* */
+  /* Now save item */
   for (ui8_2=0; ui8_2<ITEM_SIZEOF; ui8_2++, ui16_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)ui16_1);
     if (ui8_3 != bufSS_ptr[ui8_2])
       eeprom_update_byte((uint8_t *)ui16_1, ui8_3);
   }
+  menuIndexItem(it->id);
 }
 
 // Not unit tested
@@ -1065,7 +1066,7 @@ const uint16_t itemIdxs[ITEM_MAX * 2 * ITEM_SUBIDX_NAME] PROGMEM =
 void
 menuIndexAllItems()
 {
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, page;
   uint8_t *buf = bufSS;
   uint8_t sreg, mods;
 
@@ -1076,7 +1077,7 @@ menuIndexAllItems()
 
 #define MIAI_PAGE_OPENED 0x10
   assert( 0 == (SPM_PAGESIZE % (ITEM_SUBIDX_NAME*sizeof(uint16_t))) );
-  mods = 0;
+  mods = 0, page = 0;
   for (ui16_1=0; ui16_1<ITEM_MAX; ui16_1++) {
     /* copy page on start of buffer */
     if (!(mods & MIAI_PAGE_OPENED)) {
@@ -1088,12 +1089,15 @@ menuIndexAllItems()
 
     mods |= menuIndexItem(ui16_1) ? 1 : 0;
 
-    if ( (0 != mods) &&
-	 (0 == ((ui16_1+1)%(SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t))))) ) {
-      boot_page_erase(page);
-      boot_spm_busy_wait();      // Wait until the memory is erased.
-      boot_page_write(page);     // Store buffer in flash page.
-      boot_spm_busy_wait();      // Wait until the memory is written.
+    if (0 == ((ui16_1+1)%(SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t))))) {
+      if (0 != mods) {
+	boot_page_erase(page);
+	boot_spm_busy_wait();      // Wait until the memory is erased.
+	boot_page_write(page);     // Store buffer in flash page.
+	boot_spm_busy_wait();      // Wait until the memory is written.
+      }
+      mods &= ~MIAI_PAGE_OPENED;
+      page += SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t));
     }
   }
   if (0 != mods) {
@@ -1113,6 +1117,36 @@ menuIndexAllItems()
 }
 
 // Not unit tested
+uint8_t
+menuIndexClrItem(uint16_t itIdx)
+{
+  uint8_t ret = 0;
+
+  if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+0)) &&
+       (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+1)) ) {
+    boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+0]), 0);
+    ret++;
+  }
+  if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+2)) &&
+       (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+3)) ) {
+    boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+1]), 0);
+    ret++;
+  }
+  if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+4)) &&
+       (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+5)) ) {
+    boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+2]), 0);
+    ret++;
+  }
+  if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
+       (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+7)) ) {
+    boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+3]), 0);
+    ret++;
+  }
+
+  return ret;
+}
+
+// Not unit tested
 /* Index this one item */
 uint8_t
 menuIndexItem(uint16_t itIdx)
@@ -1123,26 +1157,7 @@ menuIndexItem(uint16_t itIdx)
 
   ret = 0;
   if ((it->is_disabled) || (0 == it->id)) {
-    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+0)) &&
-	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+1)) ) {
-      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+0]), 0);
-      ret++;
-    }
-    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+2)) &&
-	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+3)) ) {
-      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+1]), 0);
-      ret++;
-    }
-    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+4)) &&
-	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+5)) ) {
-      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+2]), 0);
-      ret++;
-    }
-    if ( (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
-	 (0 != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+7)) ) {
-      boot_page_fill(&(itemIdxs[menuItemIdxOff(itIdx)+3]), 0);
-      ret++;
-    }
+    ret += menuIndexClrItem(itIdx);
   } else {
     /* */
     ui16_1 = 0;
@@ -1201,7 +1216,11 @@ menuIndexItem(uint16_t itIdx)
 uint16_t
 menuItemFind(const uint8_t *name, const uint8_t *prod_code)
 {
-  /* FIXME: */
+  uint16_t crc_n, crc_pc;
+#if 4 == ITEM_SUBIDX_NAME
+  uint16_t crc_nw, crc_n3;
+#endif
+    if ( ((ui16_1&0xFF) != pgm_read_mem(((uint8_t *)&(itemIdxs[menuItemIdxOff(itIdx)]))+6)) &&
 }
 
 // Not tested
