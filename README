@@ -3,17 +3,33 @@ FIXME:
 4. Print duplicate bill
 5. Item, tax total
 7. Add version string in all dat files & check compatible in menu.c
-8. When start, check billing.csv for proper version and move it to _x.old files if wrong version
+##8. When start, check billing.csv for proper version and move it to _x.old files if wrong version
 9. user wise report
-10. Track purchase bills
-11. Seperate purchase reports
+10. Track purchase bills (K20)
+11. Seperate purchase reports (K20)
 12. Take care of disk full and abort saves.
 13. Modify bills easily
-14. CAPITALIZE product code & item name, so to make search ignore case
+##14. CAPITALIZE product code & item name, so to make search ignore case
 15. Refund item
 16. Limit max items for different versions of product
-17. Super user name should be admin & can't be overrided
-18. Show stock status
+  a. Product 1K
+    1,000 items : EEPROM  56K (1 EEPROM)
+    Flash : 1K * (4*sizeof(uint16_t)) : 8K : use Atmega640
+  b. Product 5K
+    5,000 items : EEPROM 180K (3 EEPROM)
+    Flash : 5K * (4*sizeof(uint16_t)) : 40K : use Atmega1280
+  c. Product 20K
+    20,000 items : EEPROM 1,280,000 (20 EEPROM)
+    Flash : 20K * (4*sizeof(uint16_t)) : 160K : use Atmega2560
+##17. Super user name should be admin & can't be overrided
+18. Show stock status (medical)
 19. Provision for batch name (all other parameters may change as well)
 20. Check all main routines for enable of interrupts/keyboard interrupts.
-21. 
+##21. Check user name is unique before accepting
+22. Print result of self diagnosis/tests
+23. Show print configurations
+   Max Items, Max Bills, version string, device serial number
+##24. have serial number for devices
+##25. Identify capability of devices from serial number
+26. Self Program via SD card
+27. EEPROM status for cold-reset-initialized or not

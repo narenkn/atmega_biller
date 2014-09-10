@@ -162,6 +162,13 @@ const uint8_t BillFileName[] PROGMEM = BILLFILENAME;
 /* */
 static uint8_t MenuMode = MENU_MRESET;
 static uint8_t LoginUserId = 0; /* 0 is invalid */
+static uint8_t devStatus = 0;   /* 0 is no err */
+#define DS_NO_SD    (1<<0)
+#define DS_NO_TFT   (1<<1)
+#define DS_DEV_1K   (1<<2)
+#define DS_DEV_5K   (1<<3)
+#define DS_DEV_20K  (1<<4)
+#define DS_DEV_INVALID (0xFF)
 
 /* Helper routine to obtain input from user */
 void
@@ -399,9 +406,7 @@ menuFactorySettings(uint8_t mode)
 
   assert(MENU_MSUPER == MenuMode);
 
-  /* Mark all items as deleted : (0==id)
-     Randomly choose which one to make 0
-   */
+  /* Mark all items as deleted : (0==id) */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
     bufSS[ui8_1] = 0;
   for (ui16_1=0;
@@ -410,6 +415,8 @@ menuFactorySettings(uint8_t mode)
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
   }
+
+  menuInit();
 }
 
 void
@@ -427,7 +434,7 @@ menuUnimplemented(uint32_t line)
 void
 menuSetUserPasswd(uint8_t mode)
 {
-  uint8_t ui8_2, ui8_3;
+  uint8_t ui8_1, ui8_2, ui8_3;
   uint16_t ui16_1;
   assert(MENU_MSUPER == MenuMode);
 
@@ -444,6 +451,7 @@ menuSetUserPasswd(uint8_t mode)
       return;
     }
   }
+  /* where to replace it ? */
   for (
        ui8_2=0, ui16_1=offsetof(struct ep_store_layout, users)+EPS_MAX_UNAME;
        ui8_2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui8_2++, ui16_1++ ) {
@@ -453,6 +461,19 @@ menuSetUserPasswd(uint8_t mode)
   if (0 != menuGetYesNo(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
     LCD_ALERT("Aborting!");
     return;
+  }
+  /* Check user name is unique before accepting */
+  for (ui8_3=0; ui8_3<EPS_MAX_USERS; ui8_3++) {
+    if (ui8_2 == ui8_3) continue; /* skip choosen name */
+    ui16_1 = offsetof(struct ep_store_layout, users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
+    for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
+      if (arg1.value.sptr[ui8_1] != eeprom_read_byte(ui16_1+ui8_1))
+	break;
+    }
+    if (EPS_MAX_UNAME == ui8_1) {
+      LCD_ALERT("Duplicate User");
+      return;
+    }
   }
 
   /* modify at will */
@@ -570,9 +591,12 @@ menuUserLogin(uint8_t mode)
   LoginUserId = ui2+1;
 }
 
+// Not unit tested
 void
 menuInit(void)
 {
+  uint16_t ui16_1, ui16_2;
+  uint8_t ui8_1, ui8_2;
   MenuMode = MENU_MRESET;
 
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
@@ -584,6 +608,68 @@ menuInit(void)
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
   assert(0 == (ITEM_SIZEOF % (1<<EEPROM_MAX_DEVICES_LOGN2)));
+
+  /* edit eeprom for users[0] = 'admin' */
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+0), 'a');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+1), 'd');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+2), 'm');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+3), 'i');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+4), 'n');
+  for (ui8_1=5; ui8_1<EPS_MAX_UNAME; ui8_1++)
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+ui8_1), ' ');
+
+  /* init global vars */
+  devErrors = 0;
+
+  /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
+  FATFS FS;
+  FIL   Fil;
+  UINT ret_val;
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(FIL));
+  //  change_sd(0); /* FIXME: */
+  PSTR2STR(BillFileName, bufSS, ui8_1, ui8_2);
+  if ( (FR_OK != f_mount(&FS, ".", 1)) ||
+       (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) != FR_OK) ) {
+    if (f_size(&Fil) > 0) { /* check version */
+      f_read(&Fil, bufSS, 2, &ret_val);
+      assert(2 == ret_val);
+      ui16_1 = bufSS[0]; ui16_1 <<= 8; ui16_1 |= bufSS[1];
+      if (GIT_HASH_CRC != ui16_1) {
+	LCD_ALERT("Moved old data");
+	for (ui8_1=1; ui8_1; ui8_1++) {
+	  sprintf(bufSS+LCD_MAX_COL, "%s.%d", bufSS, ui8_1);
+	  if (FR_OK != f_stat(bufSS+LCD_MAX_COL, NULL))
+	    break;
+	}
+	f_rename(bufSS, bufSS+LCD_MAX_COL);
+      }
+    }
+  } else { /* SD not found */
+    LCD_ALERT("No SD Found");
+    devStatus |= DS_NO_SD;
+  }
+  f_mount(NULL, "", 0);
+
+  /* Identify capability of device from serial number */
+  ui16_1 = 0;
+  for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1) {
+    ui16_1 = _crc16_update(ui16_1, eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
+  }
+  ui16_2 = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
+  ui16_2 <<= 8;
+  ui16_2 |= eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
+  if (ui16_2 == ui16_1) {
+    devStatus |= DS_DEV_1K;
+  } else if ( (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
+	      (0 == ((ui16_2 ^ (ui16_1<<8)) & 0xFF00)) ) {
+    devStatus |= DS_DEV_5K;
+  } else if ( (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
+	      (0 == ((ui16_2 ^ (ui16_1<<8)) & 0xFF00)) ) {
+    devStatus |= DS_DEV_20K;
+  } else {
+    devStatus |= DS_DEV_INVALID;
+  }
 }
 
 // Not unit tested
@@ -920,7 +1006,7 @@ menuAddItem(uint8_t mode)
     if (MENU_ITEM_STR != arg1.valid)
       goto menuItemInvalidArg;
     for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
-      it->name[ui8_1] = lcd_buf[LCD_MAX_ROW-1][ui8_1];
+      it->name[ui8_1] = toupper(lcd_buf[LCD_MAX_ROW-1][ui8_1]);
     }
   }
 
@@ -962,7 +1048,7 @@ menuAddItem(uint8_t mode)
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_PRODCODE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
   for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
-    it->prod_code[ui8_1] = arg1.value.sptr[ui8_1];
+    it->prod_code[ui8_1] = toupper(arg1.value.sptr[ui8_1]);
   }
   arg2.valid = MENU_ITEM_NONE;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_UNICODE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_STR);
@@ -1219,6 +1305,15 @@ menuItemFind(const uint8_t *name, const uint8_t *prod_code)
   uint16_t crc_n, crc_pc, idx, ui16_1;
   uint8_t  ui8_1, ui8_2;
 
+  /* upcase inputs */
+  for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+    name[ui8_1] = toupper(name[ui8_1]);
+  }
+  for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+    prod_code[ui8_1] = toupper(prod_code[ui8_1]);
+  }
+
+  /* calculate signature indices */
   crc_n = 0; ui8_2 = -1;
   for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
     crc_n = _crc16_update(crc_n, name[ui8_1]);
@@ -1716,7 +1811,7 @@ menuRunDiag(uint8_t mode)
 
   /* FIXME: Run Printer : Print test page */
 
-  /* FIXME: Verify unused EEPROM spacesd : Write/readback */
+  /* FIXME: Verify unused EEPROM spaces : Write/readback */
 
   /* FIXME: Verify 24c512 */
 
@@ -1844,23 +1939,25 @@ menuMainStart:
     LCD_PUTCH('>');
     LCD_WR_LINE_NP(0, ((LCD_MAX_COL>>1)+1)&0xF, (menu_names+(menu_selected*MENU_NAMES_LEN)), ((MENU_NAMES_LEN>6)?6:MENU_NAMES_LEN));
 
-    /* Get choices before menu function is called */
-    KBD_RESET_KEY;
-    arg1.valid = MENU_ITEM_NONE;
-    arg1.value.sptr = bufSS;
-    LCD_CLRSCR;
-    menuGetOpt(menu_prompt_str+((menu_prompts[menu_selected<<1])*MENU_PROMPT_LEN), &arg1, menu_args[(menu_selected<<1)]);
-    assert (KBD_HIT);
-    KBD_RESET_KEY;
-    arg2.valid = MENU_ITEM_NONE;
-    arg2.value.sptr = bufSS+LCD_MAX_COL+2;
-    LCD_CLRSCR;
-    menuGetOpt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])*MENU_PROMPT_LEN), &arg2, menu_args[((menu_selected<<1)+1)]);
+    if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
+      /* Get choices before menu function is called */
+      KBD_RESET_KEY;
+      arg1.valid = MENU_ITEM_NONE;
+      arg1.value.sptr = bufSS;
+      LCD_CLRSCR;
+      menuGetOpt(menu_prompt_str+((menu_prompts[menu_selected<<1])*MENU_PROMPT_LEN), &arg1, menu_args[(menu_selected<<1)]);
+      assert (KBD_HIT);
+      KBD_RESET_KEY;
+      arg2.valid = MENU_ITEM_NONE;
+      arg2.value.sptr = bufSS+LCD_MAX_COL+2;
+      LCD_CLRSCR;
+      menuGetOpt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])*MENU_PROMPT_LEN), &arg2, menu_args[((menu_selected<<1)+1)]);
 #ifdef UNIT_TEST_MENU_1
-    UNIT_TEST_MENU_1(menu_selected);
+      UNIT_TEST_MENU_1(menu_selected);
 #else
-    (menu_handlers[menu_selected])(menu_mode[menu_selected]);
+      (menu_handlers[menu_selected])(menu_mode[menu_selected]);
 #endif
+    }
   } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
     if (0 == menu_selhier) {
       /* selection of menu */
@@ -2007,6 +2104,15 @@ menuSDSaveItem(uint8_t mode)
   for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    /* fix name, prod_code to uc */
+    for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+      it->name[ui8_1] = toupper(it->name[ui8_1]);
+    }
+    for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+      it->prod_code[ui8_1] = toupper(it->prod_code[ui8_1]);
+    }
+
+    /* */
     if ((0 != it->id) && (! it->is_disabled)) {
       for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2+=ret_size) {
 	f_write(&fp, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
@@ -2034,6 +2140,7 @@ menuSDLoadSettings(uint8_t mode)
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2;
   uint8_t ui8_1;
+  uint8_t serial_no[SERIAL_NO_MAX];
 
   /* */
   f_mount(&FS, ".", 1);
@@ -2042,6 +2149,10 @@ menuSDLoadSettings(uint8_t mode)
     goto menuSDLoadSettingsExit;
   }
 
+  /* save serial number for updating later */
+  for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
+    serial_no[ui8_1] = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1);
+					
   /* Check for crc in file */
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
   ui8_1 = 0, ui16_1 = 0;
@@ -2079,7 +2190,10 @@ menuSDLoadSettings(uint8_t mode)
   }
   assert(EP_STORE_LAYOUT_SIZEOF == ui16_1); /* crc would be pending */
 
-
+  /* restore serial number */
+  for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
+    eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, serial_no[ui8_1]);
+  
  menuSDLoadSettingsExit:
   /* */
   f_mount(NULL, "", 0);

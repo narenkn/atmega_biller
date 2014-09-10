@@ -242,6 +242,7 @@ class ep_store_layout:
     'HEADER_SZ_MAX' : 16*6,
     'SHOP_NAME_SZ_MAX' : 16*1,
     'FOOTER_SZ_MAX' : 16*3,
+    'SERIAL_NO_MAX' : 16,
     'EPS_MAX_VAT_CHOICE' : 6,
     'EPS_CAPTION_SZ_MAX' : 10,
     'EPS_MAX_USERS' : 15,
@@ -261,6 +262,7 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
+      'unused_serial_no' : ['[SERIAL_NO_MAX]', 16, TYPE_STRING],
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
@@ -271,7 +273,7 @@ class ep_store_layout:
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
       'unused_3':[':1', 0.1, TYPE_BIT],
-      'unused_4':[':1', 0.1, TYPE_BIT],
+      'sum_in_words':[':1', 0.1, TYPE_BIT],
       'b_conf':[':1', 0.1, TYPE_BIT],
       'b_copies':[':2', 0.2, TYPE_BIT],
       }
