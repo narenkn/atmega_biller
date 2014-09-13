@@ -194,7 +194,7 @@ void menuDelItem(uint8_t mode);
 #define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
 uint8_t menuIndexClrItem(uint16_t itIdx);
 uint8_t menuIndexItem(uint16_t itIdx);
-uint16_t menuItemFind(const uint8_t *name, const uint8_t *prod_code);
+uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code);
 
 /* billing routines */
 void menuBilling(uint8_t mode);

@@ -35,4 +35,6 @@ FIXME:
 27. EEPROM status for cold-reset-initialized or not
 28. Configuration bit to buzz on keypress : default ON
 29. Support 3" printer for 20K product
-30. 
+30. Use EEPROM to store recent bills.
+31. Ability to generate serial number and program it to chip
+32. 

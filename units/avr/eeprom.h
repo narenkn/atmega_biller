@@ -82,4 +82,6 @@ eeprom_update_block (const void *pointer_ram, void *pointer_eeprom, size_t n)
   }
 }
 
+#define eeprom_busy_wait()
+
 #endif

@@ -619,7 +619,7 @@ menuInit(void)
     eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+ui8_1), ' ');
 
   /* init global vars */
-  devErrors = 0;
+  devStatus = 0;
 
   /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
   FATFS FS;
@@ -1300,7 +1300,7 @@ menuIndexItem(uint16_t itIdx)
 
 // Not unit tested
 uint16_t
-menuItemFind(const uint8_t *name, const uint8_t *prod_code)
+menuItemFind(uint8_t *name, uint8_t *prod_code)
 {
   uint16_t crc_n, crc_pc, idx, ui16_1;
   uint8_t  ui8_1, ui8_2;
@@ -1317,7 +1317,7 @@ menuItemFind(const uint8_t *name, const uint8_t *prod_code)
   crc_n = 0; ui8_2 = -1;
   for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
     crc_n = _crc16_update(crc_n, name[ui8_1]);
-    if ((ui8_1 > 0) && (' ' == it->name[ui8_1]) && (' ' != it->name[ui8_1-1]))
+    if ((ui8_1 > 0) && (' ' == name[ui8_1]) && (' ' != name[ui8_1-1]))
       ui8_2 = ui8_1;
   }
   crc_pc = 0;
