@@ -18,7 +18,7 @@ int
 main(void)
 {
   uint8_t ui1;
-  uint8_t ymd[3], hms[3], ui2;
+  uint8_t ymd[3], hms[3];
 
   _delay_ms(1000);
   LCD_init();

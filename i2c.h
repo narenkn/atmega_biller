@@ -64,13 +64,13 @@
   i2c_sendData(TIMER_ADDR_SEC);				\
   i2c_repeatStart();					\
   i2c_sendAddress(TIMER_CTRL_READ);			\
-  hm[2] = i2c_receiveData_ACK();			\
-  hm[1] = i2c_receiveData_ACK();			\
-  hm[0] = i2c_receiveData_NACK();			\
+  hms[2] = i2c_receiveData_ACK();			\
+  hms[1] = i2c_receiveData_ACK();			\
+  hms[0] = i2c_receiveData_NACK();			\
   i2c_stop();						\
-  hm[2] = (((hm[2]>>4) & 0x0F)*10) + (hm[2]&0x0F);	\
-  hm[1] = (((hm[1]>>4) & 0x0F)*10) + (hm[1]&0x0F);	\
-  hm[0] = (((hm[0]>>4) & 0x0F)*10) + (hm[0]&0x0F)
+  hms[2] = (((hms[2]>>4) & 0x0F)*10) + (hms[2]&0x0F);	\
+  hms[1] = (((hms[1]>>4) & 0x0F)*10) + (hms[1]&0x0F);	\
+  hms[0] = (((hms[0]>>4) & 0x0F)*10) + (hms[0]&0x0F)
 
 
 #else /* 32KHz RTC implemented */

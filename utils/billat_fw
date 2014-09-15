@@ -48,8 +48,8 @@ class Atmega32:
 
   def Release(self):
     self.RawOut(0x0);
-    self.def_val = 0x8;
-    self.RawOut(0x8);
+    self.def_val = 0xFF;
+    self.RawOut(0xFF);
     self.p.Out32(self.cnt_reg, 0x0);
 
   def __init__(self, dr):
@@ -102,9 +102,9 @@ class Atmega32:
       return;
     else:
       print "Info: Compatible device...";
-    ## Flash program
-    if options.program_flash:
-      print "Info: Programming Flash : ", ;
+    ## Fuse programming
+    if options.program_fuse:
+      print "Info: Programming Fuse : ", ;
       ## Write low byte
       self.Out(0xAC);
       self.Out(0xA0);
@@ -148,7 +148,7 @@ class Atmega32:
       if self.error:
         print "Failed";
       else:
-        print "Done";
+        print "Wrote %x:%x Done" % (options.fhb, options.flb);
       return;
     ## 5. Chip erase
     self.Out(0xAC);
@@ -236,15 +236,15 @@ if "__main__" == __name__:
                   help="Default program file");
   parser.add_option("-p", "--lpt_addr", dest="lpt_addr", default=0x3BC,
                   help="Parallel port address on the device (def:0x3BC)");
-  parser.add_option("", "--flb", dest="flb", default=0xFF, type="int",
-                  help="Flash low byte value");
-  parser.add_option("", "--fhb", dest="fhb", default=0x89, type="int",
-                  help="Flash high byte value");
+  parser.add_option("", "--flb", dest="flb", default=0xE4, type="int",
+                  help="Fuse low byte value");
+  parser.add_option("", "--fhb", dest="fhb", default=0xC9, type="int",
+                  help="Fuse high byte value");
   parser.add_option("-r", "--release_bus", dest="release_bus", default=False,
                   action="store_true", help="release the drive");
   parser.add_option("-D", "--defaults", dest="defaults", default=False,
                   action="store_true", help="Use reset values wherever applicable");
-  parser.add_option("-F", "--program_flash", dest="program_flash", default=False,
+  parser.add_option("-F", "--program_fuse", dest="program_fuse", default=False,
                   action="store_true", help="release the drive");
   (options, args) = parser.parse_args()
 
@@ -269,8 +269,8 @@ if "__main__" == __name__:
   ##
   if options.defaults:
     options.flb = 0xE1;
-    options.fhb = 0x99;
-    print "Using default flash values";
+    options.fhb = 0x99 | 0x40; ## Disable JTAG
+    print "Using default fuse values";
 
   ## Process file
   any_page_valid = False;

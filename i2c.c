@@ -529,7 +529,7 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 uint32_t
 get_fattime (void)
 {
-  uint8_t ui1, buf[3];
+  uint8_t buf[3];
   uint32_t dtFat;
 
   /* init with 6/1/2014 */
