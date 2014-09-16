@@ -23,7 +23,7 @@ main(void)
 
   srand(time(NULL));
 
-  /* test string */
+  /* test menuGetOpt::MENU_ITEM_STR */
   for (loop=0; loop<1000; loop++) {
     for (ui1=0; ui1<LCD_MAX_COL/2; ui1++) {
       if (0 == (rand() % 3))
@@ -65,7 +65,7 @@ main(void)
     }
   }
 
-  /* */
+  /* test menuGetOpt::MENU_ITEM_STR */
   for (loop=0; loop<1000; loop++) {
     for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
       if (0 == (rand() % 3))
@@ -94,14 +94,14 @@ main(void)
       printf("lcd_buf:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
-      printf("\ninp:");
+      printf("\n    inp:");
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	printf("%c ", inp[ui1]);
       printf("\n");
     }
   }
 
-  /* integer */
+  /* test menuGetOpt::MENU_ITEM_ID */
   for (loop=0; loop<1000; loop++) {
     //    printf("loop:%d\n", loop);
     uint32_t r1 = rand() & 0xFFFFFF, r2;
@@ -118,22 +118,20 @@ main(void)
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("lsjdflkjf", &arg1, MENU_ITEM_ID);
-    r1 = arg1.value.integer.i8;
-    r1 <<= 16;
-    r1 |= arg1.value.integer.i16;
+    r1 = arg1.value.integer.i32;
     assert(r2 == r1);
     if (r2 != r1) {
       printf("r2:0x%x r1:0x%x\n", r2, r1);
     }
   }
 
-  /* date DDMMYYYY */
+  /* test menuGetOpt::MENU_ITEM_DATE */
   for (loop=0; loop<1000; loop++) {
     uint8_t date, month, year;
     date = 1 + (rand() % 28);
     month = 1 + (rand() % 12);
     year = rand() % 100;
-    sprintf(inp, "%02d%02d%04d", date, month, 2000+year);
+    sprintf(inp, "%02d%02d%04d", date, month, 1980+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE);
@@ -148,12 +146,12 @@ main(void)
     assert(year == arg1.value.date.year);
   }
 
-  /* month MMYYYY */
+  /* test menuGetOpt::MENU_ITEM_MONTH */
   for (loop=0; loop<1000; loop++) {
     uint8_t month, year;
     month = 1 + (rand() % 12);
     year = rand() % 100;
-    sprintf(inp, "%02d%04d", month, 2000+year);
+    sprintf(inp, "%02d%04d", month, 1980+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH);
@@ -166,7 +164,7 @@ main(void)
     assert(year == arg1.value.date.year);
   }
 
-  /* Time HHMM */
+  /* test menuGetOpt::MENU_ITEM_TIME */
   for (loop=0; loop<1000; loop++) {
     uint8_t hour, min;
     hour = rand() % 24;
@@ -186,7 +184,7 @@ main(void)
     assert(min == arg1.value.time.min);
   }
 
-  /* Get Choice */
+  /* test menuGetChoice */
   KBD_RESET_KEY;
   for (loop=0; loop<1000; loop++) {
     //    printf("loop:%d\n", (uint32_t)loop);
@@ -230,6 +228,32 @@ main(void)
       printf("\nExp:0x%x Act:0x%x\n", ui1, ui3);
     }
     assert(ui3 == ui1);
+  }
+
+  /* test menuGetYesNo */
+  KBD_RESET_KEY;
+  for (loop=0; loop<1000; loop++) {
+    uint8_t ui1, ui2, ui3;
+
+    /* decide yes or no */
+    ui1 = rand() % (TEST_KEY_ARR_SIZE-1); /* space for \0 */
+    for (ui2=0; ui2<ui1; ui2++) {
+      inp[ui2] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+    }
+    inp[ui1] = 0;
+    INIT_TEST_KEYS(inp);
+
+    /* prompt */
+    ui2 = (rand() % 9)+1;
+    for (ui3=0; ui3<ui2; ui3++) {
+      inp2[ui3] = (rand() & 1) ? 'a' + (rand()%26) : 'A' + (rand()%26);
+    }
+    inp2[ui2] = 0;
+    assert( (ui1 & 1) == (1 & menuGetYesNo(inp2, ui2)) );
+    ui2 += (ui1 & 1) ? sprintf(inp2+ui2, ": No") :
+      sprintf(inp2+ui2, ": Yes");
+    assert(0 == strncmp(inp2, lcd_buf[LCD_MAX_ROW-1], ui2));
+    //    printf("ui2:%d inp2:'%s' lcd_buf:'%s'\n", ui2, inp2, lcd_buf[LCD_MAX_ROW-1]);
   }
 
   return 0;

@@ -198,26 +198,24 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* Get a string */
   do {
-    /* Need to added cursor functionality */
-    lp[col_id] = '_';
+    /* added cursor functionality */
+    if (col_id < (LCD_MAX_COL-1))
+      lp[col_id] = '_';
     LCD_refresh();
+    KBD_RESET_KEY;
     KBD_GETCH;
-
-    /* Don't overflow buffer */
-    if (col_id >= LCD_MAX_COL) col_id = LCD_MAX_COL-1;
 
     switch (KbdData) {
     case ASCII_BACKSPACE:
     case ASCII_LEFT:
     case ASCII_UP:
-      if (col_id == 0) {
-	break;
-      }
-      lp[col_id] = ' ';
       col_id--;
       break;
     case ASCII_LF:
     case ASCII_ENTER:
+      if (col_id < (LCD_MAX_COL-1)) {
+	lp[col_id] = ' ';
+      }
       break;
     case ASCII_RIGHT:
     case ASCII_DOWN:
@@ -229,13 +227,11 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
       break;
     default:
       lp[col_id] = KbdData;
-      col_id++;
-    }
-    if (ASCII_ENTER != KbdData) {
-      KBD_RESET_KEY;
+      /* Don't overflow buffer */
+      if (col_id < LCD_MAX_COL)
+	col_id++;
     }
   } while (KbdData != ASCII_ENTER);
-  lp[col_id] = ' ';
 
   menu_error = 1;
   if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
@@ -333,7 +329,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   lcd_buf_prop = 0;
 }
 
-// Unit test required
 uint8_t
 menuGetYesNo(const uint8_t *quest, uint8_t size)
 {
@@ -344,7 +339,11 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, quest, size);
     LCD_POS(LCD_MAX_ROW-1, size);
     LCD_PUTCH(':');
-    PSTR2STRN(menu_str1+((MENU_STR1_IDX_YesNo+ret)*MENU_PROMPT_LEN), LCD_CUR_POS_P, ui8_1, ui8_2, MENU_PROMPT_LEN);
+    LCD_PUTCH(' ');
+    //printf("lcd_buf[1]:%p lcd_buf_p:%p\n", lcd_buf[1], LCD_CUR_POS_P);
+    //printf("before lcd_buf[1]:'%s'\n", lcd_buf[1]);
+    PSTR2STRN(menu_str1+((MENU_STR1_IDX_YesNo+ret)*MENU_PROMPT_LEN), LCD_CUR_POS_P, ui8_1, ui8_2, 3);
+    //printf("after  lcd_buf[1]:'%s'\n", lcd_buf[1]);
     LCD_refresh();
 
     KBD_RESET_KEY;
@@ -355,7 +354,7 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
       ret--;
     } else if (ASCII_ENTER == KbdData) {
-      return ret;
+      return ret & 1;
     }
   }
   assert(0);
@@ -444,10 +443,13 @@ menuSetUserPasswd(uint8_t mode)
   for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++) {
     ui8_3 = arg1.value.sptr[ui8_2];
     /* check alnum? */
-    if ((!isgraph(ui8_3)) && (ui8_2 > 0))
+    if ((!isalnum(ui8_3)) && (ui8_2 > 0))
       break;
     else if (!isalnum(ui8_3)) {
       LCD_ALERT("Invalid User");
+      LCD_refresh();
+      KBD_RESET_KEY;
+      KBD_GETCH;
       return;
     }
   }
@@ -602,9 +604,6 @@ menuInit(void)
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   
   assert(1 == sizeof(uint8_t));
-  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
-  //  printf("(SALE_SIZEOF(%d)+(EPS_MAX_VAT_CHOICE*4)):%d BUFSS_SIZE:%d\n", SALE_SIZEOF, (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
-  //  printf("sizeof(item):%d sale_item:%d sale_info:%d uint32_t:%d sale:%d\n", sizeof(struct item), sizeof(struct sale_item), sizeof(struct sale_info), sizeof(uint32_t), sizeof(struct sale));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
   assert(0 == (ITEM_SIZEOF % (1<<EEPROM_MAX_DEVICES_LOGN2)));
@@ -629,8 +628,8 @@ menuInit(void)
   memset(&Fil, 0, sizeof(FIL));
   //  change_sd(0); /* FIXME: */
   PSTR2STR(BillFileName, bufSS, ui8_1, ui8_2);
-  if ( (FR_OK != f_mount(&FS, ".", 1)) ||
-       (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) != FR_OK) ) {
+  if ( (FR_OK == f_mount(&FS, ".", 1)) &&
+       (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) ) {
     if (f_size(&Fil) > 0) { /* check version */
       f_read(&Fil, bufSS, 2, &ret_val);
       assert(2 == ret_val);
@@ -653,7 +652,7 @@ menuInit(void)
 
   /* Identify capability of device from serial number */
   ui16_1 = 0;
-  for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1) {
+  for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
     ui16_1 = _crc16_update(ui16_1, eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
   }
   ui16_2 = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
@@ -684,6 +683,10 @@ menuBilling(uint8_t mode)
   for (ui8_2=0; ui8_2<SALE_SIZEOF; ui8_2++) {
     ((uint8_t *)sl)[ui8_2] = 0;
   }
+
+  /* memory requirements */
+  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
+  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
 
   /* if modification of bill is requested... */
   if (mode & MENU_MMODBILL) {

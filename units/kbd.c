@@ -93,7 +93,7 @@ KbdGetCh(void)
   test_key_idx++;
   if (2 <= do_correct) {
     do_correct = 0;
-    //    printf("Added correct key\n");
+    //printf("Added correct key:'%c' '%s'\n", KbdData, test_key[0]);
   } else if (1 == do_correct) {
     KbdData = ASCII_LEFT;
     test_key_idx--;

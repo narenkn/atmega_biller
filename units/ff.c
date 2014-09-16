@@ -252,13 +252,19 @@ FRESULT f_error(FIL* fp)
 
 DWORD f_tell(FIL *fp)
 {
-  assert(0);
-  return 0;
+  return ftell(fp);
 }
 
 DWORD f_size(FIL *fp)
 {
-  return ftell(fp->fp);
+  DWORD size, temp;
+
+  temp = ftell(fp);
+  fseek(fp, 0L, SEEK_END);
+  size = ftell(fp);
+  fseek(fp, temp, SEEK_SET);
+
+  return size;
 }
 
 

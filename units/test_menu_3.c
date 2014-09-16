@@ -61,7 +61,7 @@ main(void)
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<1; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -88,11 +88,11 @@ main(void)
     if (0 == (rand()%5))
       inp2[0] = ' ';
     inp2[EPS_MAX_UNAME] = 0;
+    printf("inp2:'%s'\n", inp2);
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
     arg1.value.sptr = bufSS;
     menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
-    //    printf(" user:'%s'\n", inp2);
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
 
     LCD_CLRSCR;
@@ -106,6 +106,7 @@ main(void)
     inp4[0] = 0;
     INIT_TEST_KEYS(inp4);
     menuSetUserPasswd(MENU_MSUPER);
+    printf("inp2:'%s'\n", inp2);
     if (' ' == inp2[0]) {
       assert(0 == strncmp("Invalid User    ", lcd_buf[0], LCD_MAX_COL));
     } else if (ASCII_RIGHT == inp3[0]) {

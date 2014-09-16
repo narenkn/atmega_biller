@@ -172,6 +172,7 @@ extern uint8_t bufSS[BUFSS_SIZE];
   for (ui_2=0; ui_2<N;ui_2++) {			\
     ui_1 = pgm_read_mem(pstr+ui_2);		\
     str[ui_2] = ui_1;				\
+    if (0 == ui_1) break;			\
   }
 
 /* Helper routines */
