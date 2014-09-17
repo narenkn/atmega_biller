@@ -40,12 +40,11 @@ void
 int2str(char *str, uint32_t ui, uint8_t *idx)
 {
   if (ui/10) {
-    int2str(str, ui, idx);
-  } else {
-    str[*idx] = '0' + ui;
-    (*idx)++;
+    int2str(str, ui/10, idx);
   }
-  idx[0] = 0;
+  str[*idx] = '0' + (ui%10);
+  (*idx)++;
+  str[idx] = 0;
 }
 
 void

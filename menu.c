@@ -360,7 +360,6 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
   assert(0);
 }
 
-// Need unit test of Escape
 /* Helper routine to obtain choice from user */
 uint8_t
 menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx)

@@ -7,63 +7,95 @@
 
 #include "lcd.c"
 
-volatile uint8_t KbdData, pinc;
+struct { 
+  uint8_t kbdData;
+  uint8_t count;
+} keyHitData;
 
-ISR(INT1_vect)
+/* At reset/ idle state
+     Port A   : input   (pull high)
+     Port C   : output  (drive 0)
+     Port B.2 : input   (pull high)
+   After key is hit two scans take place
+   Scan 1:
+     Port A   : input   (pull high)
+     Port C   : output  (drive 0)
+     Port B.2 : output  (drive 1)
+   Scan 2:
+     Port A   : output  (drive 0)
+     Port C   : input   (pull high)
+     Port B.2 : output  (drive 1)
+ */
+ISR(INT2_vect)
 {
-  /* Start Buzz */ 
-  PORTD |= 0x40;
-  PORTC &= ~0x3C; /* disable pullup */
-  _delay_ms(5);
-  pinc = PINC;
+  keyHitData.count ++;
 
-  /* */
-  DDRA  &= ~0xF0; DDRA |= 0x10;
-  PORTA &= ~0xF0; PORTA |= 0xE0;
-  KbdData = 0x0;
+  /* get rid of spurious spikes */
+  _delay_ms(5);
+  if (PINB & 0x04) return;
+  _delay_ms(5);
+  if (PINB & 0x04) return;
+  _delay_ms(5);
+  if (PINB & 0x04) return;
+
+  PORTD |= 0x40;  /* Start Buzzer */
+//  PORTB &= ~0x04; DDRB  |= 0x04;  /* drive 0 */
+  _delay_ms(5);
+
+  /* Scan 1 */
+  keyHitData.kbdData = 0x0;
+  DDRC  &= ~0x3C; /* input */
+  PORTC |= 0x3C; /* pull high */
+  DDRA  |= 0xF0; /* output */
+  PORTA &= ~0xF0;/* drive 0 */
   _delay_ms(1);
   if (0x3C != (PINC & 0x3C)) {
-    KbdData |= (~(PINC >> 2)) & 0xF;
+    keyHitData.kbdData |= (~(PINC >> 2)) & 0xF;
   } else {
     DDRA  &= ~0xF0; DDRA |= 0x20;
     PORTA &= ~0xF0; PORTA |= 0xD0;
-    KbdData = 0x10;
+    keyHitData.kbdData = 0x10;
     _delay_ms(1);
     if (0x3C != (PINC & 0x3C)) {
-      KbdData |= (~(PINC >> 2)) & 0xF;
+      keyHitData.kbdData |= (~(PINC >> 2)) & 0xF;
     } else {
       DDRA  &= ~0xF0; DDRA |= 0x40;
       PORTA &= ~0xF0; PORTA |= 0xB0;
-      KbdData = 0x20;
+      keyHitData.kbdData = 0x20;
       _delay_ms(1);
       if (0x3C != (PINC & 0x3C)) {
-	KbdData |= (~(PINC >> 2)) & 0xF;
+	keyHitData.kbdData |= (~(PINC >> 2)) & 0xF;
       } else {
 	DDRA  &= ~0xF0; DDRA |= 0x80;
 	PORTA &= ~0xF0;	PORTA |= 0x70;
-	KbdData = 0x30;
+	keyHitData.kbdData = 0x30;
 	_delay_ms(1);
 	if (0x3C != (PINC & 0x3C)) {
-	  KbdData |= (~(PINC >> 2)) & 0xF;
+	  keyHitData.kbdData |= (~(PINC >> 2)) & 0xF;
 	} else {
-	  KbdData = 0x7F;
+	  keyHitData.kbdData = 0;
+	  keyHitData.count = 0;
 	}
       }
     }
   }
-  KbdData |= (PIND << 4) & 0x80;
 
-  /* */
-  PORTA &= ~0xF0;  /* drive 0 */
-  DDRA |= 0xF0;  /* out */
-  PORTC |= 0x3C; /* enable pullup */
-  _delay_ms(1);
-  pinc = PINC;
-  while (0x3C != (PINC & 0x3C)) { } /* debounce */
+  /* Back to idle state */
+  PORTA |= 0xF0;  /* pullup */
+  PORTC &= ~0x3C; /* drive 0 */
+  PORTB |= 0x04;  /* pullup */
+  DDRA &= ~0xF0;  /* in */
+  DDRC |= 0x3C;   /* out */
+  DDRB &= ~0x04;  /* in */
+  _delay_ms(2);
+
+  /* debounce */
+  while (0 == (PINB & 0x04)) {}
+  _delay_ms(5);
 
   /* Stop Buzz */
-  _delay_ms(10);
-  PORTD &= ~0x40;
+  _delay_ms(25);
+  PORTD &= ~0x40; /* stop buzzer */
 }
 
 int
@@ -82,45 +114,42 @@ main()
   /* Reset state
      Port A   : output  (drive 0)
      Port C   : input   (pull high)
-     Port D.3 : input   (pull high)
+     Port B.2 : input   (pull high)
    */
-  PORTA &= ~0xF0;  /* drive 0 */
-  PORTC |= 0x3C; /* pullup */
-  PORTD |= 0x08;  /* pullup */
-  DDRA |= 0xF0;  /* out */
-  DDRC &= ~0x3C;   /* in */
-  DDRD &= ~0x08;  /* in */
+  PORTA |= 0xF0;  /* pullup */
+  PORTC &= ~0x3C; /* drive 0 */
+  PORTB |= 0x04;  /* pullup */
+  DDRA &= ~0xF0;  /* in */
+  DDRC |= 0x3C;   /* out */
+  DDRB &= ~0x04;  /* in */
 
-//  MCUCR |= (1<<ISC11);
-//  MCUCR &= ~(1<<ISC10);
-  MCUCR &= ~0xC;
-  MCUCR |= 0x8;
-  GICR |= (1<<INT1);
+  GICR |= (1<<INT2);
   sei();
 
+  /* alert */
   PORTD |= 0x40;
   _delay_ms(30);
   PORTD &= ~0x40;
 
-  KbdData = 0;
+  keyHitData.kbdData = 0;
   
   for (ui8_1=0, ui8_2=0; ; ui8_2++) {
-    if (0 != KbdData) {
+    if (0 != keyHitData.kbdData) {
       LCD_POS(1, 0);
       LCD_PUT_UINT8X(ui8_1);
       LCD_PUTCH(':');
-      LCD_PUT_UINT8X(pinc);
-      LCD_PUTCH(':');
-      LCD_PUT_UINT8X(KbdData);
+      LCD_PUT_UINT8X(keyHitData.kbdData);
       LCD_refresh();
-      KbdData = 0;
+      keyHitData.kbdData = 0;
       ui8_1++;
     }
     if (0 == ui8_2) {
       ui8_3 = PINC;
-      LCD_POS(1, 8);
+      LCD_POS(1, 6);
       LCD_PUTCH(':');
       LCD_PUT_UINT8X(ui8_3);
+      LCD_POS(0, 14);
+      LCD_PUT_UINT8X(keyHitData.count);
       LCD_refresh();
     }
   }
