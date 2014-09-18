@@ -35,116 +35,184 @@ uint8_t kbdStatus = 0;
 #define LENOF_DR 3
 uint8_t kbdDr[LENOF_DR];
 uint8_t kbdTransL = 0;
+uint8_t _KbdData = 0;
+
+volatile struct { 
+  uint8_t kbdData;
+  uint8_t _kbdData;
+  uint8_t count;
+} keyHitData;
 
 void
 KbdInit(void)
 {
-  /* IO config */
-//  DDRA &= 0x0F;    /* in */
-//  DDRC |= 0x3C;    /* out */
-//  PORTA &= ~0xF0; /* enable internal pull-ups */
-//  PORTC |= 0x3C;  /* Drive 1 if enabled */
+  /* Reset state
+     Port A   : output  (drive 0)
+     Port C   : input   (pull high)
+     Port B.2 : input   (pull high)
+   */
+  PORTA |= 0xF0;  /* pullup */
+  PORTC &= ~0x3C; /* drive 0 */
+  PORTB |= 0x04;  /* pullup */
+  DDRA &= ~0xF0;  /* in */
+  DDRC |= 0x3C;   /* out */
+  DDRB &= ~0x04;  /* in */
 
   /* No data yet */
   KbdData = 0xFF;
   KbdDataAvail = 0;
+  keyHitData.kbdData = keyHitData.count = keyHitData._kbdData = 0;
+
+  /* setup timer 1 */
+  TCCR1A = 0; // set entire TCCR1A register to 0
+  TCCR1B = 0;
+  // Set CS10 bit so timer runs at clock speed:
+  TCCR1B |= (0x5 << CS10);
+  //
+  TCNT1 = 0xFFFF - (F_CPU>>11);
+
+  GICR |= (1<<INT2);
 }
 
-void
-KbdScan(void)
+/* At reset/ idle state
+     Port A   : output   (pull high)
+     Port C   : input  (drive 0)
+     Port B.2 : input   (pull high)
+   After key is hit two scans take place
+   Scan 1:
+     Port A   : input   (pull high)
+     Port C   : output  (drive 0)
+     Port B.2 : output  (drive 1)
+   Scan 2: (not yet implemented)
+     Port A   : output  (drive 0)
+     Port C   : input   (pull high)
+     Port B.2 : output  (drive 1)
+ */
+ISR(INT2_vect)
 {
-  static uint8_t gTimer0 = 0;
-  uint8_t scan_code = 0, shift = 0;
+  /* get rid of spurious spikes */
+  _delay_ms(5);
+  if (PINB & 0x04) return;
+  _delay_ms(5);
+  if (PINB & 0x04) return;
+  _delay_ms(5);
+  if (PINB & 0x04) return;
 
-  if (0 != KbdDataAvail)
-    return;
+  /* detected a key press */
+  TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
+  PORTD |= 0x40;  /* Start Buzzer */
+  PORTB &= ~0x04; DDRB  |= 0x04;  /* drive 0 */
 
-  /* Arrangement of keys
-     R1C1 R1C2 R1C3 R1C4
-     R2C1 R2C2 R2C3 R2C4
-  */
-//  lcd_buf_p = &(lcd_buf[0][10]);
-//  LCD_PUT_UINT8X(PINA);
-//  LCD_PUT_UINT8X(PINC);
-//  lcd_buf_p[0] = '0'+(gTimer0%10);
-//  lcd_buf_p++;
-#if 0
-  KBD_DRIVE;
-  KBD_RISE_DELAY(50);
-  do {
-    KBD_R1_EN;
-    KBD_RISE_DELAY(50);
-//    if (0 != KBD_C3_VAL) { shift = KBD_SHIFT; }
-    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 5; gTimer0 = 0; break; }
-//    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 6; gTimer0 = 0; break; }
-//    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 7; gTimer0 = 0; break; }
-    KBD_R3_EN;
-    KBD_RISE_DELAY(50);
-    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 12; gTimer0 = 0; break; }
-//    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 1;  gTimer0 = 0;  break; }
-//    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 13; gTimer0 = 0; break; }
-//    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 14; gTimer0 = 0; break; }
-    KBD_R0_EN;
-    KBD_RISE_DELAY(50);
-    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 2;  gTimer0 = 0; break; }
-//    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 3;  gTimer0 = 0; break; }
-//    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 4;  gTimer0 = 0; break; }
-//    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 11; gTimer0 = 0; break; }
-    KBD_R2_EN;
-    KBD_RISE_DELAY(50);
-    if (0 != KBD_C0_VAL) { while(0 != KBD_C0_VAL) { KBD_RISE_DELAY(50); } scan_code = 8;  gTimer0 = 0; break; }
-//    if (0 != KBD_C1_VAL) { while(0 != KBD_C1_VAL) { KBD_RISE_DELAY(50); } scan_code = 9;  gTimer0 = 0; break; }
-//    if (0 != KBD_C2_VAL) { while(0 != KBD_C2_VAL) { KBD_RISE_DELAY(50); } scan_code = 10; gTimer0 = 0; break; }
-//    if (0 != KBD_C3_VAL) { while(0 != KBD_C3_VAL) { KBD_RISE_DELAY(50); } scan_code = 14; gTimer0 = 0; break; }
-  } while (0);
-  KBD_NODRIVE;
-  if (0 != scan_code) {
-    KbdData = scan_code;
-    KbdDataAvail = 1;
+  /* Scan 1 */
+  DDRC  &= ~0x3C; /* input */
+  PORTC |= 0x3C; /* pull high */
+  DDRA  |= 0xF0; /* output */
+  PORTA &= ~0xF0;/* drive 0 */
+  PORTA |= 0xE0;
+  _delay_ms(1);
+  if (0x3C != (PINC & 0x3C)) {
+    keyHitData.kbdData = 1;
+    keyHitData.kbdData += (0 == (PINC & 0x4)) ? 0 :
+      (0 == (PINC & 0x8)) ? 0x4 :
+      (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+  } else {
+    PORTA &= ~0xF0; PORTA |= 0xD0;
+    _delay_ms(1);
+    if (0x3C != (PINC & 0x3C)) {
+      keyHitData.kbdData = 2;
+      keyHitData.kbdData += (0 == (PINC & 0x4)) ? 0 :
+	(0 == (PINC & 0x8)) ? 0x4 :
+	(0 == (PINC & 0x10)) ? 0x8 : 0xC;
+    } else {
+      PORTA &= ~0xF0; PORTA |= 0xB0;
+      _delay_ms(1);
+      if (0x3C != (PINC & 0x3C)) {
+	keyHitData.kbdData = 3;
+	keyHitData.kbdData += (0 == (PINC & 0x4)) ? 0 :
+	  (0 == (PINC & 0x8)) ? 0x4 :
+	  (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+      } else {
+	PORTA &= ~0xF0;	PORTA |= 0x70;
+	_delay_ms(1);
+	if (0x3C != (PINC & 0x3C)) {
+	  keyHitData.kbdData = 4;
+	  keyHitData.kbdData += (0 == (PINC & 0x4)) ? 0 :
+	    (0 == (PINC & 0x8)) ? 0x4 :
+	    (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+	} else {
+	  keyHitData.kbdData = 0;
+	}
+      }
+    }
   }
-#endif
-  KBD_DRIVE;
-  PORTC |= 0x3C;
-  _delay_ms(100);
-  DDRA &= ~0xF0;
-  _delay_us(1);
-  KbdData = (volatile uint8_t) PINA;
+
+  /* when previous key hit was not yet consumed
+     miss this key...
+   */
+  if ((0 == KbdDataAvail) && (0 != keyHitData.kbdData)) {
+    TCNT1 = 0xFFFF - (F_CPU>>11); /* next callback in 0.5s */
+    TIMSK = (1 << TOIE1); /* enable Timer1 overflow */
+
+    if (0 == keyHitData._kbdData) {
+      /* first time this key is hit */
+      keyHitData._kbdData = keyHitData.kbdData;
+      keyHitData.count = 1;
+      keyHitData.kbdData = 0;
+    } else if (keyHitData._kbdData != keyHitData.kbdData) {
+      /* diff key was hit */
+      assert(keyHitData.count > 0);
+      keyHitData.count--;
+      KbdData = keyChars[keyHitData._kbdData - 1 + keyHitData.count]; /* FIXME : mul with KCHAR_COLS */
+      KbdDataAvail = 1;
+      keyHitData._kbdData = keyHitData.kbdData;
+      keyHitData.kbdData = 0;
+      keyHitData.count = 1;
+    } else {
+      /* same key was hit */
+      keyHitData.count ++;
+      keyHitData._kbdData = keyHitData.kbdData;
+      keyHitData.kbdData = 0;
+    }
+  }
+
+  /* Back to idle state */
+  PORTA |= 0xF0;  /* pullup */
+  PORTC &= ~0x3C; /* drive 0 */
+  PORTB |= 0x04;  /* pullup */
+  DDRA &= ~0xF0;  /* in */
+  DDRC |= 0x3C;   /* out */
+  DDRB &= ~0x04;  /* in */
+  _delay_ms(2);
+
+  /* debounce */
+  while (0 == (PINB & 0x04)) {}
+  _delay_ms(5);
+  while (0 == (PINB & 0x04)) {}
+  _delay_ms(5);
+  while (0 == (PINB & 0x04)) {}
+  _delay_ms(5);
+
+  /* Stop Buzz */
+  PORTD &= ~0x40; /* stop buzzer */
+  _delay_ms(25);
+}
+
+/* need call at every 500 ms
+   clock is at 8MHz, timer1 clock is prescaled by 1024
+   (F_CPU/2*1024)
+ */
+ISR(TIMER1_OVF_vect)
+{
+  TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
+
+  /* key hit stopped */
+  assert(keyHitData.count > 0);
+  keyHitData.count--;
+  KbdData = keyChars[keyHitData._kbdData - 1 + keyHitData.count]; /* FIXME : mul with KCHAR_COLS */
   KbdDataAvail = 1;
-
-#if 0
-  /* enough time elapsed after last key hit */
-  if ((gTimer0 > 0x8) && (0xFF != KbdData)) {
-    uint8_t key_sc = KbdData & 0xF;
-    key_sc--;
-    KbdDataAvail = 1;
-    if (key_sc < KCHAR_ROWS) {
-      key_sc *= KCHAR_COLS;
-      if (KbdData & KBD_SHIFT) key_sc += KCHAR_SHIFT_SZ;
-      key_sc += (KbdData>>4) & 0x7;
-      KbdData = pgm_read_byte(&(keyChars[key_sc]));
-    } else if (13 == key_sc) {
-      KbdData = ASCII_ENTER;
-    } else if (10 == key_sc) {
-      KbdData = ASCII_PRNSCRN;
-    } else if (11 == key_sc) {
-      KbdData = ASCII_LEFT;
-    } else if (12 == key_sc) {
-      KbdData = ASCII_RIGHT;
-    } else
-      KbdDataAvail = 0;
-  } else if (0 != gTimer0) {
-    /* No key press */
-  } else if ((scan_code-1) == (0xF & (uint8_t)KbdData)) {
-    KbdData = (KbdData & 0xF0) + 0x10;
-  } else if (0 != scan_code) { /* first time */
-    scan_code --;
-    KbdData = shift | scan_code;
-  }
-#endif
-
-  /* Don't let timer counter go past a value */
-//  if (0 ==  (gTimer0 & 0x80))
-    gTimer0++;
+  keyHitData._kbdData = 0;
+  keyHitData.kbdData = 0;
+  keyHitData.count = 0;
 }
 
 uint8_t
