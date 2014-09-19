@@ -3,6 +3,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 
 #include "kbd.h"
 
@@ -71,7 +72,11 @@ KbdInit(void)
   //
   TCNT1 = 0xFFFF - (F_CPU>>11);
 
+  /* */
   GICR |= (1<<INT2);
+
+  /* when sleep get to powerdown mode */
+  set_sleep_mode(2);
 }
 
 /* At reset/ idle state
@@ -345,12 +350,4 @@ ISR(INT0_vect)
 //    }
 //    drC = 0;
 //  }
-}
-
-void
-KbdGetCh()
-{
-  while (KBD_NOT_HIT) {
-    
-  }
 }

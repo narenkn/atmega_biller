@@ -6,8 +6,6 @@
 #include "main.h"
 #include "i2c.h"
 
-#ifndef NO_MAIN
-
 void
 main_init(void)
 {
@@ -27,9 +25,42 @@ main_init(void)
   DDRD |= 0x80;
   BUZZER_OFF;
 
+  /* enable timer 2 for periodic checks */
+  TIMSK |= (1 << TOIE2);
+
+  /* setup timer 2 */
+  // Set CS10 bit so timer runs at clock speed:
+  TCCR2 = 0;
+  TCCR2 |= (0x7 << CS20);
+
+  /* */
+  uint8_t timer2_sleep_delay = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
+  ui8_1 %= 60; /* max 60 seconds */
+  if (0 == ui8_1) ui8_1 = 5;
+  timer2_sleep_delay = ui8_1;
+  timer2_sleep_delay *= (F_CPU>>10);
+
+  /* */
+  timer2_msb = 0;
+
   /* Enable Global Interrupts */
   sei();
 }
+
+// FIXME: Not unit tested
+/* 1 sec has F_CPU clocks
+   timer is prescaled to 1024 cycles
+   so, for 5 sec delay :
+     (F_CPU/1024)*5 ~= 40000 = 0x9C40;
+ */
+volatile uint8_t timer2_msb = 0;
+volatile uint16_t timer2_sleep_delay = 0x9C;
+ISR(TIMER2_OVF_vect)
+{
+  timer2_msb++;
+}
+
+#ifndef NO_MAIN
 
 int
 main(void)
