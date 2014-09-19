@@ -10,7 +10,7 @@ uint8_t test_key_arr_idx = 0;
 uint8_t *test_key[NUM_TEST_KEY_ARR];
 
 #define RESET_TEST_KEYS KbdInit()
-#define INIT_TEST_KEYS(A) do { test_key[test_key_arr_idx+1] = A; test_key_arr_idx++; assert((test_key_arr_idx+1) < NUM_TEST_KEY_ARR); } while (0)
+#define INIT_TEST_KEYS(A) do { test_key[test_key_arr_idx] = A; assert(test_key_arr_idx < NUM_TEST_KEY_ARR); test_key_arr_idx++; } while (0)
 #define KBD_KEY_TIMES(N)   ((N-1)<<4)
 #define KBD_KEY(N)                  N
 
@@ -40,9 +40,8 @@ KbdInit(void)
     test_key[ui2] = NULL;
 }
 
-/* FIXME: We make sure that if random char is introduced, a back
-key is pressed and it is earsed. Testing is not being done when
-the last key is a 'back key' */
+/* We make sure that if random char is introduced, a back
+key is pressed and it is earsed. */
 void
 KbdGetCh(void)
 {
@@ -51,7 +50,7 @@ KbdGetCh(void)
   /* Previous key not yet consumed */
   if KBD_HIT
     return;
-  
+
   /* All keys exhausted in latest pipe, look for pipeline */
   if (((uint16_t) -1) == test_key_idx) {
     if (test_key_arr_idx) {
@@ -67,8 +66,10 @@ KbdGetCh(void)
   }
   assert(test_key_idx<=TEST_KEY_ARR_SIZE);
 
-  if (NULL == test_key[0])
+  if (NULL == test_key[0]) {
+    assert(0);
     return;
+  }
 
   /* last char of pipe */
   if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) {
@@ -76,7 +77,7 @@ KbdGetCh(void)
     KbdData = ASCII_ENTER;
     KbdDataAvail = 1;
     test_key_idx = -1;
-    //    printf("hack2 kbd.c sending:0x%x\n", KbdData);
+    printf("hack2 kbd.c sending:0x%x\n", KbdData);
     return;
   }
 

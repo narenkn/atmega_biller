@@ -37,4 +37,7 @@ FIXME:
 29. Support 3" printer for 20K product
 30. Use EEPROM to store recent bills.
 31. Ability to generate serial number and program it to chip
-32. 
+32. Before doing any disk operations, make sure disk is present..
+    if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
+33. 
+

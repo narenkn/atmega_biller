@@ -6,6 +6,9 @@ uint8_t i2c_ymd[3], i2c_hm[2];
 #define EEPROM_SIZE ((1<<16)<<2)
 uint8_t i2c_bytes[EEPROM_SIZE];
 
+#define I2C_EEPROM_DIRECT_ASSIGN(addr, val) \
+  i2c_bytes[addr] = val
+
 void
 i2c_init(void)
 {

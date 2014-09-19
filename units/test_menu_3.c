@@ -1,5 +1,6 @@
 #include "test_common.c"
 
+/* tests user login/logout features */
 int
 main(void)
 {
@@ -61,7 +62,7 @@ main(void)
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<1; loop++) {
+  for (loop=0; loop<1000; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -88,7 +89,6 @@ main(void)
     if (0 == (rand()%5))
       inp2[0] = ' ';
     inp2[EPS_MAX_UNAME] = 0;
-    printf("inp2:'%s'\n", inp2);
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
     arg1.value.sptr = bufSS;
@@ -106,7 +106,6 @@ main(void)
     inp4[0] = 0;
     INIT_TEST_KEYS(inp4);
     menuSetUserPasswd(MENU_MSUPER);
-    printf("inp2:'%s'\n", inp2);
     if (' ' == inp2[0]) {
       assert(0 == strncmp("Invalid User    ", lcd_buf[0], LCD_MAX_COL));
     } else if (ASCII_RIGHT == inp3[0]) {
@@ -149,100 +148,26 @@ main(void)
       assert(ui2+1 == LoginUserId);
     }
 
-    menuUserLogout(MENU_MNORMAL);
-    assert(0 == LoginUserId);
-    assert(MENU_MRESET == MenuMode);
+    /* check logout */
+    if (0 != LoginUserId) {
+      //    ui1 = (rand() % (TEST_KEY_ARR_SIZE-2)) + 1;
+      ui1 = (rand() % (5)) + 1;
+      for (ui2=0; ui2<ui1; ui2++)
+	inp[ui2] = (rand()&1) ? ASCII_LEFT : ASCII_RIGHT;
+      inp[ui1] = 0;
+      INIT_TEST_KEYS(inp);
+      menuUserLogout(MENU_MNORMAL);
+      if (ui1&1) { /* logout should be unsuccessful */
+	assert(0 != LoginUserId);
+	inp[ui1] = (rand()&1) ? ASCII_LEFT : ASCII_RIGHT;
+	inp[ui1+1] = 0;
+	INIT_TEST_KEYS(inp);
+	menuUserLogout(MENU_MNORMAL);
+      }
+      assert(0 == LoginUserId);
+      assert(MENU_MRESET == MenuMode);
+    }
   }
-
-//  /* modvat */
-//  for (loop=0; loop<1000; loop++) {
-//    uint32_t vat = (rand()%100)*100 + (rand()%100);
-//    uint32_t vat1 = vat;
-//    LCD_CLRSCR;
-//    for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-//      inp[ui1] = ' ';
-//    for (ui1=0; ui1<4; ui1++) {
-//      uint16_t ui2 = vat % 10;
-//      vat /= 10;
-//      inp[3-ui1] = '0' + ui2;
-//    }
-//    inp[4] = 0;
-//    KBD_RESET_KEY;
-//    INIT_TEST_KEYS(inp);
-//    //printf("inp is %s\n", inp);
-//
-//    /* */
-//    arg1.valid = MENU_ITEM_NONE;
-//    LCD_CLRSCR;
-//    menuGetOpt("sdlkfjlaksfklas", &arg1, MENU_ITEM_FLOAT);
-//
-//    /* select input */
-//    uint16_t sel = rand() % 4;
-//    uint16_t ui2 = rand()%2;
-//    if (0 != ui2) {
-//      ui2 = sel + 4*(rand()%8);
-//      for (ui1=0; ui1<ui2; ui1++)
-//	inp[ui1] = ASCII_RIGHT;
-//      inp[ui1] = 0;
-//    } else {
-//      ui2 = (4-sel) + 4*(rand()%8);
-//      for (ui1=0; ui1<ui2; ui1++)
-//	inp[ui1] = ASCII_LEFT;
-//      inp[ui1] = 0;
-//    }
-//
-//    KBD_RESET_KEY;
-//    INIT_TEST_KEYS(inp);
-//    menu_ModVat(MENU_MNORMAL);
-//    EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.vat[sel]), (uint8_t *)&ui2, sizeof(uint16_t));
-//    //printf("sel:%0d ui2:%0d vat1:%0d\n", (uint32_t) sel, (uint32_t) ui2, (uint32_t) vat1);
-//    assert(ui2 == vat1);
-//  }
-//
-//  /* menu_Header */
-//  for (loop=0; loop<1; loop++) {
-//    for (ui1=0; ui1<LCD_MAX_COL/2; ui1++) {
-//      if (0 == (rand() % 3))
-//	inp[ui1] = 'A' + (rand()%26);
-//      else
-//	inp[ui1] = 'a' + (rand()%26);
-//    }
-//    INIT_TEST_KEYS(inp);
-//    KBD_RESET_KEY;
-//    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
-//    assert(0 == strncmp("Promp ?         ", lcd_buf[0], LCD_MAX_COL));
-//
-//    /* Generate random string for Header */
-//    ui2 = rand() % HEADER_SZ_MAX;
-//    for (ui1=0; ui1<ui2; ui1++) {
-//      if (0 == (rand() % 3))
-//	inp2[ui1] = 'A' + (rand()%26);
-//      else
-//	inp2[ui1] = 'a' + (rand()%26);
-//    }
-//    INIT_TEST_KEYS(inp2);
-//    KBD_RESET_KEY;
-//    menu_Header(MENU_MSUPER);
-//
-//    /* Validate */
-//    for (ui1=0; ui1<LCD_MAX_COL/2; ui1++) {
-//      if (0 == inp[ui1]) break;
-//      EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.shop_name[ui1]), (uint8_t *)&ui3, sizeof(uint8_t));
-//      assert(ui3 == inp[ui1]);
-//      if (ui3 != inp[ui1]) {
-//	printf("Header char mismatch ui3:%0d inp[ui1]:%0d\n", ui3, inp[ui1]);
-//      }
-//    }
-//    for (ui1=0; ui1<ui2; ui1++) {
-//      if (0 == inp[ui1]) break;
-//      EEPROM_STORE_READ((uint16_t)&(EEPROM_DATA.prn_header[ui1]), (uint8_t *)&ui3, sizeof(uint8_t));
-//      assert(ui3 == inp[ui1]);
-//      if (ui3 != inp[ui1]) {
-//	printf("Header char mismatch ui3:%0d inp[ui1]:%0d\n", ui3, inp[ui1]);
-//      }
-//    }
-//
-//  }
 
   return 0;
 }

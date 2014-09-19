@@ -6,6 +6,9 @@
 
 uint8_t _avr_eeprom[AVR_EEPROM_SIZE];
 
+#define EEPROM_DIRECT_ASSIGN(addr, val) \
+  _avr_eeprom[addr] = val;
+
 uint8_t
 eeprom_read_byte (const uint8_t *addr)
 {
