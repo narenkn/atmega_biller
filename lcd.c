@@ -11,6 +11,8 @@ uint8_t *lcd_buf_p;
 void
 LCD_init(void)
 {
+  uint8_t ui8_1;
+
   /* Set IO directions */
   DDRD |= 0x10;
   DDRA |= 0x0F;
@@ -29,11 +31,8 @@ LCD_init(void)
 #endif
 
   /*  Function set: 2 Line, 8-bit, 5x7 dots */
-  LCD_cmd(LCD_CMD_2LINE_5x7);
-  LCD_cmd(LCD_CMD_2LINE_5x7);
-  LCD_cmd(LCD_CMD_2LINE_5x7);
-  LCD_cmd(LCD_CMD_2LINE_5x7);
-  LCD_cmd(LCD_CMD_2LINE_5x7);
+  for (ui8_1=1; ui8_1; ui8_1++)
+    LCD_cmd(LCD_CMD_2LINE_5x7);
   _delay_ms(100);
 
   /* Display on, Curson blinking command */
@@ -41,15 +40,14 @@ LCD_init(void)
   _delay_ms(100);
 
   /* Clear LCD */
-  LCD_cmd(LCD_CMD_CLRSCR);
-  LCD_cmd(LCD_CMD_CLRSCR);
-  LCD_cmd(LCD_CMD_CLRSCR);
+  for (ui8_1=1; ui8_1; ui8_1++)
+    LCD_cmd(LCD_CMD_CLRSCR);
   LCD_CLRSCR;
   _delay_ms(100);
 
   /* Entry mode, auto increment with no shift */
-  LCD_cmd(LCD_CMD_INC_CUR);
-  LCD_cmd(LCD_CMD_INC_CUR);
+  for (ui8_1=1; ui8_1; ui8_1++)
+    LCD_cmd(LCD_CMD_INC_CUR);
   _delay_ms(100);
 
   lcd_buf_prop = 0;

@@ -20,6 +20,8 @@ void main_init(void);
 #define  FAT_MONTH_MASK          0xF
 #define  FAT_YEAR_OFFSET          25
 #define  FAT_YEAR_MASK          0x7F
+
 uint8_t  validDate(uint8_t day, uint8_t month, uint8_t year);
+extern volatile uint8_t timer2_sleep_delay;
 
 #endif

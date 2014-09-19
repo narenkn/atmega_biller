@@ -47,17 +47,25 @@
 #define KBD_RESET_KEY          \
   KbdDataAvail = 0 ; KbdData = 0xFF
 
+#define KBD_HIT      (0x0 != KbdDataAvail)
+#define KBD_NOT_HIT  (0x0 == KbdDataAvail)
+
 #ifndef UNIT_TEST
 # define KBD_GETCH				\
-  while (0 == KbdDataAvail) {			\
-    SLEEP_UNTIL_NEXT_INTR;			\
-  } do {} while (0) /* consume the next ; */
+  while (KBD_NOT_HIT) {				\
+    if (timer2_msb > timer2_sleep_delay) {	\
+      /* put the device to sleep */		\
+      LCD_bl_off;				\
+      sleep_enable();				\
+      sleep_cpu();				\
+      sleep_disable();				\
+      timer2_msb = 0;				\
+      LCD_bl_on;				\
+    }
+  }
 #else
 # define KBD_GETCH KbdGetCh()
 #endif
-
-#define KBD_HIT      (0x0 != KbdDataAvail)
-#define KBD_NOT_HIT  (0x0 == KbdDataAvail)
 
 #define KCHAR_ROWS        10
 #define KCHAR_COLS         9

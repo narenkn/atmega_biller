@@ -269,6 +269,7 @@ class ep_store_layout:
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
       'b_head' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
       'b_foot' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
+      'idle_wait' : ['', 1, TYPE_UINT8],
       'unused_0' : [':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
