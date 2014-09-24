@@ -6,6 +6,9 @@
 #include "main.h"
 #include "i2c.h"
 
+volatile uint8_t  timer2_msb = 0;
+volatile uint16_t timer2_sleep_delay = 0x9C;
+
 void
 main_init(void)
 {
@@ -34,7 +37,7 @@ main_init(void)
   TCCR2 |= (0x7 << CS20);
 
   /* */
-  uint8_t timer2_sleep_delay = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
+  uint8_t ui8_1 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
   ui8_1 %= 60; /* max 60 seconds */
   if (0 == ui8_1) ui8_1 = 5;
   timer2_sleep_delay = ui8_1;
@@ -53,8 +56,6 @@ main_init(void)
    so, for 5 sec delay :
      (F_CPU/1024)*5 ~= 40000 = 0x9C40;
  */
-volatile uint8_t timer2_msb = 0;
-volatile uint16_t timer2_sleep_delay = 0x9C;
 ISR(TIMER2_OVF_vect)
 {
   timer2_msb++;

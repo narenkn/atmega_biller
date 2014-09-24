@@ -29,7 +29,12 @@
 #include <util/crc16.h>
 
 uint8_t SREG, PD2, PD3, GICR, INT0, MCUCR, ISC01, ISC00;
+uint8_t TIMSK, TCCR2;
+#define CS20   0
+#define TOIE2  0
+#define F_CPU  8000000
 #define cli()
+#define sei()
 
 #define TEST_KEY_ARR_SIZE    128
 #define NO_MAIN
