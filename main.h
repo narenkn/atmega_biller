@@ -24,4 +24,11 @@ void main_init(void);
 uint8_t  validDate(uint8_t day, uint8_t month, uint8_t year);
 extern volatile uint8_t timer2_sleep_delay;
 
+void eeprom_setting2ram();
+
+#define EEPROM_SETTING_BUZZER      (1<<0)
+#define EEPROM_SETTING0_ON(X)  setting0 |= EEPROM_SETTING_ ## X
+#define EEPROM_SETTING0_OFF(X) setting0 &= ~EEPROM_SETTING_ ## X
+#define EEPROM_SETTING0(X)  (setting0 & EEPROM_SETTING_ ## X)
+
 #endif

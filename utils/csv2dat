@@ -11,8 +11,8 @@ TYPE_UINT8   = 1
 TYPE_UINT16  = 2
 TYPE_UINT32  = 4
 TYPE_STRING  = 5
-TYPE_BIT     = 6
 TYPE_ARR     = 7
+TYPE_BIT     = 8
 
 class data_struct:
   error = 0
@@ -269,6 +269,7 @@ class ep_store_layout:
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
       'b_head' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
       'b_foot' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
+      'key_buzz_off':['', 1, TYPE_UINT8],
       'idle_wait' : ['', 1, TYPE_UINT8],
       'unused_0' : [':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],

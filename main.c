@@ -6,6 +6,33 @@
 #include "main.h"
 #include "i2c.h"
 
+// FIXME: Not unit tested
+/* 1 sec has F_CPU clocks
+   timer is prescaled to 1024 cycles
+   so, for 5 sec delay :
+     (F_CPU/1024)*5 ~= 40000 = 0x9C40;
+ */
+volatile uint8_t timer2_msb = 0;
+volatile uint16_t timer2_sleep_delay = 0x9C;
+ISR(TIMER2_OVF_vect)
+{
+  timer2_msb++;
+}
+
+volatile uint8_t eeprom_setting0 = 0, eeprom_setting1 = 0;
+
+void
+eeprom_setting2ram()
+{
+  uint8_t ui8_1;
+
+  /* init */
+  setting0 = setting1 = 0;
+
+  ui8_1 = eeprom_read_byte(offsetof(struct ep_store_layout, key_buzz_off));
+  ui8_1 ? EEPROM_SETTING0_OFF(BUZZER) : EEPROM_SETTING0_ON(BUZZER);
+}
+
 void
 main_init(void)
 {
@@ -43,21 +70,11 @@ main_init(void)
   /* */
   timer2_msb = 0;
 
+  /* */
+  eeprom_setting2ram();
+
   /* Enable Global Interrupts */
   sei();
-}
-
-// FIXME: Not unit tested
-/* 1 sec has F_CPU clocks
-   timer is prescaled to 1024 cycles
-   so, for 5 sec delay :
-     (F_CPU/1024)*5 ~= 40000 = 0x9C40;
- */
-volatile uint8_t timer2_msb = 0;
-volatile uint16_t timer2_sleep_delay = 0x9C;
-ISR(TIMER2_OVF_vect)
-{
-  timer2_msb++;
 }
 
 #ifndef NO_MAIN

@@ -923,7 +923,7 @@ menuBilling(uint8_t mode)
   if (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     /* Move to end of the file to append data */
     ui32_2 = f_size(&Fil);
-    if (0 != ui32_2) {
+    if (0 != ui32_2) {    /* file is new */
       assert( 2 == (ui32_2 %
 		    (SALE_SIZEOF+((MAX_ITEMS_IN_BILL-1)*ITEM_SIZEOF)+2)) );
       /* If version doesn't match, escape... */
@@ -938,7 +938,7 @@ menuBilling(uint8_t mode)
       f_read(&Fil, bufSS, 2, &ret_val);
       assert(2 == ret_val);
       ui16_2 = bufSS[0]; ui16_2 <<= 8; ui16_2 |= bufSS[1];
-    } else {
+    } else {     /* file already exists */
       /* new file, set it up ... */
       ui16_2 = 0;
       ui16_2 = _crc16_update(ui16_2, (GIT_HASH_CRC>>8)&0xFF);
@@ -977,7 +977,7 @@ menuBilling(uint8_t mode)
     /* */
     f_close(&Fil);
   } else
-    LCD_ALERT("Can't save in SD");
+    LCD_ALERT("Can't save bill");
   f_mount(NULL, "", 0);
 
   /* Now print the bill */
@@ -1305,6 +1305,7 @@ menuIndexItem(struct item *it)
 uint16_t
 menuItemFind(uint8_t *name, uint8_t *prod_code)
 {
+  /* FIXME: can either name or prod_code be NULL? */
   uint16_t crc_n, crc_pc, idx, ui16_1;
   uint8_t  ui8_1, ui8_2;
 
@@ -1737,10 +1738,10 @@ menuSettingSet(uint8_t mode)
   }
   if (0 == ui8_1) return;
 
-  ui8_2 = eeprom_read_byte(&(MenuVars[ui8_1-1].type));
-  ui16_1 = eeprom_read_byte(((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr))+1);
+  ui8_2 = pgm_read_mem(&(MenuVars[ui8_1-1].type));
+  ui16_1 = pgm_read_mem(((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr))+1);
   ui8_1 <= 8;
-  ui16_1 |= eeprom_read_byte((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr));
+  ui16_1 |= pgm_read_mem((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr));
   switch (ui8_2) {
   case TYPE_UINT8:
     menuSettingUint8(ui16_1, &(MenuVars[ui8_1-1].name[0]));
@@ -1751,10 +1752,10 @@ menuSettingSet(uint8_t mode)
     menuSettingUint32(ui16_1, &(MenuVars[ui8_1-1].name[0]));
     break;
   case TYPE_STRING:
-    menuSettingString(ui16_1, &(MenuVars[ui8_1-1].name[0]), eeprom_read_byte(&(MenuVars[ui8_1-1].size)));
+    menuSettingString(ui16_1, &(MenuVars[ui8_1-1].name[0]), pgm_read_mem(&(MenuVars[ui8_1-1].size)));
     break;
   case TYPE_BIT:
-    menuSettingBit(ui16_1, &(MenuVars[ui8_1-1].name[0]), eeprom_read_byte(&(MenuVars[ui8_1-1].size)), eeprom_read_byte(&(MenuVars[ui8_1-1].size2)));
+    menuSettingBit(ui16_1, &(MenuVars[ui8_1-1].name[0]), pgm_read_mem(&(MenuVars[ui8_1-1].size)), pgm_read_mem(&(MenuVars[ui8_1-1].size2)));
     break;
   default:
     assert(0);
@@ -1762,6 +1763,38 @@ menuSettingSet(uint8_t mode)
   }
 
   goto menuSettingSetStart;
+}
+
+// Not unit tested
+void
+menuSettingPrint(uint8_t mode)
+{
+  uint8_t ui8_1, ui8_2, ui8_3;
+  uint16_t ui16_1;
+  uint32_t ui32_1;
+
+  for (ui8_1=0; ui8_1<MENU_VARS_SIZE; ui8_1++) {
+    ui8_2 = pgm_read_mem(&(MenuVars[ui8_1].type));
+    ui16_1 = pgm_read_mem(((uint8_t *)&(MenuVars[ui8_1].ep_ptr))+1);
+    ui8_1 <= 8;
+    ui16_1 |= pgm_read_mem((uint8_t *)&(MenuVars[ui8_1].ep_ptr));
+
+    for (ui8_2=0; ui8_2<ITEM_NAME_BYTEL; ui8_2++)
+      PRINTER_PRINT(pgm_read_mem(&(MenuVars[ui8_1].name[ui8_2])));
+    PRINTER_PRINT('\t');
+    if ( (TYPE_UINT8 == ui8_2) || (TYPE_UINT16 == ui8_2) ||
+	 (TYPE_UINT32 == ui8_2) || (TYPE_BIT == ui8_2) ) {
+      for (ui8_3=0, ui32_1=0; ui8_3<(ui8_2&0x7); ui8_3++) {
+	ui32_1 <<= 8;
+	ui32_1 |= pgm_read_mem(0); /* FIXME */
+      }
+    } else if (TYPE_STRING == ui8_2) {
+      ui32_1 = pgm_read_mem(0); /* FIXME */
+    } else {
+      assert(0);
+    }
+  }
+
 }
 
 // Not unit tested
@@ -2036,6 +2069,24 @@ menuSDLoadItem(uint8_t mode)
     goto menuSDLoadItemExit;
   }
 
+  /* check version string */
+  if (0 == f_size(&fp)) {
+    LCD_ALERT("File size error");
+    goto menuSDLoadSettingsExit;
+  } else if (FR_OK != f_read(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
+    LCD_ALERT("File error");
+    goto menuSDLoadSettingsExit;
+  } else if (GIT_HASH_SMALL_LEN != ret_size) {
+    LCD_ALERT("File error ");
+    goto menuSDLoadSettingsExit;
+  }
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
+    if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
+      LCD_ALERT("Incompatible file");
+      goto menuSDLoadSettingsExit;
+    }
+  }
+
   /* Mark all other items as deleted : (0==id) */
   for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
@@ -2096,6 +2147,11 @@ menuSDSaveItem(uint8_t mode)
   struct item *it = (void *)bufSS;
   uint8_t ui8_1;
 
+  /* init */
+  signature = 0;
+  memset(&FS, 0, sizeof(FS));
+  memset(&fp, 0, sizeof(fp));
+
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&fp, SD_ITEM_FILE, FA_WRITE)) {
@@ -2103,8 +2159,14 @@ menuSDSaveItem(uint8_t mode)
     goto menuSDSaveItemExit;
   }
 
+  /* Add version string */
+  sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
+  f_write(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
+    signature = _crc16_update(signature, bufSS[ui8_1]);
+  assert(GIT_HASH_SMALL_LEN == ret_size);
+
   /* */
-  signature = 0;
   for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
@@ -2146,6 +2208,10 @@ menuSDLoadSettings(uint8_t mode)
   uint8_t ui8_1;
   uint8_t serial_no[SERIAL_NO_MAX];
 
+  /* init */
+  memset(&FS, 0, sizeof(FS));
+  memset(&fp, 0, sizeof(fp));
+
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&fp, SD_SETTINGS_FILE, FA_READ)) {
@@ -2153,10 +2219,28 @@ menuSDLoadSettings(uint8_t mode)
     goto menuSDLoadSettingsExit;
   }
 
+  /* check version string */
+  if (0 == f_size(&fp)) {
+    LCD_ALERT("File size error");
+    goto menuSDLoadSettingsExit;
+  } else if (FR_OK != f_read(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
+    LCD_ALERT("File error");
+    goto menuSDLoadSettingsExit;
+  } else if (GIT_HASH_SMALL_LEN != ret_size) {
+    LCD_ALERT("File error ");
+    goto menuSDLoadSettingsExit;
+  }
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
+    if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
+      LCD_ALERT("Incompatible file");
+      goto menuSDLoadSettingsExit;
+    }
+  }
+
   /* save serial number for updating later */
   for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
     serial_no[ui8_1] = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1);
-					
+
   /* Check for crc in file */
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
   ui8_1 = 0, ui16_1 = 0;
@@ -2200,6 +2284,7 @@ menuSDLoadSettings(uint8_t mode)
   
  menuSDLoadSettingsExit:
   /* */
+  f_close(fp);
   f_mount(NULL, "", 0);
 }
 
@@ -2213,6 +2298,11 @@ menuSDSaveSettings(uint8_t mode)
   uint16_t ui16_1, ui16_2, ui16_3, signature;
   uint8_t ui8_1;
 
+  /* init */
+  signature = 0;
+  memset(&FS, 0, sizeof(FS));
+  memset(&fp, 0, sizeof(fp));
+
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&fp, SD_SETTINGS_FILE, FA_WRITE)) {
@@ -2220,8 +2310,14 @@ menuSDSaveSettings(uint8_t mode)
     goto menuSDSaveSettingsExit;
   }
 
+  /* Add version string */
+  sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
+  f_write(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
+    signature = _crc16_update(signature, bufSS[ui8_1]);
+  assert(GIT_HASH_SMALL_LEN == ret_size);
+
   /* */
-  signature = 0;
   for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1+=ui16_3) {
     ui16_3 = (EP_STORE_LAYOUT_SIZEOF-ui16_1) > BUFSS_SIZE ? BUFSS_SIZE :
       (EP_STORE_LAYOUT_SIZEOF-ui16_1);
