@@ -14,6 +14,8 @@ eeprom_read_byte (const uint8_t *addr)
 {
   uint16_t a = (uint16_t) addr;
   assert(a < AVR_EEPROM_SIZE);
+  if (a >= AVR_EEPROM_SIZE)
+    printf("a:0x%x\n", a);
   return _avr_eeprom[a];
 }
 

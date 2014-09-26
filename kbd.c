@@ -105,7 +105,8 @@ ISR(INT2_vect)
 
   /* detected a key press */
   TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
-  PORTD |= 0x40;  /* Start Buzzer */
+  if (EEPROM_SETTING0(BUZZER))
+    BUZZER_ON;
   PORTB &= ~0x04; DDRB  |= 0x04;  /* drive 0 */
 
   /* Scan 1 */
@@ -197,8 +198,8 @@ ISR(INT2_vect)
   while (0 == (PINB & 0x04)) {}
   _delay_ms(5);
 
-  /* Stop Buzz */
-  PORTD &= ~0x40; /* stop buzzer */
+  /* action before last */
+  BUZZER_OFF;
   _delay_ms(25);
 }
 

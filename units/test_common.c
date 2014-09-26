@@ -39,6 +39,7 @@ uint8_t TIMSK, TCCR2;
 #define TEST_KEY_ARR_SIZE    128
 #define NO_MAIN
 
+#include "ep_ds.h"
 #include "version.h"
 #include "lcd.h"
 #include "kbd.h"

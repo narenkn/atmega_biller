@@ -3,6 +3,10 @@ FIXME:
 4. Print duplicate bill
 5. Item, tax total
 7. Add version string in all dat files & check compatible in menu.c
+##  7.a Settings file
+##  7.b dat file
+##  7.c Sale csv
+  7.d purchase csv
 ##8. When start, check billing.csv for proper version and move it to _x.old files if wrong version
 9. user wise report
 10. Track purchase bills (K20)
@@ -33,11 +37,11 @@ FIXME:
 ##25. Identify capability of devices from serial number
 26. Self Program via SD card
 27. EEPROM status for cold-reset-initialized or not
-28. Configuration bit to buzz on keypress : default ON
+##28. Configuration bit to buzz on keypress : default ON
 29. Support 3" printer for 20K product
 30. Use EEPROM to store recent bills.
 31. Ability to generate serial number and program it to chip
 32. Before doing any disk operations, make sure disk is present..
     if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
-33. 
-
+33. Mark certain bills invalid (choose invalid mode)
+34. Have short cuts for menu actions (make previous bill invalid)
