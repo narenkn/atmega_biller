@@ -79,3 +79,15 @@ get_fattime (void)
 
 uint8_t inp[TEST_KEY_ARR_SIZE], inp2[TEST_KEY_ARR_SIZE];
 uint8_t inp3[TEST_KEY_ARR_SIZE], inp4[TEST_KEY_ARR_SIZE];
+
+/* Convert a int to string */
+void
+int2str(char *str, uint32_t ui, uint32_t *idx)
+{
+  if (ui > 9) {
+    int2str(str, ui/10, idx);
+  }
+  str[*idx] = '0' + (ui%10);
+  (*idx)++;
+  str[*idx] = 0;
+}

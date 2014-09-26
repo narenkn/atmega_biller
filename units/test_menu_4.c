@@ -6,18 +6,6 @@
 /* place to store items */
 struct item all_items[ITEM_MAX];
 
-/* Convert a int to string */
-void
-int2str(char *str, uint32_t ui, uint32_t *idx)
-{
-  if (ui > 9) {
-    int2str(str, ui/10, idx);
-  }
-  str[*idx] = '0' + (ui%10);
-  (*idx)++;
-  str[*idx] = 0;
-}
-
 uint8_t inp5[4][TEST_KEY_ARR_SIZE];
 
 void
