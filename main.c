@@ -27,19 +27,19 @@ eeprom_setting2ram()
   uint8_t ui8_1;
 
   /* init */
-  setting0 = setting1 = 0;
+  eeprom_setting0 = eeprom_setting1 = 0;
 
   ui8_1 = eeprom_read_byte(offsetof(struct ep_store_layout, key_buzz_off));
-  ui8_1 ? EEPROM_SETTING0_OFF(BUZZER) : EEPROM_SETTING0_ON(BUZZER);
+  if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
+  else EEPROM_SETTING0_ON(BUZZER);
 }
 
 void
 main_init(void)
 {
-  /* Set pin mode & enable pullup */
+  /* PS2 keypad */
   DDRD &= ~((1<<PD2)|(1<<PD3));
-//  PORTD |= (1<<PD2) | (1<<PD3);
-
+  //  PORTD |= (1<<PD2) | (1<<PD3); /* not required as we have a pullup on board */
   /* PS2 : Int0 falling edge */
   GICR = 1<<INT0;
   MCUCR |= 1<<ISC01 | 0<<ISC00;
@@ -61,7 +61,7 @@ main_init(void)
   TCCR2 |= (0x7 << CS20);
 
   /* */
-  uint8_t timer2_sleep_delay = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
+  uint8_t ui8_1 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
   ui8_1 %= 60; /* max 60 seconds */
   if (0 == ui8_1) ui8_1 = 5;
   timer2_sleep_delay = ui8_1;

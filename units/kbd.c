@@ -34,7 +34,7 @@ KbdInit(void)
 {
   uint8_t ui2;
 
-  test_key_idx = -1; test_key_arr_idx = 0;
+  test_key_idx = 0; test_key_arr_idx = 0;
 
   for (ui2=0; ui2<NUM_TEST_KEY_ARR; ui2++)
     test_key[ui2] = NULL;
@@ -74,10 +74,10 @@ KbdGetCh(void)
   /* last char of pipe */
   if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) {
     assert (test_key_idx >= 0);
+    //printf("hack2 kbd.c sending:0x%x\n", KbdData);
     KbdData = ASCII_ENTER;
     KbdDataAvail = 1;
     test_key_idx = -1;
-    printf("hack2 kbd.c sending:0x%x\n", KbdData);
     return;
   }
 

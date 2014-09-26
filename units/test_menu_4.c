@@ -15,35 +15,43 @@ make_item(struct item *ri1, uint8_t rand_save)
   uint8_t save;
 
   /* Construct a random item */
+  for (ui1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
+    ri1->name[ui1] = ' ';
+  }
   ui3 = (rand() % (ITEM_NAME_BYTEL-1)) + 1;
   for (ui1=0; ui1<ui3; ui1++) {
-    inp5[0][ui1] = 'a' + (rand()%26);
+    inp5[0][ui1] = ' ' + (rand()%('~'-' '));
     ri1->name[ui1] = inp5[0][ui1];
   }
   inp5[0][ui1] = 0;
-  ri1->name[ui1] = inp5[0][ui1];
+  for (ui2=0;ui2<ITEM_NAME_BYTEL;ui2++) {
+    ri1->name[ui2] = toupper(ri1->name[ui2]);
+  }
   INIT_TEST_KEYS(inp5[0]);
 
   /* cost, discount */
-  ri1->cost = rand() % (1<<14);
+  ri1->cost = (rand() % (1<<14))+1;
   ri1->discount = rand() % ri1->cost;
   ui2 = 0;
   int2str(inp5[1], ri1->cost, &ui2);
-  inp5[1][ui1] = 0;
+  inp5[1][ui2] = 0;
   INIT_TEST_KEYS(inp5[1]);
   ui2 = 0;
   int2str(inp5[2], ri1->discount, &ui2);
-  inp5[2][ui1] = 0;
+  inp5[2][ui2] = 0;
   INIT_TEST_KEYS(inp5[2]);
 
   /* Prod code */
+  for (ui1=0; ui1<ITEM_PROD_CODE_BYTEL; ui1++) {
+    ri1->prod_code[ui1] = ' ';
+  }
   ui2 = (rand() % (ITEM_PROD_CODE_BYTEL-1)) + 1;
   for (ui1=0; ui1<ui2; ui1++) {
     ri1->prod_code[ui1] = inp[ui1] = '!' + (rand() % ('~'-'!'));
   }
   inp[ui2] = 0;
-  for (;ui2<ITEM_PROD_CODE_BYTEL;ui2++) {
-    ri1->prod_code[ui2] = ' ';
+  for (ui2=0;ui2<ITEM_PROD_CODE_BYTEL;ui2++) {
+    ri1->prod_code[ui2] = toupper(ri1->prod_code[ui2]);
   }
   INIT_TEST_KEYS(inp);
 
@@ -60,16 +68,19 @@ make_item(struct item *ri1, uint8_t rand_save)
   
   /* vat */
   ri1->vat_sel = rand() % EPS_MAX_VAT_CHOICE;
-  ui2 = 0;
-  int2str(inp3, ri1->vat_sel, &ui2);
-  inp3[ui1] = 0;
+  for (ui2=0; ui2<ri1->vat_sel; ui2++) {
+    inp3[ui2] = ASCII_RIGHT;
+  }
+  inp3[ui2] = 0;
   INIT_TEST_KEYS(inp3);
 
   /* serv tax */
   ri1->has_serv_tax = rand();
   ui2 = 0;
-  int2str(inp4, ri1->vat_sel, &ui2);
-  inp4[ui1] = 0;
+  for (ui2=0; ui2<ri1->has_serv_tax; ui2++) {
+    inp4[ui2] = ASCII_RIGHT;
+  }
+  inp4[ui2] = 0;
   INIT_TEST_KEYS(inp4);
 
   /* confirm save of item */
@@ -79,56 +90,102 @@ make_item(struct item *ri1, uint8_t rand_save)
   }
   inp5[3][ui2] = 0;
   save = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(inp5[3]);
 
   arg1.valid = MENU_ITEM_NONE;
   arg1.value.sptr = bufSS;
+  //printf("test_key[0]:'%s'\n", test_key[0]);
   menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
   menuAddItem(MENU_MNORMAL);
-  printf("test_key_arr_idx:%d\n", test_key_arr_idx);
+  //printf("test_key_arr_idx:%d\n", test_key_arr_idx);
 
   /* find index that it would use to store */
   for (ui1=0; ui1<ITEM_MAX; ui1++) {
     if (0 == all_items[ui1].id)
       break;
   }
-  assert (ui1 < ITEM_MAX);
 
-  struct item it;
-  char *b = (char *)&it;
-  ui4 = menuItemAddr(ui1);
-  for (ui2=0; ui2<ITEM_SIZEOF; ui2++, ui4++) {
-    b[ui2] = eeprom_read_byte((uint8_t *)ui4);
+  if (ui1 < ITEM_MAX) {
+    struct item it;
+    ee24xx_read_bytes((uint8_t *)menuItemAddr(ui1), (void *)&it, ITEM_SIZEOF);
+    ri1->id = save ? ui1+1 : 0;
+    assert(ri1->id == it.id);
   }
-  ri1->id = save ? ui1 : 0;
 }
 
-//void
-//compare_item(item *ri, uint16_t flash_item)
-//{
-//  uint16_t ui1;
-//  item rif;
-//  char *bufTT = (void *) &(rif);
-//
-//  for (ui1=0; ui1<ITEM_SIZEOF; ui1++)
-//    bufTT[ui1] = FlashReadByte(flash_item+ui1);
-//
-//  if (0 != strncmp(&(ri->name[0]), &(rif.name[0]))) {
-//    fprintf(stderr, "ERROR: Name mismatch Exp:'%s' Obt:'%s'\n", ri->name, rif.name);
+uint16_t
+uint8ncmp(uint8_t *s1, uint8_t *s2, uint16_t size)
+{
+  while (size) {
+    if (s1[size] != s1[size])
+      return size;
+    size--;
+  }
+  return 0;
+}
+
+void
+compare_item(struct item *ri, uint16_t ee24x_addr)
+{
+  uint16_t ui1;
+  struct item rif;
+  char *bufTT = (void *) &(rif);
+
+  /* load item */
+  assert(ITEM_SIZEOF == ee24xx_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
+//  for (ui1=0; ui1<ITEM_SIZEOF;) {
+//    printf("%02x ", bufTT[ui1]);
+//    ui1++;
+//    if (0 == (ui1%16)) printf("\n");
 //  }
-//  if (ri->cost != rif.cost) {
-//    fprintf(stderr, "ERROR: cost mismatch Exp:'%s' Obt:'%s'\n", ri->cost, rif.cost);
-//  }
-//  if (ri->discount != rif.discount) {
-//    fprintf(stderr, "ERROR: discount mismatch Exp:'%s' Obt:'%s'\n", ri->discount, rif.discount);
-//  }
-//  if (ri->vat_sel != rif.vat_sel) {
-//    fprintf(stderr, "ERROR: vat_sel mismatch Exp:'%s' Obt:'%s'\n", ri->vat_sel, rif.vat_sel);
-//  }
-//  if (ri->has_serv_tax != rif.has_serv_tax) {
-//    fprintf(stderr, "ERROR: cost mismatch Exp:'%s' Obt:'%s'\n", ri->has_serv_tax, rif.has_serv_tax);
-//  }
-//}
-//
+//  printf("\n");
+
+  printf("rif.name:'%s'\n", rif.name);
+  if (ri->id != rif.id) {
+    printf("ERROR: id mismatch Exp:'%d' Obt:'%d'\n", ri->id, rif.id);
+  }
+  if (0 != strncmp(&(ri->name[0]), &(rif.name[0]), ITEM_NAME_BYTEL)) {
+    printf("ERROR: Name mismatch Exp:'%s' Obt:'%s'\n", ri->name, rif.name);
+  }
+  if (ri->cost != rif.cost) {
+    printf("ERROR: cost mismatch Exp:'%d' Obt:'%d'\n", ri->cost, rif.cost);
+  }
+  if (ri->discount != rif.discount) {
+    printf("ERROR: discount mismatch Exp:'%d' Obt:'%d'\n", ri->discount, rif.discount);
+  }
+  ui1 = uint8ncmp(ri->prod_code, rif.prod_code, ITEM_PROD_CODE_BYTEL);
+  if (0 != ui1) {
+    printf("ERROR: prod_code mismatch byte:%d\n", ui1);
+  }
+  ui1 = uint8ncmp(ri->name_unicode, rif.name_unicode, ITEM_NAME_UNI_BYTEL);
+  if (0 != ui1) {
+    printf("ERROR: name-unicode mismatch byte:%d\n", ui1);
+  }
+  if (ri->vat_sel != rif.vat_sel) {
+    printf("ERROR: vat_sel mismatch Exp:'%d' Obt:'%d'\n", ri->vat_sel, rif.vat_sel);
+  }
+  if (ri->has_serv_tax != rif.has_serv_tax) {
+    printf("ERROR: serv_tax mismatch Exp:'%d' Obt:'%d'\n", ri->has_serv_tax, rif.has_serv_tax);
+  }
+
+  /* */
+  uint32_t ui32_1;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
+  for (ui1=0, ui16_1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
+    assert(ri->name[ui1] == rif.name[ui1]);
+    printf("rif.name:%s ri->c:0x%x rif.c:0x%x\n", rif.name, ri->name[ui1], rif.name[ui1]);
+    assert(ri->name[ui1] >= ' ');
+    assert(ri->name[ui1] < '~');
+    ui16_1 = _crc16_update(ui16_1, ri->name[ui1]);
+  }
+  ui32_1 = itemIdxs + (ri->id - 1);
+  ui16_2 = pgm_read_mem(ui32_1+2);
+  ui16_2 <<= 8;
+  ui16_2 |= pgm_read_mem(ui32_1+3);
+  assert(ui16_1 == ui16_2);
+  printf("ui16_1:0x%0x ui16_2:0x%0x\n", ui16_1, ui16_2);
+}
+
 //void
 //delete_item(item *ri, uint16_t id)
 //{
@@ -147,17 +204,24 @@ make_item(struct item *ri1, uint8_t rand_save)
 //}
 
 int
-main(void)
+main(int argc, char *argv[])
 {
+  struct item ri;
   uint32_t ui1, ui2, ui3;
 
-  srand(time(NULL));
+  if ((argc == 1) || (0 == argv[1]))
+    ui1 = time(NULL);
+  else
+    ui1 = atoi(argv[1]);
+  printf("seed : %d\n", ui1);
+  srand(ui1);
 
   /* */
   assert_init();
   menuInit();
   i2c_init();
   ep_store_init();
+  KbdInit();
 
   /* test init */
   for (ui1=0; ui1<EEPROM_SIZE; ui1++)
@@ -169,30 +233,34 @@ main(void)
   }
   KBD_RESET_KEY;
 
+#define NUM_ITEMS2TEST  1 //ITEM_MAX
   /* Test to check the number of items that could be stored */
-  for (ui1=0; ui1<1; ui1++) {
-    make_item(&(all_items[ui1]), 0);
+  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+    make_item(all_items+ui1, 0);
   }
-  { /* adding one more item should hit an assertion */
-    struct item ri;
-    //    add_expect_assert("Items Exceeded");
-    //    make_item(&ri, 0);
-  }
-  printf("lcd_buf:'%s'\n", lcd_buf[0]);
+  /* adding one more item should hit an assertion */
+  make_item(&ri, 0);
+  assert(0 == strncmp(lcd_buf[0], "Items full      ", LCD_MAX_COL));
+  RESET_TEST_KEYS;
 
-//  /* Check all items as per expectations */
-//  for (ui1=0; ui1<1; ui1++) {
-//    compare_item(all_items+ui1, flash_item_find(ui1));
-//  }
-//
-//  /* Now delete an item and check if the item was replaced */
-//  ui1 = rand() % ITEM_MAX;
-//  delete_item(all_items+ui1, ui1);
-//  compare_item(all_items+ui1, flash_item_find(ui1));
-//
-//  /* Now add item and check for validness*/
-//  add_item(all_items+ui1);
-//  for (ui1=0; ui1<1; ui1++) {
-//    compare_item(all_items+ui1, flash_item_find(ui1));
-//  }
+  /* Check all items as per expectations */
+  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+    //printf("compare_item: 0:%p 1:%x\n", all_items+ui1, menuItemAddr(ui1+1));
+    compare_item(all_items+ui1, menuItemAddr(ui1));
+  }
+
+  /* Now delete an item and check if the item was replaced */
+  ui1 = rand() % ITEM_MAX;
+  ui1++;
+  arg1.valid = MENU_ITEM_NONE;
+  int2str(inp, ui1, &ui2);
+  INIT_TEST_KEYS(inp);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_ID);
+  menuDelItem(MENU_MNORMAL);
+  ee24xx_read_bytes(menuItemAddr((ui1-1)), (void *)&ri, ITEM_SIZEOF);
+  assert(0 == ri.id);
+
+  /* Now add item and check for validness*/
+  make_item(all_items+ui1-1, 0);
+  //  compare_item(all_items+ui1-1, menuItemAddr((ui1-1)));
 }
