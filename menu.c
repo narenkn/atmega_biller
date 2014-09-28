@@ -170,6 +170,13 @@ static uint8_t devStatus = 0;   /* 0 is no err */
 #define DS_DEV_20K  (1<<4)
 #define DS_DEV_INVALID (0xFF)
 
+/* data struct for FF */
+FATFS FS;
+FIL   Fil;
+
+/* Diagnosis */
+uint16_t diagStatus;
+
 /* Helper routine to obtain input from user */
 void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
@@ -618,13 +625,12 @@ menuInit(void)
 
   /* init global vars */
   devStatus = 0;
+  diagStatus = 0;
 
   /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
-  FATFS FS;
-  FIL   Fil;
   UINT ret_val;
   memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(FIL));
+  memset(&Fil, 0, sizeof(Fil));
   //  change_sd(0); /* FIXME: */
   PSTR2STR(BillFileName, bufSS, ui8_1, ui8_2);
   if ( (FR_OK == f_mount(&FS, ".", 1)) &&
@@ -932,13 +938,11 @@ menuBilling(uint8_t mode)
     sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
   /* Save the bill to SD */
-  FATFS FatFs1;
-  FIL Fil;
   UINT ret_val;
-  memset(&FatFs1, 0, sizeof(FatFs1));
-  memset(&Fil, 0, sizeof(FIL));
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
   //  change_sd(0); /* FIXME: */
-  f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
+  f_mount(&FS, "", 0);		/* Give a work area to the default drive */
   if (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     /* Move to end of the file to append data */
     ui32_2 = f_size(&Fil);
@@ -1417,20 +1421,6 @@ menuPrintTestPage(uint8_t mode)
   PRINTER_PRINT_TEST_PAGE;
 }
 
-// Not tested
-void
-menuDiagPrinter(uint8_t mode)
-{
-  uint8_t ui8_1 = printerStatus();
-  if (0 == ui8_1) {
-    LCD_ALERT("Printer:No Paper");
-  } else if (ui8_1 >= 60) {
-    LCD_ALERT("Printer Too Hot");
-  } else {
-    LCD_ALERT("Printer OK");
-  }
-}
-
 // Not unit tested
 void
 menuPrnBill(struct sale *sl)
@@ -1514,8 +1504,6 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
-  FATFS FS;
-  FIL   Fil;
   UINT  ret_val;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint16_t ui16_1, ui16_2;
@@ -1581,8 +1569,6 @@ menuBillReports(uint8_t mode)
 void
 menuShowBill(uint8_t mode)
 {
-  FATFS FS;
-  FIL   Fil;
   UINT  ret_val;
   uint8_t  ui8_1;
   uint16_t ui16_1, ui16_2;
@@ -1854,7 +1840,6 @@ menuSetDateTime(uint8_t mode)
 void
 menuDelAllBill(uint8_t mode)
 {
-  FATFS FS;
   uint16_t ui16_1;
   uint8_t ui8_1, ui8_2;
   uint8_t *ui8_1p = (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1874,46 +1859,288 @@ menuDelAllBill(uint8_t mode)
   f_mount(NULL, "", 0);
 }
 
+#define DIAG_FLASHMEM_SIZE   16
+const uint8_t diagFlashMem[DIAG_FLASHMEM_SIZE] PROGMEM =
+  { [ 0 ... (DIAG_FLASHMEM_SIZE - 1) ] = 0 };
+
 // Not unit tested
 void
 menuRunDiag(uint8_t mode)
 {
-  uint8_t  ui2, ui3, ui4;
+  uint16_t ui16_1, rand_seed;
+  uint8_t  ui8_1, ui8_2;
 
-  /* FIXME: Verify LCD */
+  /* init */
+  rand_seed = get_fattime();
+
+  /* Verify LCD */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis LCD"), 16);
+  _delay_ms(1000);
+  for (ui8_1=0; ui8_1<LCD_MAX_ROW; ui8_1++) {
+    LCD_WR_LINE_NP(ui8_1, 0, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", LCD_MAX_COL);
+  }
+  LCD_refresh();
+  _delay_ms(2000);
+  LCD_POS(0, 0);
+  for (ui8_1=0; ui8_1<(LCD_MAX_ROW*LCD_MAX_COL); ui8_1++) {
+    LCD_PUTCH('a' + ui8_1);
+  }
+  LCD_refresh();
+  _delay_ms(2000);
+  diagStatus |= (0 == menuGetYesNo(PSTR("Can see abcd?"), 13)) ? DIAG_LCD : 0;
+  if (0 == (diagStatus&DIAG_LCD)) {
+    for (ui8_1=0; ui8_1<3; ui8_1++) {
+      BUZZER_ON;
+      _delay_ms(1000);
+      BUZZER_OFF;
+      _delay_ms(1000);
+    }
+    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_DiagStat)), diagStatus);
+    return;
+  }
 
   /* FIXME: Verify TFT */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis TFT"), 13);
+  _delay_ms(1000);
 
   /* FIXME: Adjust LCD/TFT brightness */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diag Display Bri"), 16);
+  _delay_ms(1000);
 
-  /* FIXME: Run Printer : Print test page */
+  /* Run Printer : Print test page */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Prntr"), 15);
+  _delay_ms(1000);
+  ui8_1 = printerStatus();
+  if (0 == ui8_1) {
+    LCD_ALERT("Printer:No Paper");
+    diagStatus |= DIAG_PRINTER;
+  } else if (ui8_1 >= 60) {
+    LCD_ALERT("Printer Too Hot");
+  } else {
+    LCD_ALERT("Printer OK");
+    diagStatus |= DIAG_PRINTER;
+  }
+  /* print default bill */
+  {
+    struct sale sl;
+    /* FIXME: */
+    menuPrnBill(&sl);
+  }
 
-  /* FIXME: Verify unused EEPROM spaces : Write/readback */
+  /* Verify unused EEPROM spaces : Write/readback */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Mem1"), 14);
+  _delay_ms(1000);
+  ui16_1 = offsetof(struct ep_store_layout, unused_scratch);
+  srand(rand_seed);
+  for (ui8_1=0; ui8_1<SCRATCH_MAX; ui8_1++, ui16_1++) {
+    ui8_2 = rand();
+    eeprom_update_byte(ui16_1, ui8_2);
+  }
+  ui16_1 = offsetof(struct ep_store_layout, unused_scratch);
+  srand(rand_seed);
+  for (ui8_1=0; ui8_1<SCRATCH_MAX; ui8_1++, ui16_1++) {
+    ui8_2 = rand();
+    if (ui8_2 != eeprom_read_byte(ui16_1))
+      break;
+  }
+  diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_EE : 0;
 
-  /* FIXME: Verify 24c512 */
+  /* Verify 24c512 */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Mem3"), 14);
+  _delay_ms(1000);
+  struct item *it = (void *)bufSS;
+  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    if (0 == it->id)
+      break;
+  }
+  if (0 == it->id) { /* found empty space */
+    srand(rand_seed);
+    for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
+      bufSS[ui8_1] = rand();
+    it->id = 0; /* only that field determines */
+    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
+      if (rand() != bufSS[ui8_1])
+	break;
+    diagStatus |= (ITEM_SIZEOF == ui8_1) ? DIAG_STORE_I2C : 0;
+  } else {
+    LCD_ALERT("Item Full");
+  }
 
-  /* FIXME: Test timer */
+  /* Test timer */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Timer"), 15);
+  _delay_ms(1000);
+  {
+    uint8_t buf3[3];
+    for (ui8_1=0; ui8_1<10; ui8_1++) {
+      timerDateGet(buf3);
+      LCD_POS(1, 0);
+      LCD_PUTCH('0'+((buf3[0]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[0]&0xF));
+      LCD_PUTCH('/');
+      LCD_PUTCH('0'+((buf3[1]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[1]&0xF));
+      LCD_PUTCH('/');
+      LCD_PUTCH('0'+((buf3[2]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[2]&0xF));
+      timerTimeGet(buf3);
+      LCD_PUTCH('0'+((buf3[0]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[0]&0xF));
+      LCD_PUTCH(':');
+      LCD_PUTCH('0'+((buf3[1]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[1]&0xF));
+      LCD_PUTCH(':');
+      LCD_PUTCH('0'+((buf3[2]>>4)&0xF));
+      LCD_PUTCH('0'+(buf3[2]&0xF));
+      LCD_refresh();
+      _delay_ms(500);
+    }
+    Diagstatus |= (0 == menuGetYesNo(PSTR("Date/Time Corrt?"), 16)) ? DIAG_TIMER : 0;
+  }
 
-  /* FIXME: Verify Flash */
+  /* Verify Flash */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Mem2"), 14);
+  _delay_ms(1000);
+  srand(rand_seed);
+  for (ui8_1=0; ui8_1<DIAG_FLASHMEM_SIZE; ui8_1++) {
+    ui8_2 = rand();
+    /* FIXME: write flash */
+  }
+  srand(rand_seed);
+  ui16_1 = &diagFlashMem;
+  for (ui8_1=0; ui8_1<DIAG_FLASHMEM_SIZE; ui8_1++, ui16_1++) {
+    ui8_2 = rand();
+    if (ui8_2 != pgm_read_mem(ui16_1))
+      break;
+  }
+  diagStatus |= (ui8_1 == DIAG_FLASHMEM_SIZE) ? DIAG_CPU_FL : 0;
 
-  /* FIXME: Verify Keypad : Ask user to press a key and display it */
+  /* Verify Keypad : Ask user to press a key and display it */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Keypad"), 16);
+  _delay_ms(1000);
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_refresh();
+  _delay_ms(2000);
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Key Entered..."), 14);
+  for (ui8_1=0; ;) {
+    LCD_refresh();
+    KBD_RESET_KEY;
+    KBD_GETCH;
+    if (ASCII_ENTER == KbdData) {
+      ui8_1++;
+      if (ui8_1 >= 2)
+	break;
+    } else {
+      ui8_1 = 0;
+      for (ui8_2=0; ui8_2<(LCD_MAX_COL-1); ui8_2++)
+	lcd_buf[LCD_MAX_ROW-1][ui8_2] = lcd_buf[LCD_MAX_ROW-1][ui8_2+1];
+      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = KbdData;
+    }
+  }
+  diagStatus |= (0 == menuGetYesNo(PSTR("Did Keypad work?"), 16)) ? DIAG_KEYPAD : 0;
 
-  /* FIXME: Verify Keyboard */
-
-  /* FIXME: Verify Printer */
-
-  /* FIXME: Diagonise Battery charging */
+  /* Verify Keyboard */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis PS2"), 13);
+  _delay_ms(1000);
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_refresh();
+  _delay_ms(2000);
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Key Entered..."), 14);
+  for (ui8_1=0; ;) {
+    LCD_refresh();
+    KBD_RESET_KEY;
+    KBD_GETCH;
+    if (!isgraph(KbdData)) {
+      ui8_1++;
+      if (ui8_1 >= 2)
+	break;
+    } else {
+      ui8_1 = 0;
+      for (ui8_2=0; ui8_2<(LCD_MAX_COL-1); ui8_2++)
+	lcd_buf[LCD_MAX_ROW-1][ui8_2] = lcd_buf[LCD_MAX_ROW-1][ui8_2+1];
+      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = KbdData;
+    }
+  }
+  diagStatus |= (0 == menuGetYesNo(PSTR("Did PS2 worked?"), 15)) ? DIAG_PS2 : 0;
 
   /* FIXME: Check weighing machine connectivity */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diag Weighing Mc"), 16);
+  _delay_ms(1000);
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_refresh();
+  _delay_ms(2000);
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Weight in KGs..."), 16);
+  LCD_refresh();
+  KBD_RESET_KEY;
+  for (ui8_1=0; ;) {
+    /* FIXME: display the weight */
+    LCD_refresh();
+    _delay_ms(500);
+    if (KBD_HIT) {
+      if (ASCII_ENTER == KbdData) {
+	ui8_1++;
+	if (ui8_1 >= 2)
+	  break;
+      }
+      KBD_RESET_KEY;
+    }
+  }
+  diagStatus |= (0 == menuGetYesNo(PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
 
   /* FIXME: Verify SD card */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis SD"), 12);
+  _delay_ms(1000);
+  {
+    UINT bw;
+    if (FR_OK == f_mount(&FS, "", 0)) {
+      if (f_open(&Fil, "diag.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+	if (FR_OK == f_write(&Fil, "Diag test file creation\r\n", 25, &bw)) {
+	  diagStatus |= (25 == bw) ? DIAG_SD : 0
+	  f_close(&Fil);
+	} else {
+	}
+      } else {
+      }
+    } else {
+    }
+  }
 
-  /* FIXME: Verify Clock speed */
+  /* Verify Buzzer */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Buzzer"), 16);
+  _delay_ms(1000);
+  for (ui8_1=0; ui8_1<5; ui8_1++) {
+    BUZZER_ON;
+    _delay_ms(1000);
+    BUZZER_OFF;
+  }
+  diagStatus |= (0 == menuGetYesNo(PSTR("Did Buzzer Buzz?"), 16)) ? DIAG_BUZZER : 0;
 
-  /* FIXME: Verify Buzzer */
+  /* save status*/
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_DiagStat)), diagStatus);
 
-  /* FIXME: Remove unimplemented line */
-  menuUnimplemented(__LINE__);
+  /* FIXME : Print the status */
+  LCD_CLRSCR;
+  if (0 != menuGetYesNo(PSTR("Print Status?"), 13))
+    return;
+  /* We can't Diagonise Battery charging, so print sentence */
 }
 
 #define ROW_JOIN ,
@@ -2095,26 +2322,24 @@ menuMainStart:
 void
 menuSDLoadItem(uint8_t mode)
 {
-  FATFS FS;
-  FIL   fp;
   UINT  ret_size, ui1;
   uint16_t ui16_1;
   uint8_t ui8_1;
 
   /* */
   memset(&FS, 0, sizeof(FS));
-  memset(&fp, 0, sizeof(fp));
+  memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&fp, SD_ITEM_FILE, FA_READ)) {
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
     LCD_ALERT("File open error");
     goto menuSDLoadItemExit;
   }
 
   /* check version string */
-  if (0 == f_size(&fp)) {
+  if (0 == f_size(&Fil)) {
     LCD_ALERT("File size error");
     goto menuSDLoadItemExit;
-  } else if (FR_OK != f_read(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
+  } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
     LCD_ALERT("File error");
     goto menuSDLoadItemExit;
   } else if (GIT_HASH_SMALL_LEN != ret_size) {
@@ -2138,7 +2363,7 @@ menuSDLoadItem(uint8_t mode)
   /* Check for crc in file */
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
   ui8_1 = 0, ui16_1 = 0;
-  while (FR_OK == f_read(&fp, bufSS, BUFSS_SIZE-2, &ret_size)) {
+  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
     if (0 == ret_size) break;
     if (0 != ui16_1) { /* skip first time */
       ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
@@ -2161,9 +2386,9 @@ menuSDLoadItem(uint8_t mode)
   }
 
   /* */
-  assert(FR_OK == f_lseek(&fp, 0));
+  assert(FR_OK == f_lseek(&Fil, 0));
   struct item *it = (void *)bufSS;
-  while (FR_OK == f_read(&fp, bufSS, ITEM_SIZEOF, &ret_size)) {
+  while (FR_OK == f_read(&Fil, bufSS, ITEM_SIZEOF, &ret_size)) {
     if (ITEM_SIZEOF != ret_size) break; /* reached last */
     if (0 == it->id) continue;
     //printf("loading id:%d\n", it->id);
@@ -2181,8 +2406,6 @@ menuSDLoadItem(uint8_t mode)
 void
 menuSDSaveItem(uint8_t mode)
 {
-  FATFS FS;
-  FIL   fp;
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, signature;
   struct item *it = (void *)bufSS;
@@ -2191,18 +2414,18 @@ menuSDSaveItem(uint8_t mode)
   /* init */
   signature = 0;
   memset(&FS, 0, sizeof(FS));
-  memset(&fp, 0, sizeof(fp));
+  memset(&Fil, 0, sizeof(Fil));
 
   /* */
   f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&fp, SD_ITEM_FILE, FA_WRITE)) {
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_WRITE)) {
     LCD_ALERT("File open error");
     goto menuSDSaveItemExit;
   }
 
   /* Add version string */
   sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
-  f_write(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
+  f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
     signature = _crc16_update(signature, bufSS[ui8_1]);
   assert(GIT_HASH_SMALL_LEN == ret_size);
@@ -2222,7 +2445,7 @@ menuSDSaveItem(uint8_t mode)
     /* */
     if ((0 != it->id) && (! it->is_disabled)) {
       for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2+=ret_size) {
-	f_write(&fp, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
+	f_write(&Fil, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
       }
       for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++) {
 	signature = _crc16_update(signature, bufSS[ui8_1]);
@@ -2230,7 +2453,7 @@ menuSDSaveItem(uint8_t mode)
     }
   }
   bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
-  f_write(&fp, bufSS, 2, &ret_size);
+  f_write(&Fil, bufSS, 2, &ret_size);
   assert(2 == ret_size);
 
  menuSDSaveItemExit:
@@ -2242,8 +2465,6 @@ menuSDSaveItem(uint8_t mode)
 void
 menuSDLoadSettings(uint8_t mode)
 {
-  FATFS FS;
-  FIL   fp;
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2;
   uint8_t ui8_1;
@@ -2251,20 +2472,20 @@ menuSDLoadSettings(uint8_t mode)
 
   /* init */
   memset(&FS, 0, sizeof(FS));
-  memset(&fp, 0, sizeof(fp));
+  memset(&Fil, 0, sizeof(Fil));
 
   /* */
   f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&fp, SD_SETTINGS_FILE, FA_READ)) {
+  if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_READ)) {
     LCD_ALERT("File open error");
     goto menuSDLoadSettingsExit;
   }
 
   /* check version string */
-  if (0 == f_size(&fp)) {
+  if (0 == f_size(&Fil)) {
     LCD_ALERT("File size error");
     goto menuSDLoadSettingsExit;
-  } else if (FR_OK != f_read(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
+  } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
     LCD_ALERT("File error");
     goto menuSDLoadSettingsExit;
   } else if (GIT_HASH_SMALL_LEN != ret_size) {
@@ -2285,7 +2506,7 @@ menuSDLoadSettings(uint8_t mode)
   /* Check for crc in file */
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
   ui8_1 = 0, ui16_1 = 0;
-  while (FR_OK == f_read(&fp, bufSS, BUFSS_SIZE-2, &ret_size)) {
+  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
     if (0 == ret_size) break;
     if (0 != ui16_1) { /* skip first time */
       ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
@@ -2309,9 +2530,9 @@ menuSDLoadSettings(uint8_t mode)
   }
 
   /* */
-  assert(FR_OK == f_lseek(&fp, 0));
+  assert(FR_OK == f_lseek(&Fil, 0));
   ui16_1 = 0;
-  while (FR_OK == f_read(&fp, bufSS, BUFSS_SIZE, &ret_size)) {
+  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE, &ret_size)) {
     if (BUFSS_SIZE != ret_size) break; /* reached last */
     ui16_2 = ((EP_STORE_LAYOUT_SIZEOF-ui16_1)<ret_size) ? (EP_STORE_LAYOUT_SIZEOF-ui16_1): ret_size;
     eeprom_update_block((const void *)bufSS, (void *)ui16_1, ui16_2);
@@ -2325,7 +2546,7 @@ menuSDLoadSettings(uint8_t mode)
   
  menuSDLoadSettingsExit:
   /* */
-  f_close(&fp);
+  f_close(&Fil);
   f_mount(NULL, "", 0);
 }
 
@@ -2333,8 +2554,6 @@ menuSDLoadSettings(uint8_t mode)
 void
 menuSDSaveSettings(uint8_t mode)
 {
-  FATFS FS;
-  FIL   fp;
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, ui16_3, signature;
   uint8_t ui8_1;
@@ -2342,18 +2561,18 @@ menuSDSaveSettings(uint8_t mode)
   /* init */
   signature = 0;
   memset(&FS, 0, sizeof(FS));
-  memset(&fp, 0, sizeof(fp));
+  memset(&Fil, 0, sizeof(Fil));
 
   /* */
   f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&fp, SD_SETTINGS_FILE, FA_WRITE)) {
+  if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_WRITE)) {
     LCD_ALERT("File open error");
     goto menuSDSaveSettingsExit;
   }
 
   /* Add version string */
   sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
-  f_write(&fp, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
+  f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
     signature = _crc16_update(signature, bufSS[ui8_1]);
   assert(GIT_HASH_SMALL_LEN == ret_size);
@@ -2364,7 +2583,7 @@ menuSDSaveSettings(uint8_t mode)
       (EP_STORE_LAYOUT_SIZEOF-ui16_1);
     eeprom_read_block((void *)bufSS, (const void *)ui16_1, ui16_3);
     for (ui16_2=0; ui16_2<ui16_3; ui16_2+=ret_size) {
-      f_write(&fp, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
+      f_write(&Fil, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
     }
     for (ui16_2=0; ui16_2<ui16_3; ui16_2++) {
       signature = _crc16_update(signature, bufSS[ui16_2]);
@@ -2372,7 +2591,7 @@ menuSDSaveSettings(uint8_t mode)
   }
   assert(ui16_1 == EP_STORE_LAYOUT_SIZEOF);
   bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
-  f_write(&fp, bufSS, 2, &ret_size);
+  f_write(&Fil, bufSS, 2, &ret_size);
   assert(2 == ret_size);
 
  menuSDSaveSettingsExit:

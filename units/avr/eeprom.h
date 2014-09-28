@@ -74,6 +74,7 @@ eeprom_read_block (void *pointer_ram, const void *pointer_eeprom, size_t n)
 {
   size_t ui1, ui2 = (size_t)pointer_eeprom;
   for (ui1=0; ui1<n; ui1++, ui2++) {
+    /* FIXME: don't allow page crossover */
     ((uint8_t *)pointer_ram)[ui1] = _avr_eeprom[ui2];
   }
 }
@@ -83,6 +84,7 @@ eeprom_update_block (const void *pointer_ram, void *pointer_eeprom, size_t n)
 {
   size_t ui1, ui2 = (size_t)pointer_eeprom;
   for (ui1=0; ui1<n; ui1++, ui2++) {
+    /* FIXME: don't allow page crossover */
     _avr_eeprom[ui2] = ((uint8_t *)pointer_ram)[ui1];
   }
 }

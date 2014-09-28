@@ -13,6 +13,7 @@ TYPE_UINT32  = 4
 TYPE_STRING  = 5
 TYPE_ARR     = 7
 TYPE_BIT     = 8
+TYPE_STRUCT  = 9
 
 class data_struct:
   error = 0
@@ -98,6 +99,16 @@ class csv2dat:
           crc = (crc >> 1)
     return crc
 
+  def sizeof(self, cl):
+    goffset = 0
+    for t_var, tvars in sorted(cl.variables.items()):
+      for var, s_var in sorted(tvars.items(), key=lambda x: x[1][0], reverse=True):
+        if int(((goffset+s_var[1]) * 10) % 10) > 8:
+          goffset += 1
+          goffset = int(goffset)
+        goffset += s_var[1]
+    return goffset
+
   def make_dat(self, cl):
     csvfile = open(self.options.in_file, 'rb')
     re_1 = re.compile(r'unused')
@@ -125,6 +136,7 @@ class csv2dat:
             print "column '%s' not found in csv(%s)" % (var, self.file)
             self.error += 1
             return
+          if 0 == s_var[1]: s_var[1] = offsetof(cl);
           if int(((goffset+s_var[1]) * 10) % 10) > 8:
             goffset += 1
             goffset = int(goffset)
@@ -243,6 +255,7 @@ class ep_store_layout:
     'SHOP_NAME_SZ_MAX' : 16*1,
     'FOOTER_SZ_MAX' : 16*3,
     'SERIAL_NO_MAX' : 16,
+    'SCRATCH_MAX' : 16,
     'EPS_MAX_VAT_CHOICE' : 6,
     'EPS_CAPTION_SZ_MAX' : 10,
     'EPS_MAX_USERS' : 15,
@@ -255,6 +268,7 @@ class ep_store_layout:
       'ServTax' : ['', 2, TYPE_UINT16],
       'ComnDis' : ['', 2, TYPE_UINT16],
       'RndOff' : ['', 2, TYPE_UINT16],
+      'unused_DiagStat' : ['', 2, TYPE_UINT16],
       'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },
     'uint8_t' : {
@@ -263,6 +277,7 @@ class ep_store_layout:
       ## 16 passwords
       'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 16, TYPE_STRING],
+      'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
