@@ -179,9 +179,9 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
     ui16_1 = _crc16_update(ui16_1, ri->name[ui1]);
   }
   ui32_1 = itemIdxs + (ri->id - 1);
-  ui16_2 = pgm_read_mem(ui32_1+2);
+  ui16_2 = pgm_read_mem(ui32_1+0);
   ui16_2 <<= 8;
-  ui16_2 |= pgm_read_mem(ui32_1+3);
+  ui16_2 |= pgm_read_mem(ui32_1+1);
   assert(ui16_1 == ui16_2);
   printf("ui16_1:0x%0x ui16_2:0x%0x\n", ui16_1, ui16_2);
 }

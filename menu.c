@@ -692,7 +692,7 @@ menuInit(void)
   Medical purpose, max of 20K items :
     So, need 20K*2*2 = 80K bytes : (2 == ITEM_SUBIDX_NAME)
  */
-const uint16_t itemIdxs[ITEM_MAX * ITEM_SUBIDX_NAME] PROGMEM =
+uint16_t itemIdxs[ITEM_MAX * ITEM_SUBIDX_NAME] PROGMEM =
   { [ 0 ... (ITEM_MAX * ITEM_SUBIDX_NAME - 1) ] = 0 };
 
 // Not unit tested
@@ -1012,7 +1012,7 @@ void
 menuAddItem(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint8_t *bufSS_ptr = (void *) it;
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
@@ -1134,13 +1134,34 @@ menuAddItem(uint8_t mode)
   assert(0 == (SPM_PAGESIZE % 4));
   assert(BUFSS_SIZE >= SPM_PAGESIZE);
   
-  /* indexing for faster search */
-  uint8_t sreg = SREG;
-  cli(); /* Disable interrupts */
+  /* indexing for faster search...
+     make sure the data always falls within one SPM PAGE
+   */
+  for (ui8_1=0, ui16_2=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
+    ui16_2 = _crc16_update(ui16_2, it->name[ui8_1]);
+  ui8_2 = -1;
+  for (ui8_1=0, ui16_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+    ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
+    if ((ui8_1 > 0) && isgraph(it->name[ui8_1]) &&
+	(' ' == it->name[ui8_1-1])) {
+      if (-1 == ui8_2) ui8_2 = ui8_1-1;
+    }
+  }
+  for (ui8_1=0, ui16_3=0; (-1 != ui8_2) && (ui8_1<ui8_2); ui8_1++)
+    ui16_3 = _crc16_update(ui16_3, it->name[ui8_1]);
+  for (ui8_1=0, ui16_4=0; ui8_1<3; ui8_1++)
+    ui16_4 = _crc16_update(ui16_4, it->name[ui8_1]);
+  assert(0 == (SPM_PAGESIZE % (ITEM_SUBIDX_NAME*sizeof(uint16_t))));
 
+  /* Disable interrupts */
+  uint8_t ui8_1 = SREG;
+  cli();
   eeprom_busy_wait ();
 
   uint32_t addr = itemIdxs + (it->id-1);
+
+  /* */
+  for (bufSS_ptr=bufSS, ui)
   boot_page_erase (addr & ~((uint32_t)(SPM_PAGESIZE-1)));
   boot_spm_busy_wait ();      // Wait until the memory is erased.
 
@@ -1152,14 +1173,15 @@ menuAddItem(uint8_t mode)
     boot_page_write ((addr & ~((uint32_t)(SPM_PAGESIZE-1))));     // Store buffer in flash page.
   }
 
-  boot_spm_busy_wait();       // Wait until the memory is written.
+  // Wait until the memory is written
+  boot_spm_busy_wait();
 
   // Reenable RWW-section again. We need this if we want to jump back
   // to the application after bootloading.
   boot_rww_enable ();
 
   // Re-enable interrupts (if they were ever enabled).
-  SREG = sreg;
+  SREG = ui8_1;
 }
 
 void
@@ -1183,6 +1205,8 @@ menuDelItem(uint8_t mode)
   ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
   if ((0 == it->id) || (it->is_disabled))
     return;
+
+  /* FIXME: delete falsh search as well */
 
   /* delete */
   it->id = 0;
@@ -1948,7 +1972,7 @@ menuRunDiag(uint8_t mode)
     if (ui8_2 != eeprom_read_byte(ui16_1))
       break;
   }
-  diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_EE : 0;
+  diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_MEM1 : 0;
 
   /* Verify 24c512 */
   LCD_CLRSCR;
@@ -1970,7 +1994,7 @@ menuRunDiag(uint8_t mode)
     for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
       if (rand() != bufSS[ui8_1])
 	break;
-    diagStatus |= (ITEM_SIZEOF == ui8_1) ? DIAG_STORE_I2C : 0;
+    diagStatus |= (ITEM_SIZEOF == ui8_1) ? DIAG_MEM3 : 0;
   } else {
     LCD_ALERT("Item Full");
   }
@@ -2004,7 +2028,7 @@ menuRunDiag(uint8_t mode)
       LCD_refresh();
       _delay_ms(500);
     }
-    Diagstatus |= (0 == menuGetYesNo(PSTR("Date/Time Corrt?"), 16)) ? DIAG_TIMER : 0;
+    diagStatus |= (0 == menuGetYesNo(PSTR("Date/Time Corrt?"), 16)) ? DIAG_TIMER : 0;
   }
 
   /* Verify Flash */
@@ -2023,13 +2047,13 @@ menuRunDiag(uint8_t mode)
     if (ui8_2 != pgm_read_mem(ui16_1))
       break;
   }
-  diagStatus |= (ui8_1 == DIAG_FLASHMEM_SIZE) ? DIAG_CPU_FL : 0;
+  diagStatus |= (ui8_1 == DIAG_FLASHMEM_SIZE) ? DIAG_MEM2 : 0;
 
   /* Verify Keypad : Ask user to press a key and display it */
   LCD_CLRSCR;
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Keypad"), 16);
   _delay_ms(1000);
-  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit"), 16);
   LCD_refresh();
   _delay_ms(2000);
   LCD_CLRSCR;
@@ -2055,7 +2079,7 @@ menuRunDiag(uint8_t mode)
   LCD_CLRSCR;
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis PS2"), 13);
   _delay_ms(1000);
-  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit"), 16);
   LCD_refresh();
   _delay_ms(2000);
   LCD_CLRSCR;
@@ -2081,7 +2105,7 @@ menuRunDiag(uint8_t mode)
   LCD_CLRSCR;
   LCD_WR_LINE_NP(0, 0, PSTR("Diag Weighing Mc"), 16);
   _delay_ms(1000);
-  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit", 16));
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Hit \xDB \xDB to exit"), 16);
   LCD_refresh();
   _delay_ms(2000);
   LCD_CLRSCR;
@@ -2112,7 +2136,7 @@ menuRunDiag(uint8_t mode)
     if (FR_OK == f_mount(&FS, "", 0)) {
       if (f_open(&Fil, "diag.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
 	if (FR_OK == f_write(&Fil, "Diag test file creation\r\n", 25, &bw)) {
-	  diagStatus |= (25 == bw) ? DIAG_SD : 0
+	  diagStatus |= (25 == bw) ? DIAG_SD : 0;
 	  f_close(&Fil);
 	} else {
 	}
