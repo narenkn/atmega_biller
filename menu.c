@@ -663,7 +663,7 @@ menuInit(void)
   ui16_2 = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
   ui16_2 <<= 8;
   ui16_2 |= eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
-  /* FIXME, the CRC needs to be in the printable char set */
+  /* FIXME: the CRC needs to be in the printable char set */
   if (ui16_2 == ui16_1) {
     devStatus |= DS_DEV_1K;
   } else if ( (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
@@ -1080,13 +1080,20 @@ menuAddItem(uint8_t mode)
   arg1.value.sptr = bufSS;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_PRODCODE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
   for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
-    it->prod_code[ui8_1] = toupper(arg1.value.sptr[ui8_1]);
+    it->prod_code[ui8_1] = isgraph(arg1.value.sptr[ui8_1]) ? 
+      toupper(arg1.value.sptr[ui8_1]) : ' ';
   }
   arg2.valid = MENU_ITEM_NONE;
   arg2.value.sptr = bufSS+LCD_MAX_COL;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_UNICODE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_STR);
   if ((MENU_ITEM_STR != arg1.valid) || (MENU_ITEM_STR != arg2.valid))
     goto menuItemInvalidArg;
+
+  /* both shouldn't be empty */
+  if ((0 == isgraph(it->name[0])) && (0 == isgraph(it->prod_code[0]))) {
+    LCD_ALERT("Invalid item");
+    return;
+  }
 
   /* */
   for (ui8_1=0, ui8_2=0, ui8_3=0; ui8_1<LCD_MAX_COL; ui8_1++) {

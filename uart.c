@@ -3,6 +3,8 @@
 #include <avr/pgmspace.h>
 #include "uart.h"
 
+float uartWeight, uartInDecimal;
+
 //**************************************************
 //UART initialize
 //baud rate: 19200  (for controller clock = 8MHz)
@@ -45,6 +47,13 @@ uartInit(void)
   /* For UART select */
   DDRD |= (3<<5);
   PORTD &= ~(3<<5);
+
+  /* Enable the USART Recieve Complete interrupt (USART_RXC) */
+  UCSRB |= (1 << RCXIE);
+
+  /* init */
+  uartInDecimal = 0;
+  uartWeight = 0;
 }
 
 void
@@ -53,21 +62,40 @@ uartSelect(uint8_t uid)
   PORTD |= (uid & 3) << 5;
 }
 
-//**************************************************
-//Function to receive a single byte
-//*************************************************
-uint8_t
-uartReceiveByte( void )
+ISR(USART_RXC_vect)
 {
-  uint8_t data, status;
-	
-  while(!(UCSRA & (1<<RXC))); 	// Wait for incomming data
-	
-  status = UCSRA;
-  data = UDR;
-	
-  return(data);
+  uint8_t ReceivedByte;
+  ReceivedByte = UDR;
+  if ( ('\n' == ReceivedByte) || ('\r' == ReceivedByte) ) {
+    uartWeight = 0;
+    uartInDecimal = 0;
+  } else if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
+    if (0 == uartInDecimal) {
+      weight *= 10;
+      weight += ReceivedByte-'0';
+    } else {
+      weight += uartInDecimal * (ReceivedByte-'0')
+      uartInDecimal /= 10;
+    }
+  } else if ('.' == ReceivedByte)
+    uartInDecimal = 0.1;
 }
+
+////**************************************************
+////Function to receive a single byte
+////*************************************************
+//uint8_t
+//uartReceiveByte( void )
+//{
+//  uint8_t data, status;
+//	
+//  while(!(UCSRA & (1<<RXC))); 	// Wait for incomming data
+//	
+//  status = UCSRA;
+//  data = UDR;
+//	
+//  return(data);
+//}
 
 //***************************************************
 //Function to transmit a single byte
@@ -78,55 +106,4 @@ uartTransmitByte( uint8_t data )
   while ( !(UCSRA & (1<<UDRE)) )
     ; 			                /* Wait for empty transmit buffer */
   UDR = data; 			        /* Start transmition */
-}
-
-
-//***************************************************
-//Function to transmit hex format data
-//first argument indicates type: CHAR, INT or LONG
-//Second argument is the data to be displayed
-//***************************************************
-void
-uartTransmitHex( uint8_t dataType, unsigned long data )
-{
-  uint8_t count, i, temp;
-  uint8_t dataString[] = "0x        ";
-
-  if (dataType == CHAR) count = 2;
-  if (dataType == INT) count = 4;
-  if (dataType == LONG) count = 8;
-
-  for(i=count; i>0; i--)
-    {
-      temp = data % 16;
-      if((temp>=0) && (temp<10)) dataString [i+1] = temp + 0x30;
-      else dataString [i+1] = (temp - 10) + 0x41;
-
-      data = data/16;
-    }
-
-  uartTransmitString (dataString);
-}
-
-//***************************************************
-//Function to transmit a string in Flash
-//***************************************************
-void
-uartTransmitString_P(uint8_t* string)
-{
-  uint8_t ui8_1;
-  while (ui8_1 = pgm_read_byte(&(string[0]))) {
-    uartTransmitByte(ui8_1);
-    string++;
-  }
-}
-
-//***************************************************
-//Function to transmit a string in RAM
-//***************************************************
-void
-uartTransmitString(uint8_t* string)
-{
-  while (*string)
-  uartTransmitByte(*string++);
 }

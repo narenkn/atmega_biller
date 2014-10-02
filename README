@@ -49,4 +49,5 @@ FIXME:
 36. Code weighing machine isr routine
 37. Send sale data through serial/USB port
 38. Store default bill in EEPROM, print in diagnosis.
-39. 
+##39. Check for name/ prod-code in item before accepting it
+40. 
