@@ -172,7 +172,7 @@
   uint8_t ui1_t;			        \
   lcd_buf_p = &(lcd_buf[x][y]);			\
   for (ui1_t=0; (ui1_t<len); ui1_t++) {		\
-    lcd_buf_p[0] = pgm_read_mem(((char *)str)+ui1_t);	\
+    lcd_buf_p[0] = pgm_read_byte_near(((char *)str)+ui1_t);	\
     if (0 == lcd_buf_p[0]) break;		\
     lcd_buf_p++;				\
     if ((ui1_t+1)<len)				\

@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
-#include <avr/boot.h>
 
 #include "menu.h"
 
@@ -414,8 +413,7 @@ menuFactorySettings(uint8_t mode)
   /* Mark all items as deleted : (0==id) */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
     bufSS[ui8_1] = 0;
-  for (ui16_1=0;
-       (EEPROM_MAX_ADDRESS-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
        ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
@@ -607,6 +605,9 @@ menuInit(void)
   uint8_t ui8_1, ui8_2;
   MenuMode = MENU_MRESET;
 
+  /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
+  assert(56 == ITEM_SIZEOF);
+
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   
   assert(1 == sizeof(uint8_t));
@@ -695,6 +696,7 @@ menuInit(void)
 uint16_t itemIdxs[ITEM_MAX * ITEM_SUBIDX_NAME] PROGMEM =
   { [ 0 ... (ITEM_MAX * ITEM_SUBIDX_NAME - 1) ] = 0 };
 
+typedef uint16_t itemIdxArr_t[SPM_PAGESIZE/(4*sizeof(uint16_t))][4];
 // Not unit tested
 void
 menuBilling(uint8_t mode)
@@ -764,7 +766,7 @@ menuBilling(uint8_t mode)
       }
     }
 
-    for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+    for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
       ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
       /* invalid item */
@@ -1012,7 +1014,7 @@ void
 menuAddItem(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
-  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4, ui16_5;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint8_t *bufSS_ptr = (void *) it;
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
@@ -1027,7 +1029,7 @@ menuAddItem(uint8_t mode)
   }
 
   /* Find space to place item */
-  for (ui16_1=0, ui16_2=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX_ADDR;
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2), ui16_2++) {
     ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
     if (((mode&MENU_MODITEM) ? arg1.value.integer.i16 : 0 ) == it->id) {
@@ -1160,35 +1162,8 @@ menuAddItem(uint8_t mode)
     ui16_4 = _crc16_update(ui16_4, it->name[ui8_1]);
   assert(0 == (SPM_PAGESIZE % (ITEM_SUBIDX_NAME*sizeof(uint16_t))));
 
-  /* Disable interrupts */
-  uint8_t ui8_1 = SREG;
-  cli();
-  eeprom_busy_wait ();
-
-  uint32_t addr = itemIdxs + (it->id-1);
-
-  /* */
-  for (bufSS_ptr=bufSS, ui)
-  boot_page_erase (addr & ~((uint32_t)(SPM_PAGESIZE-1)));
-  boot_spm_busy_wait ();      // Wait until the memory is erased.
-
-  for (ui16_1=0; ui16_1<SPM_PAGESIZE; ui16_1++) {
-    boot_page_fill((addr & ~((uint32_t)(SPM_PAGESIZE-1))) + ui16_1, pgm_read_mem((addr & ~((uint32_t)(SPM_PAGESIZE-1))) + ui16_1) );
-  }
-
-  if (0 != menuIndexItem(it)) {
-    boot_page_write ((addr & ~((uint32_t)(SPM_PAGESIZE-1))));     // Store buffer in flash page.
-  }
-
-  // Wait until the memory is written
-  boot_spm_busy_wait();
-
-  // Reenable RWW-section again. We need this if we want to jump back
-  // to the application after bootloading.
-  boot_rww_enable ();
-
-  // Re-enable interrupts (if they were ever enabled).
-  SREG = ui8_1;
+  /* only valid items needs to be buffered */
+  menuIndexItem(it);
 }
 
 void
@@ -1213,7 +1188,7 @@ menuDelItem(uint8_t mode)
   if ((0 == it->id) || (it->is_disabled))
     return;
 
-  /* FIXME: delete falsh search as well */
+  /* FIXME: delete flash indexing as well */
 
   /* delete */
   it->id = 0;
@@ -1225,109 +1200,53 @@ menuDelItem(uint8_t mode)
 void
 menuIndexAllItems()
 {
-  uint16_t ui16_1, ui16_2, page;
-  uint8_t *buf = bufSS;
-  uint8_t sreg, mods;
+  uint16_t ui16_1, ui16_2;
+  struct item *it = (void *)bufSS;
 
-  // Disable interrupts.
-  sreg = SREG;
-  cli();
-  eeprom_busy_wait();
-
-#define MIAI_PAGE_OPENED 0x10
-  assert( 0 == (SPM_PAGESIZE % (ITEM_SUBIDX_NAME*sizeof(uint16_t))) );
-  mods = 0, page = 0;
-  for (ui16_1=0; ui16_1<ITEM_MAX; ui16_1++) {
-    /* copy page on start of buffer */
-    if (!(mods & MIAI_PAGE_OPENED)) {
-      for (ui16_2=0; ui16_2<SPM_PAGESIZE; ui16_2++) {
-	buf[ui16_2] = pgm_read_mem(((uint8_t *)itemIdxs) + (ui16_1*ITEM_SUBIDX_NAME*sizeof(uint16_t)) + ui16_2);
-      }
-      mods = 0;
-    }
-
-    mods |= menuIndexItem((struct item *)menuItemAddr(ui16_1)) ? 1 : 0;
-
-    if (0 == ((ui16_1+1)%(SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t))))) {
-      if (0 != mods) {
-	boot_page_erase(page);
-	boot_spm_busy_wait();      // Wait until the memory is erased.
-	boot_page_write(page);     // Store buffer in flash page.
-	boot_spm_busy_wait();      // Wait until the memory is written.
-      }
-      mods &= ~MIAI_PAGE_OPENED;
-      page += SPM_PAGESIZE/(ITEM_SUBIDX_NAME*sizeof(uint16_t));
-    }
+  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    if (0 == it->id)
+      break;
   }
-  if (0 != mods) {
-    boot_page_erase(page);
-    boot_spm_busy_wait();
-    boot_page_write(page);
-    boot_spm_busy_wait();
-  }
-#undef MIAI_PAGE_OPENED
-
-  // Reenable RWW-section again. We need this if we want to jump back
-  // to the application after bootloading.
-  boot_rww_enable ();
-
-  // Re-enable interrupts (if they were ever enabled).
-  SREG = sreg;
 }
 
 // Not unit tested
 /* Index this one item */
-uint8_t
+void
 menuIndexItem(struct item *it)
 {
-  uint16_t ui16_1;
+  uint16_t ui16_1, ui16_2;
   uint32_t ui32_1;
-  uint8_t ui8_1, ui8_2, ret;
+  uint8_t ui8_1, ui8_2;
+
+  /* if not valid or if disabled */
+  if ( (0 == it->id) || (it->is_disabled) ) {
+    ui16_1 = 0;
+    ee24xx_read_bytes(ui32_1, (uint8_t *)&ui16_2, 2);
+    if (ui16_2 != ui16_1)
+      ee24xx_write_bytes(ui32_1, (uint8_t *)&ui16_1, 2);
+    ee24xx_read_bytes(ui32_1+2, (uint8_t *)&ui16_2, 2);
+    if (ui16_2 != ui16_1)
+      ee24xx_write_bytes(ui32_1+2, (uint8_t *)&ui16_1, 2);
+    ee24xx_read_bytes(ui32_1+4, (uint8_t *)&ui16_2, 2);
+    if (ui16_2 != ui16_1)
+      ee24xx_write_bytes(ui32_1+4, (uint8_t *)&ui16_1, 2);
+    ee24xx_read_bytes(ui32_1+6, (uint8_t *)&ui16_2, 2);
+    if (ui16_2 != ui16_1)
+      ee24xx_write_bytes(ui32_1+6, (uint8_t *)&ui16_1, 2);
+  }
 
   /* init */
-  ret = 0;
-  ui32_1 = itemIdxs + (it->id-1);
-
-  /* clear index of invalid items */
-  if ((it->is_disabled) || (0 == it->id)) {
-    if ( (0 != pgm_read_mem((void *)ui32_1)) ||
-	 (0 != pgm_read_mem((void *)(ui32_1+1))) ) {
-      boot_page_fill((void *)(ui32_1), 0);
-      boot_page_fill((void *)(ui32_1+1), 0);
-      ret+=2;
-    }
-    if ( (0 != pgm_read_mem((void *)(ui32_1+2))) ||
-	 (0 != pgm_read_mem((void *)(ui32_1+3))) ) {
-      boot_page_fill((void *)(ui32_1+2), 0);
-      boot_page_fill((void *)(ui32_1+3), 0);
-      ret+=2;
-    }
-    if ( (0 != pgm_read_mem((void *)(ui32_1+4))) ||
-	 (0 != pgm_read_mem((void *)(ui32_1+5))) ) {
-      boot_page_fill((void *)(ui32_1+4), 0);
-      boot_page_fill((void *)(ui32_1+5), 0);
-      ret+=2;
-    }
-    if ( (0 != pgm_read_mem((void *)(ui32_1+6))) ||
-	 (0 != pgm_read_mem((void *)(ui32_1+7))) ) {
-      boot_page_fill((void *)(ui32_1+6), 0);
-      boot_page_fill((void *)(ui32_1+7), 0);
-      ret+=2;
-    }
-
-    return ret;
-  }
+  ui32_1 = (uint32_t)(itemIdxs + (it->id-1));
 
   /* */
   ui16_1 = 0;
   for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
     ui16_1 = _crc16_update(ui16_1, it->prod_code[ui8_1]);
-  if ( ((ui16_1&0xFF) != pgm_read_mem((void *)(ui32_1+1))) ||
-       (((ui16_1>>8)&0xFF) != pgm_read_mem((void *)(ui32_1+0))) ) {
-    boot_page_fill((void *)(ui32_1), ui32_1>>8);
-    boot_page_fill((void *)(ui32_1+1), ui32_1);
-    ret++;
-  }
+  ee24xx_read_bytes(ui32_1, (uint8_t *)&ui16_2, 2);
+  if (ui16_2 != ui16_1)
+    ee24xx_write_bytes(ui32_1, (uint8_t *)&ui16_1, 2);
 
   /* */
   ui8_2 = -1;
@@ -1338,12 +1257,9 @@ menuIndexItem(struct item *it)
 	 (' ' != it->name[ui8_1-1]) )
       ui8_2 = ui8_1;
   }
-  if ( (((ui16_1>>8)&0xFF) != pgm_read_mem((void *)(ui32_1+2))) ||
-       (((ui16_1)&0xFF) != pgm_read_mem((void *)(ui32_1+3))) ) {
-    boot_page_fill((void *)(ui32_1+2), ui16_1>>8);
-    boot_page_fill((void *)(ui32_1+3), ui16_1);
-    ret+=2;
-  }
+  ee24xx_read_bytes(ui32_1+2, (uint8_t *)&ui16_2, 2);
+  if (ui16_2 != ui16_1)
+    ee24xx_write_bytes(ui32_1+2, (uint8_t *)&ui16_1, 2);
 #if 4 == ITEM_SUBIDX_NAME
   /* first word of name */
   ui16_1 = 0;
@@ -1354,26 +1270,19 @@ menuIndexItem(struct item *it)
     for (ui8_1=0; ui8_1<ui8_2; ui8_1++)
       ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
   }
-  if ( (((ui16_1>>8)&0xFF) != pgm_read_mem((void *)(ui32_1+4))) ||
-       (((ui16_1)&0xFF) != pgm_read_mem((void *)(ui32_1+5))) ) {
-    boot_page_fill((void *)(ui32_1+4), ui16_1>>8);
-    boot_page_fill((void *)(ui32_1+5), ui16_1);
-    ret++;
-  }
+  ee24xx_read_bytes(ui32_1+4, (uint8_t *)&ui16_2, 2);
+  if (ui16_2 != ui16_1)
+    ee24xx_write_bytes(ui32_1+4, (uint8_t *)&ui16_1, 2);
   /* first 3 letters of name */
   assert(3 <=ITEM_NAME_BYTEL);
   ui16_1 = 0;
   for (ui8_1=0; ui8_1<3; ui8_1++)
     ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
-  if ( (((ui16_1>>8)&0xFF) != pgm_read_mem((void *)(ui32_1+6))) ||
-       (((ui16_1)&0xFF) != pgm_read_mem((void *)(ui32_1+7))) ) {
-    boot_page_fill((void *)(ui32_1+6), ui16_1>>8);
-    boot_page_fill((void *)(ui32_1+7), ui16_1);
-    ret++;
-  }
+  ee24xx_read_bytes(ui32_1+6, (uint8_t *)&ui16_2, 2);
+  if (ui16_2 != ui16_1)
+    ee24xx_write_bytes(ui32_1+6, (uint8_t *)&ui16_1, 2);
 #endif
 
-  return ret;
 }
 
 // Not unit tested
@@ -1986,7 +1895,7 @@ menuRunDiag(uint8_t mode)
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Mem3"), 14);
   _delay_ms(1000);
   struct item *it = (void *)bufSS;
-  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     if (0 == it->id)
@@ -2385,7 +2294,7 @@ menuSDLoadItem(uint8_t mode)
   }
 
   /* Mark all other items as deleted : (0==id) */
-  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     /* id 0 is invalid */
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), bufSS+offsetof(struct item, id), 1<<EEPROM_MAX_DEVICES_LOGN2);
@@ -2462,7 +2371,7 @@ menuSDSaveItem(uint8_t mode)
   assert(GIT_HASH_SMALL_LEN == ret_size);
 
   /* */
-  for (ui16_1=0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     /* fix name, prod_code to uc */

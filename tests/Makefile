@@ -23,9 +23,10 @@ ASMFLAGS += $(CFLAGS)
 ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
+BOOTLOAD = 0x3800
 LDFLAGS = $(COMMON)
 LDFLAGS +=  -Wl,-Map=$(SOURCE:.c=.map)
-
+LDFLAGS += -Wl,--section-start=.bootloader=$(BOOTLOAD)
 
 ## Intel Hex file production flags
 HEX_FLASH_FLAGS = -R .eeprom

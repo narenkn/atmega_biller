@@ -186,7 +186,7 @@ void menuDelItem(uint8_t mode);
 #define menuItemAddr(id) (id*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
 #define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
 void menuIndexAllItems();
-uint8_t menuIndexItem(struct item *it);
+void menuIndexItem(struct item *it);
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code);
 
 /* billing routines */

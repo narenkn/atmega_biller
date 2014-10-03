@@ -49,7 +49,7 @@ uartInit(void)
   PORTD &= ~(3<<5);
 
   /* Enable the USART Recieve Complete interrupt (USART_RXC) */
-  UCSRB |= (1 << RCXIE);
+  UCSRB |= (1 << RXCIE);
 
   /* init */
   uartInDecimal = 0;
@@ -71,10 +71,10 @@ ISR(USART_RXC_vect)
     uartInDecimal = 0;
   } else if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
     if (0 == uartInDecimal) {
-      weight *= 10;
-      weight += ReceivedByte-'0';
+      uartWeight *= 10;
+      uartWeight += ReceivedByte-'0';
     } else {
-      weight += uartInDecimal * (ReceivedByte-'0')
+      uartWeight += uartInDecimal * (ReceivedByte-'0');
       uartInDecimal /= 10;
     }
   } else if ('.' == ReceivedByte)

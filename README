@@ -17,14 +17,17 @@ FIXME:
 15. Refund item
 16. Limit max items for different versions of product
   a. Product 1K
-    1,000 items : EEPROM  56K (1 EEPROM)
-    Flash : 1K * (4*sizeof(uint16_t)) : 8K : use Atmega640
+    1,000 items : EEPROM  56K
+    Indexing    : (4*2*1K) 8K
+    Total       :         64K (1 EEPROM)
   b. Product 5K
-    5,000 items : EEPROM 180K (3 EEPROM)
-    Flash : 5K * (4*sizeof(uint16_t)) : 40K : use Atmega1280
-  c. Product 20K
-    20,000 items : EEPROM 1,280,000 (20 EEPROM)
-    Flash : 20K * (4*sizeof(uint16_t)) : 160K : use Atmega2560
+    5,000 items : EEPROM 280K
+    Indexing    :(4*2*5K) 40K
+    Total       :        320K (5 EEPROM)
+  c. Product 30K
+    30,000 items : EEPROM 1680K (20 EEPROM)
+    Indexing    :(4*2*30K) 240K
+    Total       :         1920K (20 EEPROM)
 ##17. Super user name should be admin & can't be overrided
 18. Show stock status (medical)
 19. Provision for batch name (all other parameters may change as well)
