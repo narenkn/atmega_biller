@@ -1,7 +1,7 @@
 #ifndef BILLING_H
 #define BILLING_H
 
-#if 256 == BUFSS_SIZE
+#if BUFSS_SIZE < 512
 # define MAX_ITEMS_IN_BILL         8
 #elif 512 == BUFSS_SIZE
 # define MAX_ITEMS_IN_BILL        45

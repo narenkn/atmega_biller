@@ -745,7 +745,7 @@ menuBilling(uint8_t mode)
 
   /* memory requirements */
   //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
-  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) < BUFSS_SIZE);
+  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) <= BUFSS_SIZE);
 
   /* if modification of bill is requested... */
   if (mode & MENU_MMODBILL) {
@@ -965,8 +965,6 @@ menuBilling(uint8_t mode)
   sl->info.date_dd = ((ui32_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK)+1;
   sl->info.date_mm = ((ui32_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK)+1;
   sl->info.date_yy = ((ui32_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK);
-  sprintf( bufSS, "sale_%02d_%02d_%04d.dat", ((ui32_2>>FAT_DATE_OFFSET)&FAT_DATE_MASK)+1,
-	   ((ui32_2>>FAT_MONTH_OFFSET)&FAT_MONTH_MASK)+1, ((ui32_2>>FAT_YEAR_OFFSET)&FAT_YEAR_MASK)+1980 );
   sl->info.time_hh = ((ui32_2>>FAT_HOUR_OFFSET)&FAT_HOUR_MASK);
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
@@ -979,6 +977,7 @@ menuBilling(uint8_t mode)
   memset(&Fil, 0, sizeof(Fil));
   //  change_sd(0); /* FIXME: */
   f_mount(&FS, "", 0);		/* Give a work area to the default drive */
+  sprintf(bufSS, "%s", SD_BILLING_FILE);
   if (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
     /* Move to end of the file to append data */
     ui32_2 = f_size(&Fil);
@@ -1040,8 +1039,7 @@ menuBilling(uint8_t mode)
   f_mount(NULL, "", 0);
 
   /* Now print the bill */
-  KBD_GETCH;
-  menuPrnBill(sl);
+  //menuPrnBill(sl);
 }
 
 void
@@ -2215,7 +2213,6 @@ menuMainStart:
     arg1.value.str.sptr = bufSS;
     LCD_CLRSCR;
     menuGetOpt(menu_prompt_str+((menu_prompts[menu_selected<<1])*MENU_PROMPT_LEN), &arg1, menu_args[(menu_selected<<1)]);
-    assert (KBD_HIT);
     KBD_RESET_KEY;
     arg2.valid = MENU_ITEM_NONE;
     arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;

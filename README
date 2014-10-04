@@ -54,4 +54,4 @@ FIXME:
 38. Store default bill in EEPROM, print in diagnosis.
 ##39. Check for name/ prod-code in item before accepting it
 40. Make sure no two items have same name & prod-code : is this required?
-41. 
+41. Show bill : Need to provide facility to enter bill id
