@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#define SD_ITEM_FILE "test_data/items_1.dat"
+
 #define __UNITS_KBD_C
 #define INCL_UNITS_KBD_NCURSES_C
 #include "test_common.c"
@@ -20,6 +22,7 @@ main(void)
   KbdInit();
 
   printw("Press F2 to exit");
+  menuSDLoadItem(0);
   menuMain();
 
   /* Prepare to exit */

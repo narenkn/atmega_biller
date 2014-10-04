@@ -235,8 +235,14 @@ extern  uint16_t         diagStatus;
 #define DIAG_SD               (1<<11)
 #define DIAG_BUZZER           (1<<12)
 
+#ifndef SD_ITEM_FILE
 #define SD_ITEM_FILE          "items.dat"
+#endif
+#ifndef SD_SETTINGS_FILE
 #define SD_SETTINGS_FILE      "settings.dat"
+#endif
+#ifndef SD_BILLING_FILE
 #define SD_BILLING_FILE       "billing.dat"
+#endif
 
 #endif
