@@ -53,4 +53,5 @@ FIXME:
 37. Send sale data through serial/USB port
 38. Store default bill in EEPROM, print in diagnosis.
 ##39. Check for name/ prod-code in item before accepting it
-40. 
+40. Make sure no two items have same name & prod-code : is this required?
+41. 

@@ -36,7 +36,9 @@ uint8_t TIMSK, TCCR2;
 #define cli()
 #define sei()
 
+#ifndef TEST_KEY_ARR_SIZE
 #define TEST_KEY_ARR_SIZE    128
+#endif
 #define NO_MAIN
 
 #include "ep_ds.h"

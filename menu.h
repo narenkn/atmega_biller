@@ -64,7 +64,10 @@ typedef struct {
       uint8_t min;
       uint8_t hour;
     } time;
-    uint8_t *sptr;
+    struct {
+      uint16_t len;
+      uint8_t *sptr;
+    } str;
   } value;
   uint8_t   valid;
 } menu_arg_t;
@@ -155,14 +158,14 @@ extern uint8_t bufSS[BUFSS_SIZE];
 
 #define PSTR2STR(pstr, str, ui_1, ui_2)		\
   for (ui_2=0; ;ui_2++) {			\
-    ui_1 = pgm_read_mem(pstr+ui_2);		\
+    ui_1 = pgm_read_byte(pstr+ui_2);		\
     str[ui_2] = ui_1;				\
     if (0 == ui_1) break;			\
   }
 
 #define PSTR2STRN(pstr, str, ui_1, ui_2, N)	\
   for (ui_2=0; ui_2<N;ui_2++) {			\
-    ui_1 = pgm_read_mem(pstr+ui_2);		\
+    ui_1 = pgm_read_byte(pstr+ui_2);		\
     str[ui_2] = ui_1;				\
     if (0 == ui_1) break;			\
   }
@@ -185,9 +188,8 @@ void menuAddItem(uint8_t mode);
 void menuDelItem(uint8_t mode);
 #define menuItemAddr(id) (id*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
 #define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
-void menuIndexAllItems();
 void menuIndexItem(struct item *it);
-uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code);
+uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
 /* billing routines */
 void menuBilling(uint8_t mode);
@@ -195,7 +197,7 @@ void menuShowBill(uint8_t mode);
 void menuPrnBill(struct sale *sl);
 
 /* User option routines */
-void menuSettingString(uint16_t addr, const uint8_t *quest, uint8_t max_chars);
+void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars);
 void menuSettingUint32(uint16_t addr, const uint8_t *quest);
 void menuSettingUint16(uint16_t addr, const uint8_t *quest);
 void menuSettingUint8(uint16_t addr, const uint8_t *quest);

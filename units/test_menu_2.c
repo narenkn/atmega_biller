@@ -13,27 +13,29 @@ menu_handler(uint8_t ui)
   LCD_refresh();
 }
 
-uint8_t inp[TEST_KEY_ARR_SIZE];
-
 int
 main(void)
 {
-  uint32_t loop;
+  uint32_t loop, size;
   uint8_t ui1;
 
   srand(time(NULL));
 
+  KbdInit();
+
   /* test menuGetOpt::MENU_ITEM_STR */
   for (loop=0; loop<1000; loop++) {
-    for (ui1=0; ui1<LCD_MAX_COL/2; ui1++) {
+    size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;
+    for (ui1=0; ui1<size; ui1++) {
       if (0 == (rand() % 3))
 	inp[ui1] = 'A' + (rand()%26);
       else
 	inp[ui1] = 'a' + (rand()%26);
     }
+    inp[size] = 0;
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    arg1.value.sptr = bufSS;
+    arg1.value.str.sptr = bufSS;
     menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
     assert(0 == strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL));
     if (0 != strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
@@ -46,58 +48,21 @@ main(void)
       putchar('\n');
 #endif
     }
-    assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL/2));
-    if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL/2)) {
-      printf("lcd_buf:");
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
-      printf("\ninp:");
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", inp[ui1]);
-      printf("\n");
-    }
-    assert(0 == strncmp("        ", lcd_buf[0]+LCD_MAX_COL+LCD_MAX_COL/2, LCD_MAX_COL/2));
-    if (0 != strncmp("        ", lcd_buf[0]+LCD_MAX_COL+LCD_MAX_COL/2, LCD_MAX_COL/2)) {
-      printf("\ninp:");
-      for (ui1=0; ui1<LCD_MAX_COL/2; ui1++)
-	printf("%c ", (lcd_buf[0]+LCD_MAX_COL+LCD_MAX_COL/2)[ui1]);
-      printf("\n");
-    }
-  }
-
-  /* test menuGetOpt::MENU_ITEM_STR */
-  for (loop=0; loop<1000; loop++) {
-    for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
-      if (0 == (rand() % 3))
-	inp[ui1] = 'A' + (rand()%26);
-      else
-	inp[ui1] = 'a' + (rand()%26);
-    }
-    INIT_TEST_KEYS(inp);
-    //    printf("After construction:%s\n", inp);
-    KBD_RESET_KEY;
-    menuGetOpt("mlpsdlfjlalkjf", &arg1, MENU_ITEM_STR);
-    //    printf("After getopt:%s\n", inp);
-    assert(0 == strncmp("mlpsdlfj ?       ", lcd_buf[0], LCD_MAX_COL));
-    if (0 != strncmp("mlpsdlfj ?       ", lcd_buf[0], LCD_MAX_COL)) {
-#ifdef DEBUG
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	putchar(lcd_buf[0][ui1]);
-      putchar('\n');
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	putchar(lcd_buf[LCD_MAX_ROW-1][ui1]);
-      putchar('\n');
-#endif
-    }
-    assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL));
-    if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL)) {
-      printf("lcd_buf:");
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
-      printf("\n    inp:");
-      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
-	printf("%c ", inp[ui1]);
-      printf("\n");
+    if (size < LCD_MAX_COL) {
+      assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], size));
+      if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], size)) {
+	printf("size:%d lcd_buf:", size);
+	for (ui1=0; ui1<LCD_MAX_COL; ui1++)
+	  printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
+	printf("\ninp    :");
+	for (ui1=0; ui1<LCD_MAX_COL; ui1++)
+	  printf("%c ", inp[ui1]);
+	printf("\n");
+      }
+    } else {
+      assert('_' == lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1]);
+      assert(0 == strncmp(inp+size-LCD_MAX_COL+1, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL-1));
+      assert(0 == strncmp(inp, arg1.value.str.sptr, size));
     }
   }
 

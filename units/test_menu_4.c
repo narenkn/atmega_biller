@@ -140,7 +140,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
 //  }
 //  printf("\n");
 
-  printf("rif.name:'%s'\n", rif.name);
+  //printf("rif.name:'%s'\n", rif.name);
   if (ri->id != rif.id) {
     printf("ERROR: id mismatch Exp:'%d' Obt:'%d'\n", ri->id, rif.id);
   }
@@ -170,20 +170,20 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
 
   /* */
   uint32_t ui32_1;
-  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
+  uint16_t ui16_1;
+  itemIdxs_t itIdx;
   for (ui1=0, ui16_1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
     assert(ri->name[ui1] == rif.name[ui1]);
-    printf("rif.name:%s ri->c:0x%x rif.c:0x%x\n", rif.name, ri->name[ui1], rif.name[ui1]);
+    //printf("rif.name:%s ri->c:0x%x rif.c:0x%x\n", rif.name, ri->name[ui1], rif.name[ui1]);
     assert(ri->name[ui1] >= ' ');
     assert(ri->name[ui1] < '~');
     ui16_1 = _crc16_update(ui16_1, ri->name[ui1]);
   }
-  ui32_1 = itemIdxs + (ri->id - 1);
-  ui16_2 = pgm_read_mem(ui32_1+0);
-  ui16_2 <<= 8;
-  ui16_2 |= pgm_read_mem(ui32_1+1);
-  assert(ui16_1 == ui16_2);
-  printf("ui16_1:0x%0x ui16_2:0x%0x\n", ui16_1, ui16_2);
+  assert(0 != ri->id);
+  ui32_1 = (uint32_t)((ITEM_MAX_ADDR + (sizeof(itemIdxs_t) * (ri->id-1))) >> EEPROM_MAX_DEVICES_LOGN2);
+  ee24xx_read_bytes(ui32_1, (uint8_t *)&itIdx, sizeof(itemIdxs_t));
+  assert(ui16_1 == itIdx[1]);
+  //printf("ui16_1:0x%0x itIdx[1]:0x%0x\n", ui16_1, itIdx[1]);
 }
 
 //void
@@ -206,8 +206,8 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
 int
 main(int argc, char *argv[])
 {
-  struct item ri;
-  uint32_t ui1, ui2, ui3;
+  struct item ri, ri1;
+  uint32_t ui1, ui2, ui3, ui4;
 
   if ((argc == 1) || (0 == argv[1]))
     ui1 = time(NULL);
@@ -233,7 +233,7 @@ main(int argc, char *argv[])
   }
   KBD_RESET_KEY;
 
-#define NUM_ITEMS2TEST  1 //ITEM_MAX
+#define NUM_ITEMS2TEST  ITEM_MAX
   /* Test to check the number of items that could be stored */
   for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
     make_item(all_items+ui1, 0);
@@ -249,18 +249,59 @@ main(int argc, char *argv[])
     compare_item(all_items+ui1, menuItemAddr(ui1));
   }
 
-  /* Now delete an item and check if the item was replaced */
-  ui1 = rand() % ITEM_MAX;
-  ui1++;
-  arg1.valid = MENU_ITEM_NONE;
-  int2str(inp, ui1, &ui2);
-  INIT_TEST_KEYS(inp);
-  menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_ID);
-  menuDelItem(MENU_MNORMAL);
-  ee24xx_read_bytes(menuItemAddr((ui1-1)), (void *)&ri, ITEM_SIZEOF);
-  assert(0 == ri.id);
+  for (ui2=0; ui2<300; ui2++) {
+    /* Now delete an item and check if the item was replaced */
+    ui1 = rand() % ITEM_MAX;
+    ui1++;
+    arg1.valid = MENU_ITEM_NONE;
+    ui3 = 0;
+    int2str(inp, ui1, &ui3);
+    INIT_TEST_KEYS(inp);
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_ID);
+    menuDelItem(MENU_MNORMAL);
+    ee24xx_read_bytes(menuItemAddr((ui1-1)), (void *)&ri, ITEM_SIZEOF);
+    assert(0 == ri.id);
+    /* check indexing */
+    itemIdxs_t itIdx;
+    ui3 = (uint32_t)((ITEM_MAX_ADDR + (sizeof(itemIdxs_t) * (ui1-1))) >> EEPROM_MAX_DEVICES_LOGN2);
+    ee24xx_read_bytes(ui3, (void *)&itIdx, sizeof(itemIdxs_t));
+    assert(0 == itIdx[0]);
+    assert(0 == itIdx[1]);
+    assert(0 == itIdx[2]);
+    assert(0 == itIdx[3]);
 
-  /* Now add item and check for validness*/
-  make_item(all_items+ui1-1, 0);
-  //  compare_item(all_items+ui1-1, menuItemAddr((ui1-1)));
+    /* Now add item and check for validness*/
+    make_item(all_items+ui1-1, 0);
+    compare_item(all_items+ui1-1, menuItemAddr((ui1-1)));
+  }
+
+  /* find some items */
+  for (ui2=0; ui2<300; ui2++) {
+    ui1 = rand() % ITEM_MAX;
+    ui1++;
+    ee24xx_read_bytes(menuItemAddr((ui1-1)), (void *)&ri, ITEM_SIZEOF);
+    assert(ui1 == ri.id);
+    ui4 = rand() & 3;
+    if (3 == ui4) {
+      ui3 = menuItemFind(ri.name, NULL, &ri1, 0);
+    } else if (2 == ui2) {
+      ui3 = menuItemFind(NULL, ri.prod_code, &ri1, 0);
+    } else {
+      ui3 = menuItemFind(ri.name, ri.prod_code, &ri1, 0);
+    }
+    //    printf("ui1:%d found ui3:0x%d\n", ui1, ui3);
+    assert(-1 != ui3);
+    if (ui1 != ui3) {
+      ee24xx_read_bytes(menuItemAddr((ui3-1)), (void *)&ri1, ITEM_SIZEOF);
+      if (3 == ui4) {
+	//	printf("not equal %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
+	assert(0 == strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL));
+      } else if (2 == ui4) {
+	//	printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
+	assert(0 == strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL));
+      } else assert(0);
+    }
+    //    else printf("equal\n");
+  }
+
 }

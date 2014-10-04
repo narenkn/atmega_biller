@@ -45,7 +45,7 @@ void
 uartTransmitString_P(uint8_t* string)
 {
   uint8_t ui8_1;
-  while (ui8_1 = pgm_read_mem(&(string[0]))) {
+  while (ui8_1 = pgm_read_byte(&(string[0]))) {
     uartTransmitByte(ui8_1);
     string++;
   }

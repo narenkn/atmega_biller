@@ -81,7 +81,7 @@ ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 
   for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
     assert((addr_t+n_bytes) < EEPROM_SIZE);
-    i2c_bytes[addr_t+n_bytes] = data[n_bytes];
+    i2c_bytes[addr_t+n_bytes] = (NULL == data) ? 0 : data[n_bytes];
   }
 
   return num_bytes;
