@@ -4,9 +4,29 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
-#include "uart.c"
+#include "ep_ds.h"
+#include "version.h"
+#include "lcd.h"
+#include "kbd.h"
+#include "ep_store.h"
+#include "billing.h"
+#include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
+#include "menu.h"
+#include "main.h"
+
+//assert(SPM_PAGESIZE == (1<<(FLASH_PAGE_SIZE_LOGN+1)));
+
 #include "lcd.c"
+#include "kbd.c"
+#include "ep_store.c"
+#include "i2c.c"
+#include "uart.c"
+#include "ff.c"
+#include "a1micro2mm.c"
 #include "menu.c"
+#include "main.c"
 
 #define LCD_WriteDirect(loc, str, len) do {	\
   uint8_t _ui1;					\
