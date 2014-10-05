@@ -1,7 +1,7 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-#define PRINTER_MAX_CHARS_ON_LINE   40
+#define PRINTER_MAX_CHARS_ON_LINE   32
 
 #define PRINTER_PRINT(c)			\
   uartTransmitByte(c)
@@ -33,7 +33,7 @@
 #define PRINTER_SLEEP_SET(N)			\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('8'); PRINTER_PRINT(N)
 #define PRINTER_JLEFT   0
-#define PRITNER_JCENTER 1
+#define PRINTER_JCENTER 1
 #define PRINTER_JRIGHT  2
 #define PRINTER_JUSTIFY(N)			\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('a'); \
@@ -92,9 +92,9 @@
   uartTransmitByte('%');			\
   uartTransmitByte(N)
 
-#define PRINTER_SPRINTF(STR, FMT, N)	do {	\
+#define PRINTER_SPRINTF(STR, FMT, ...)	do {	\
   uint8_t ui8_1;				\
-  sprintf(STR, FMT, N);				\
+  sprintf(STR, FMT, __VA_ARGS__);				\
   for (ui8_1=0; 0 != STR[ui8_1]; ui8_1++) {	\
     PRINTER_PRINT(STR[ui8_1]);			\
   }						\

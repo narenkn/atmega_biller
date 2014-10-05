@@ -431,6 +431,23 @@ menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_
   assert (0);
 }
 
+void
+eeprom_update_byte_NP(uint16_t addr, uint8_t *pstr, uint8_t size)
+{
+  uint8_t ui8_1;
+  for (; size; size--) {
+    ui8_1 = pgm_read_byte(pstr);
+    if (0 == ui8_1) break;
+    eeprom_update_byte(addr, ui8_1);
+    addr++;
+    pstr++;
+  }
+  for (; size; size--) {
+    eeprom_update_byte(addr, ' ');
+    addr++;
+  }
+}
+
 // Not unit tested
 /* Load in the factory settings */
 /* Todo:
@@ -454,7 +471,21 @@ menuFactorySettings(uint8_t mode)
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
   }
 
-  menuInit();
+  /* */
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, shop_name),
+			PSTR("Sri Ganapathy Medicals"), SHOP_NAME_SZ_MAX);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_serial_no),
+			PSTR("ABCDEFGHIJKL"), SERIAL_NO_MAX);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, b_head),
+			PSTR("12 Agraharam street, New Tippasandara,\n Bangalore - 52\n TIN:299007249"), HEADER_SZ_MAX);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, b_foot),
+			PSTR("Welcome & come back..."), FOOTER_SZ_MAX);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, currency),
+			PSTR("Rupees"), EPS_WORD_LEN);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, b_pfix),
+			PSTR("A000"), EPS_WORD_LEN);
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, caption),
+			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
 }
 
 void
@@ -1039,7 +1070,7 @@ menuBilling(uint8_t mode)
   f_mount(NULL, "", 0);
 
   /* Now print the bill */
-  //menuPrnBill(sl);
+  menuPrnBill(sl);
 }
 
 void
@@ -1403,19 +1434,31 @@ void
 menuPrnBill(struct sale *sl)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
+  uint8_t prnBuf[256];
+
+  /* Shop name */
+  PRINTER_FONT_ENLARGE(2);
+  PRINTER_JUSTIFY(PRINTER_JCENTER);
+  for (ui8_2=ui8_1=0; ui8_1<SHOP_NAME_SZ_MAX; ) {
+    if (ui8_2 && (0 == (ui8_2%(PRINTER_MAX_CHARS_ON_LINE>>1)))) {
+      PRINTER_PRINT('\n');
+      ui8_2 = 0;
+    } else {
+      ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, shop_name)+ui8_1));
+      PRINTER_PRINT(ui8_3);
+      ui8_1++;
+    }
+    ui8_2++;
+  }
+  PRINTER_FONT_ENLARGE(1);
 
   /* Header */
-  ui8_2 = 0;
   for (ui8_1=0; ui8_1<HEADER_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, b_head)+ui8_1));
-    ui8_2 = ('\n' == ui8_3) ? 0 :
-      ( (PRINTER_MAX_CHARS_ON_LINE == ui8_2) ? 0 : ui8_2+1 );
-    if (0 == ui8_2) {
-      PRINTER_PRINT('\n');
-    }
-    if ('\n' != ui8_3)
-      PRINTER_PRINT(ui8_3);
+    PRINTER_PRINT(ui8_3);
   }
+
+  PRINTER_JUSTIFY(PRINTER_JLEFT);
 
   /* Caption, user, Date */
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
@@ -1427,17 +1470,17 @@ menuPrnBill(struct sale *sl)
   PRINTER_PRINT('u'); PRINTER_PRINT('s'); PRINTER_PRINT('e');
   PRINTER_PRINT('r'); PRINTER_PRINT(':');
   for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
-    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, users)+ui8_1));
+    ui8_3 = sl->info.user[ui8_1];
     assert ('\n' != ui8_3);
     PRINTER_PRINT(ui8_3);
   }
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(bufSS, "%2d", 1+sl->info.date_dd); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(bufSS, "%2d", 1+sl->info.date_mm); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(bufSS, "%4d", 1980+sl->info.date_yy); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(bufSS, "%2d", sl->info.time_hh); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(bufSS, "%02d", sl->info.time_mm); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(bufSS, "%02d", sl->info.time_ss); PRINTER_PRINT('\n');
+  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_dd); PRINTER_PRINT('/');
+  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_mm); PRINTER_PRINT('/');
+  PRINTER_SPRINTF(prnBuf, "%4d", 1980+sl->info.date_yy); PRINTER_PRINT(' ');
+  PRINTER_SPRINTF(prnBuf, "%2d", sl->info.time_hh); PRINTER_PRINT(':');
+  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_mm); PRINTER_PRINT(':');
+  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_ss); PRINTER_PRINT('\n');
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
@@ -1448,20 +1491,20 @@ menuPrnBill(struct sale *sl)
     } else {
       ui8_2 = ui8_1;
     }
-    PRINTER_SPRINTF(bufSS, "%2d. ", ui8_1);
+    PRINTER_SPRINTF(prnBuf, "%2d. ", ui8_1);
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
-    PRINTER_SPRINTF(bufSS, " %4d", sl->items[ui8_3].cost);
-    PRINTER_SPRINTF(bufSS, "(-%4d)", sl->items[ui8_3].discount);
-    PRINTER_SPRINTF(bufSS, " %4d", sl->items[ui8_3].quantity);
-    PRINTER_SPRINTF(bufSS, " %6d\n", sl->items[ui8_3].cost * sl->items[ui8_3].quantity);
+    PRINTER_SPRINTF(prnBuf, " %4d", sl->items[ui8_3].cost);
+    PRINTER_SPRINTF(prnBuf, "(-%4d)", sl->items[ui8_3].discount);
+    PRINTER_SPRINTF(prnBuf, " %4d", sl->items[ui8_3].quantity);
+    PRINTER_SPRINTF(prnBuf, " %6d\n", sl->items[ui8_3].cost * sl->items[ui8_3].quantity);
   }
 
   /* Total */
-  PRINTER_SPRINTF(bufSS, "Total Discount : %.2f\n", sl->t_discount);
-  PRINTER_SPRINTF(bufSS, "Total VAT      : %.2f\n", sl->t_vat);
-  PRINTER_SPRINTF(bufSS, "Total Serv Tax : %.2f\n", sl->t_stax);
-  PRINTER_SPRINTF(bufSS, "Bill Total (Rs): %.2f\n", sl->total);
+  PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", sl->t_discount);
+  PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", sl->t_vat);
+  PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", sl->t_stax);
+  PRINTER_SPRINTF(prnBuf, "Bill Total (Rs): %.2f\n", sl->total);
 
   /* Footer */
   ui8_2 = 0;
@@ -2223,7 +2266,9 @@ menuMainStart:
 #ifdef UNIT_TEST_MENU_1
       UNIT_TEST_MENU_1(menu_selected);
 #else
-      (menu_handlers[menu_selected])(menu_mode[menu_selected]);
+      if (0 == (devStatus & DS_DEV_INVALID)) {
+	(menu_handlers[menu_selected])(menu_mode[menu_selected]);
+      }
 #endif
     }
   } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {

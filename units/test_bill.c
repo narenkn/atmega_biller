@@ -1,49 +1,4 @@
-#include <stdint.h>
-#include <avr/io.h>
-#include <util/delay.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
-
-#include "ep_ds.h"
-#include "version.h"
-#include "lcd.h"
-#include "kbd.h"
-#include "ep_store.h"
-#include "billing.h"
-#include "i2c.h"
-#include "uart.h"
-#include "a1micro2mm.h"
-#include "menu.h"
-#include "main.h"
-
-//assert(SPM_PAGESIZE == (1<<(FLASH_PAGE_SIZE_LOGN+1)));
-
-#include "lcd.c"
-#include "kbd.c"
-#include "ep_store.c"
-#include "i2c.c"
-#include "uart.c"
-#include "ff.c"
-#include "a1micro2mm.c"
-#include "menu.c"
-#include "main.c"
-
-#define LCD_WriteDirect(loc, str, len) do {	\
-  uint8_t _ui1;					\
-  LCD_cmd(loc);					\
-  for (_ui1=0; _ui1<len; _ui1++) {		\
-    LCD_wrchar( ((char *)str)[_ui1] );		\
-  }						\
-} while (0)
-
-#define LCD_uint8x(ch) {			\
-  uint8_t ui2_a = (ch>>4) & 0xF;		\
-  ui2_a = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  LCD_wrchar(ui2_a);				\
-  ui2_a = ch & 0xF;				\
-  ui2_a = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  LCD_wrchar(ui2_a);				\
-}
+#include "test_common.c"
 
 int
 main(void)
@@ -54,28 +9,19 @@ main(void)
 
   uartInit();
   uartSelect(0);
+  printerInit();
 
-  /* Set pin mode & enable pullup */
-  DDRD &= ~((1<<PD2)|(1<<PD3));
-//  PORTD |= (1<<PD2) | (1<<PD3);
-  DDRD |= 0x10;
-  PORTD |= 2<<5;
+  MenuMode = MENU_MSUPER;
+  menuFactorySettings(MENU_MSUPER);
 
-  /* Enable Int0 on falling edge */
-  GICR = 1<<INT0;
-  MCUCR |= 1<<ISC01 | 0<<ISC00;
+  LCD_WR_LINE_N(0, 0, "Bill Sample: ", 13);
+  _delay_ms(10);
 
-  /* Enable Global Interrupts */
-  sei();
-
-  PORTD |= 0x10;
-  LCD_WriteDirect(LCD_CMD_CUR_10, "Bill Sample: ", 13);
-  _delay_ms(1000);
-
-  struct sale *sl = (void *) bufSS;
+  struct sale *sl = (void *) (bufSS+LCD_MAX_COL+LCD_MAX_COL+4);
+  assert(sizeof(struct sale)+LCD_MAX_COL+LCD_MAX_COL+4 <= BUFSS_SIZE);
   sl->info.n_items = 1;
   sl->info.prop    = 0;
-  strncpy_P(sl->info.user, PSTR("naren"), 5);
+  strncpy_P(sl->info.user, PSTR("naren"), 6);
   sl->info.date_yy = 44;
   sl->info.date_mm = 9;
   sl->info.date_dd = 4;

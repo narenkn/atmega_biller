@@ -255,9 +255,9 @@ class item:
 
 class ep_store_layout:
   consts = {
-    'HEADER_SZ_MAX' : 16*6,
-    'SHOP_NAME_SZ_MAX' : 16*1,
-    'FOOTER_SZ_MAX' : 16*3,
+    'HEADER_SZ_MAX' : 32*4,
+    'SHOP_NAME_SZ_MAX' : 16*2,
+    'FOOTER_SZ_MAX' : 32*2,
     'SERIAL_NO_MAX' : 16,
     'SCRATCH_MAX' : 16,
     'EPS_MAX_VAT_CHOICE' : 6,
@@ -285,9 +285,9 @@ class ep_store_layout:
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
-      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*1, TYPE_STRING],
-      'b_head' : ['[HEADER_SZ_MAX]', 16*6, TYPE_STRING],
-      'b_foot' : ['[FOOTER_SZ_MAX]', 16*3, TYPE_STRING],
+      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*2, TYPE_STRING],
+      'b_head' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
+      'b_foot' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
       'key_buzz_off':['', 1, TYPE_UINT8],
       'idle_wait' : ['', 1, TYPE_UINT8],
       'unused_0' : [':1', 0.1, TYPE_BIT],
