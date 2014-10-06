@@ -220,6 +220,8 @@ void menuUnimplemented(uint32_t line);
 void menuRunDiag(uint8_t mode);
 void menuMain(void);
 
+#define f_size(fp) ((fp)->fsize)
+
 extern  uint16_t         diagStatus;
 #define DIAG_LCD              (1<<0)
 #define DIAG_TFT              (1<<1)

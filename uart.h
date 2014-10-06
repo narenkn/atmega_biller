@@ -1,10 +1,6 @@
 #ifndef UART_H
 #define UART_H
 
-#define CHAR 0
-#define INT  1
-#define LONG 2
-
 #define UART_TX_NEWLINE	   \
   uart_transmitByte('\r'); \
   uart_transmitByte('\n')

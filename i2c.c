@@ -533,7 +533,7 @@ get_fattime (void)
   uint32_t dtFat;
 
   /* init with 6/1/2014 */
-  dtFat = ((2014-1980)<<25) | (0<<21) | (5<<16);
+  dtFat = (((uint32_t)(2014-1980))<<25) | (((uint32_t)0)<<21) | (((uint32_t)5)<<16);
 
   /* Process date */
   timerDateGet(buf);

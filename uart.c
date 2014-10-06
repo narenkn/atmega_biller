@@ -81,21 +81,21 @@ ISR(USART_RXC_vect)
     uartInDecimal = 0.1;
 }
 
-////**************************************************
-////Function to receive a single byte
-////*************************************************
-//uint8_t
-//uartReceiveByte( void )
-//{
-//  uint8_t data, status;
-//	
-//  while(!(UCSRA & (1<<RXC))); 	// Wait for incomming data
-//	
-//  status = UCSRA;
-//  data = UDR;
-//	
-//  return(data);
-//}
+//**************************************************
+//Function to receive a single byte
+//*************************************************
+uint8_t
+uartReceiveByte( void )
+{
+  uint8_t data, status;
+
+  while(!(UCSRA & (1<<RXC))); 	// Wait for incomming data
+
+  status = UCSRA;
+  data = UDR;
+
+  return(data);
+}
 
 //***************************************************
 //Function to transmit a single byte

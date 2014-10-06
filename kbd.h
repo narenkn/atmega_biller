@@ -61,7 +61,7 @@
       sleep_disable();				\
       timer2_msb = 0;				\
       LCD_bl_on;				\
-    }
+    }						\
   }
 #else
 # define KBD_GETCH KbdGetCh()
