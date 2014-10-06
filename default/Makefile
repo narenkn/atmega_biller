@@ -10,7 +10,7 @@ TARGET = billmac
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
-COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DERROR\(...\)=
+COMMON = -mmcu=$(MCU) -I.. -DERROR\(...\)=
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON) $(CLINE_ARG)
