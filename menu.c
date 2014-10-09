@@ -3,7 +3,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include <avr/crc16.h>
+#include <util/crc16.h>
 #include <avr/eeprom.h>
 #include <avr/sleep.h>
 #include <util/twi.h>
@@ -1801,24 +1801,27 @@ menuSettingSet(uint8_t mode)
   }
   if (0 == ui8_1) return;
 
-  ui8_2 = pgm_read_byte(&(MenuVars[ui8_1-1].type));
-  ui16_1 = pgm_read_byte(((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr))+1);
+  ui8_2 = pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, type));
+  ui16_1 = pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, ep_ptr)+1);
   ui8_1 <= 8;
-  ui16_1 |= pgm_read_byte((uint8_t *)&(MenuVars[ui8_1-1].ep_ptr));
+  ui16_1 |= pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, ep_ptr));
   switch (ui8_2) {
   case TYPE_UINT8:
-    menuSettingUint8(ui16_1, &(MenuVars[ui8_1-1].name[0]));
+    menuSettingUint8(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
   case TYPE_UINT16:
-    menuSettingUint16(ui16_1, &(MenuVars[ui8_1-1].name[0]));
+    menuSettingUint16(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
     break;
   case TYPE_UINT32:
-    menuSettingUint32(ui16_1, &(MenuVars[ui8_1-1].name[0]));
+    menuSettingUint32(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
     break;
   case TYPE_STRING:
-    menuSettingString(ui16_1, &(MenuVars[ui8_1-1].name[0]), pgm_read_byte(&(MenuVars[ui8_1-1].size)));
+    menuSettingString(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name),
+		      pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)));
     break;
   case TYPE_BIT:
-    menuSettingBit(ui16_1, &(MenuVars[ui8_1-1].name[0]), pgm_read_byte(&(MenuVars[ui8_1-1].size)), pgm_read_byte(&(MenuVars[ui8_1-1].size2)));
+    menuSettingBit( ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name),
+		    pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)),
+		    pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size2)) );
     break;
   default:
     assert(0);
@@ -1838,13 +1841,10 @@ menuSettingPrint(uint8_t mode)
   uint32_t ui32_1;
 
   for (ui8_1=0; ui8_1<MENU_VARS_SIZE; ui8_1++) {
-    ui8_2 = pgm_read_byte(&(MenuVars[ui8_1].type));
-    ui16_1 = pgm_read_byte(((uint8_t *)&(MenuVars[ui8_1].ep_ptr))+1);
-    ui8_1 <= 8;
-    ui16_1 |= pgm_read_byte((uint8_t *)&(MenuVars[ui8_1].ep_ptr));
-
+    ui8_2 = pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, type));
+    ui16_1 = pgm_read_word(MenuVars+ui8_1+offsetof(struct menu_vars, ep_ptr));
     for (ui8_2=0; ui8_2<ITEM_NAME_BYTEL; ui8_2++)
-      PRINTER_PRINT(pgm_read_byte(&(MenuVars[ui8_1].name[ui8_2])));
+      PRINTER_PRINT(pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, name)+ui8_2));
     PRINTER_PRINT('\t');
     if ( (TYPE_UINT8 == ui8_2) || (TYPE_UINT16 == ui8_2) ||
 	 (TYPE_UINT32 == ui8_2) || (TYPE_BIT == ui8_2) ) {
@@ -1885,7 +1885,6 @@ menuDelAllBill(uint8_t mode)
 }
 
 #define DIAG_FLASHMEM_SIZE   16
-/* FIXME: PROGMEM */
 const uint8_t diagFlashMem[DIAG_FLASHMEM_SIZE] PROGMEM =
   { [ 0 ... (DIAG_FLASHMEM_SIZE - 1) ] = 0 };
 
@@ -2177,7 +2176,6 @@ menuRunDiag(uint8_t mode)
 #define MENU_FUNC(A) A
 #define ARG1(A, B)
 #define ARG2(A, B)
-/* FIXME: PROGMEM */
 menu_func_t menu_handlers[] PROGMEM = {
   MENU_ITEMS
 };
@@ -2198,7 +2196,6 @@ menu_func_t menu_handlers[] PROGMEM = {
 #define MENU_FUNC(A)
 #define ARG1(A, B)
 #define ARG2(A, B)
-/* FIXME: PROGMEM */
 const uint8_t menu_hier[] PROGMEM = {
   MENU_ITEMS
 };
@@ -2211,7 +2208,6 @@ const uint8_t menu_hier[] PROGMEM = {
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
-/* FIXME: PROGMEM */
 const uint8_t menu_hier_names[] PROGMEM = MENU_HIER_NAMES;
 
 void
@@ -2254,7 +2250,7 @@ menuMainStart:
   if ((ASCII_ENTER == KbdData) && (0 == menu_selhier)) {
     menu_selhier = menu_selected + 1;
     for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
-      if ( ((menu_hier[ui8_1]) == menu_selhier) /* menu appropriate */ &&
+      if ( ((pgm_read_byte(menu_hier+ui8_1)) == menu_selhier) /* menu appropriate */ &&
 	   (0 != (MenuMode & (pgm_read_byte(menu_mode+ui8_1) & MENU_MODEMASK))) /* mode appropriate */
 	   ) {
 	menu_selected = ui8_1;
@@ -2289,7 +2285,7 @@ menuMainStart:
       UNIT_TEST_MENU_1(menu_selected);
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
-	(menu_handlers[menu_selected])(pgm_read_byte(menu_mode+menu_selected));
+	((menu_func_t)pgm_read_dword(menu_handlers+menu_selected))(pgm_read_byte(menu_mode+menu_selected));
       }
 #endif
     }
@@ -2303,7 +2299,7 @@ menuMainStart:
 	if (0 == menu_selected) {
 	  menu_selhier = 0;
 	  break;
-	} else if ( ((menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
+	} else if ( ((pgm_read_byte(menu_hier+menu_selected)) == menu_selhier) /* menu appropriate */ &&
 		    (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
 		   ) {
 	  break;
@@ -2320,7 +2316,7 @@ menuMainStart:
     } else {
       for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
 	menu_selected = (pgm_read_byte(&MENU_MAX) < (1+menu_selected)) ? menu_selected+1 : 0;
-	if ( ((menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
+	if ( ((pgm_read_byte(menu_hier+menu_selected)) == menu_selhier) /* menu appropriate */ &&
 	     (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
 		   ) {
 	  break;

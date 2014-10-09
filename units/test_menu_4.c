@@ -93,7 +93,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   INIT_TEST_KEYS(inp5[3]);
 
   arg1.valid = MENU_ITEM_NONE;
-  arg1.value.sptr = bufSS;
+  arg1.value.str.sptr = bufSS;
   //printf("test_key[0]:'%s'\n", test_key[0]);
   menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
   menuAddItem(MENU_MNORMAL);

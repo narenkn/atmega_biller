@@ -255,7 +255,6 @@ DWORD f_tell(FIL *fp)
   return ftell(fp->fp);
 }
 
-#if 0
 DWORD f_size(FIL *fp)
 {
   DWORD size, temp;
@@ -267,7 +266,6 @@ DWORD f_size(FIL *fp)
 
   return size;
 }
-#endif
 
 #if _FS_MINIMIZE <= 1
 /*-----------------------------------------------------------------------*/
