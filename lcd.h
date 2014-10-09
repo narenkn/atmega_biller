@@ -121,6 +121,8 @@
 
 #endif // #ifdef UNIT_TEST
 
+#if  !LCD_USE_FUNCTIONS
+
 #define LCD_CLRSCR {				\
   uint16_t ui1_t;				\
   lcd_buf_p = (uint8_t *)lcd_buf;		\
@@ -143,6 +145,23 @@
       lcd_buf_p[0] = ' ';		\
     } else {				\
       lcd_buf_p[0] = ((char *)str)[ui2_t];	\
+      ui2_t++;					\
+    }					\
+    lcd_buf_p++;						\
+    if ((ui1_t+1)<LCD_MAX_COL)					\
+      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
+  }					\
+  lcd_buf_prop |= LCD_PROP_DIRTY;		\
+}
+
+#define LCD_WR_LINE_P(x, y, str)  {	\
+  uint8_t ui1_t, ui2_t;				\
+  lcd_buf_p = &(lcd_buf[x][y]);			\
+  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {	\
+    if (0 == pgm_read_byte(((char *)str)+ui2_t)) {		\
+      lcd_buf_p[0] = ' ';		\
+    } else {				\
+      lcd_buf_p[0] = pgm_read_byte(((char *)str)+ui2_t);	\
       ui2_t++;					\
     }					\
     lcd_buf_p++;						\
@@ -216,10 +235,10 @@
   lcd_buf_prop |= LCD_PROP_DIRTY;				\
 }
 
-#define LCD_WR(str) {	 \
-  uint8_t ui1_t;			 \
-  for (ui1_t=0; 0 != str[ui1_t]; ui1_t++) {	 \
-    lcd_buf_p[0] = str[ui1_t];	 \
+#define LCD_WR_P(str) {				 \
+  uint8_t ui1_t;						\
+  for (ui1_t=0; 0 != pgm_read_byte(str+ui1_t); ui1_t++) {	\
+    lcd_buf_p[0] = pgm_read_byte(str+ui1_t);			\
     lcd_buf_p++;		 \
     assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
   }				 \
@@ -276,11 +295,48 @@
 }
 
 #define LCD_ALERT(str)	  \
-  LCD_WR_LINE(0, 0, str)
+  LCD_WR_LINE_P(0, 0, str)
 
 #define LCD_ALERT_16N(str, n) \
-  LCD_WR_LINE(0, 0, str);     \
+  LCD_WR_LINE_P(0, 0, str);     \
   LCD_PUT_UINT16X(n)
+
+#else /* #if !LCD_USE_FUNCTIONS */
+
+void lcd_clrscr();
+#define LCD_CLRSCR lcd_clrscr()
+
+#define LCD_CUR_POS_P lcd_buf_p
+#define LCD_CUR_POS   (&(lcd_buf[0][0])-lcd_buf_p)
+
+void LCD_WR_LINE_P(uint8_t x, uint8_t y, uint16_t str);
+
+void LCD_WR_LINE_N(uint8_t x, uint8_t y, uint8_t *str, uint8_t len);
+
+void LCD_WR_LINE_NP(uint8_t x, uint8_t y, uint16_t str, uint8_t len);
+
+void LCD_WR_LINE_N_EE24XX(uint8_t x, uint8_t y, uint16_t str, uint8_t len);
+
+#define LCD_POS(x, y)				\
+  lcd_buf_p = lcd_buf[0]+((x)*LCD_MAX_COL)+(y)
+
+void LCD_WR_N(uint8_t *str, uint8_t len);
+
+void LCD_WR_P(uint16_t str);
+
+void LCD_PUT_UINT8X(uint8_t ch);
+void LCD_PUT_UINT16X(uint16_t ch);
+void LCD_PUTCH(uint8_t ch);
+void LCD_WR_SPRINTF(uint8_t x, uint8_t y, uint8_t *BUF, uint8_t *FMT, uint8_t N);
+
+#define LCD_ALERT(str)	  \
+  LCD_WR_LINE_P(0, 0, str)
+
+#define LCD_ALERT_16N(str, n) \
+  LCD_WR_LINE_P(0, 0, str);     \
+  LCD_PUT_UINT16X(n)
+
+#endif
 
 extern uint8_t lcd_buf_prop;
 extern uint8_t *lcd_buf_p;

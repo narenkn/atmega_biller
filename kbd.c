@@ -3,9 +3,21 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include <avr/sleep.h>
+#include <avr/crc16.h>
+#include <avr/eeprom.h>
 
+#include "ep_ds.h"
+#include "version.h"
+#include "assert.h"
+#include "lcd.h"
 #include "kbd.h"
+#include "ep_store.h"
+#include "billing.h"
+#include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
+#include "menu.h"
+#include "main.h"
 
 volatile uint8_t KbdData;
 volatile uint8_t KbdDataAvail;
@@ -76,7 +88,7 @@ KbdInit(void)
   GICR |= (1<<INT2);
 
   /* when sleep get to powerdown mode */
-  set_sleep_mode(2);
+//  set_sleep_mode(2);
 }
 
 /* At reset/ idle state
@@ -168,7 +180,7 @@ ISR(INT2_vect)
       /* diff key was hit */
       assert(keyHitData.count > 0);
       keyHitData.count--;
-      KbdData = keyChars[keyHitData._kbdData - 1 + keyHitData.count]; /* FIXME : mul with KCHAR_COLS */
+      KbdData = pgm_read_byte(keyChars+(keyHitData._kbdData - 1 + keyHitData.count)); /* FIXME : mul with KCHAR_COLS */
       KbdDataAvail = 1;
       keyHitData._kbdData = keyHitData.kbdData;
       keyHitData.kbdData = 0;
@@ -214,7 +226,7 @@ ISR(TIMER1_OVF_vect)
   /* key hit stopped */
   assert(keyHitData.count > 0);
   keyHitData.count--;
-  KbdData = keyChars[keyHitData._kbdData - 1 + keyHitData.count]; /* FIXME : mul with KCHAR_COLS */
+  KbdData = pgm_read_byte(keyChars+(keyHitData._kbdData - 1 + keyHitData.count)); /* FIXME : mul with KCHAR_COLS */
   KbdDataAvail = 1;
   keyHitData._kbdData = 0;
   keyHitData.kbdData = 0;
@@ -298,57 +310,57 @@ ISR(INT0_vect)
   LCD_POS(1, 2);
   LCD_PUT_UINT8X(drC);
  
-//  /* --------------------------------------- */
-//  if (kbdDr[0] == 0xE0) {
-//    kbdTransL = 2;    /* E0 XX */
-//    if (kbdDr[1] == 0x12) {    /* E0 12 E0 7C */
-//      kbdTransL = 4;
-//    }
-//    if (kbdDr[1] == 0xF0) {
-//      kbdTransL = 3;    /* E0 F0 XX */
-//      if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
-//	kbdTransL = 6;
-//      }
-//    }
-//  } else if (kbdDr[0] == 0xF0) {
-//    kbdTransL = 2;    /* F0 XX */
-//    if (2 == drC) { /* Break of normal keys */
-//      if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
-//	kbdStatus &= ~ps2ShiftHit;
-//      else if (0x14 == kbdDr[0])
-//	kbdStatus &= ~ps2CtrlHit;
-//      else if (0x11 == kbdDr[0])
-//	kbdStatus &= ~ps2AltHit;
-//      else {
-//	KeyData = pgm_read_byte(&(ps2code2ascii[kbdDr[0]]));
-//	if (ASCII_NUMLK == KeyData) {
-//	  /* FIXME: Switch TOGGLE the light */
-//	} else if (ASCII_UNDEF != KeyData) {
-//	  KbdData = KeyData;
-//	  KbdDataAvail = 1;
-//	}
-//      }
-//    }
-//  } else if (0xE1 == kbdDr[0]) {
-//    kbdTransL = 8;
-//  } else {
-//    /* Make code received, generally no action except for sticky keys */
-//    kbdTransL = 1;
-//    if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
-//      kbdStatus |= ps2ShiftHit;
-//    else if (0x14 == kbdDr[0])
-//      kbdStatus |= ps2CtrlHit;
-//    else if (0x11 == kbdDr[0])
-//      kbdStatus |= ps2AltHit;
-//    /* else if (0xFA == kbdDr[0]) ACKNOWLEDGEMENT FROM KBD */
-//  }
-//
-//  /* --------------------------------------- */
-//  if (drC == kbdTransL) {
-//    if (3 == drC) {
-//      KbdData = pgm_read_byte(&(ps2code2ascii[KeyData]));
-//      KbdDataAvail = 1;
-//    }
-//    drC = 0;
-//  }
+  /* --------------------------------------- */
+  if (kbdDr[0] == 0xE0) {
+    kbdTransL = 2;    /* E0 XX */
+    if (kbdDr[1] == 0x12) {    /* E0 12 E0 7C */
+      kbdTransL = 4;
+    }
+    if (kbdDr[1] == 0xF0) {
+      kbdTransL = 3;    /* E0 F0 XX */
+      if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
+	kbdTransL = 6;
+      }
+    }
+  } else if (kbdDr[0] == 0xF0) {
+    kbdTransL = 2;    /* F0 XX */
+    if (2 == drC) { /* Break of normal keys */
+      if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
+	kbdStatus &= ~ps2ShiftHit;
+      else if (0x14 == kbdDr[0])
+	kbdStatus &= ~ps2CtrlHit;
+      else if (0x11 == kbdDr[0])
+	kbdStatus &= ~ps2AltHit;
+      else {
+	KeyData = pgm_read_byte(ps2code2ascii+kbdDr[0]);
+	if (ASCII_NUMLK == KeyData) {
+	  /* FIXME: Switch TOGGLE the light */
+	} else if (ASCII_UNDEF != KeyData) {
+	  KbdData = KeyData;
+	  KbdDataAvail = 1;
+	}
+      }
+    }
+  } else if (0xE1 == kbdDr[0]) {
+    kbdTransL = 8;
+  } else {
+    /* Make code received, generally no action except for sticky keys */
+    kbdTransL = 1;
+    if ((0x12 == kbdDr[0]) || (0x59 == kbdDr[0]))
+      kbdStatus |= ps2ShiftHit;
+    else if (0x14 == kbdDr[0])
+      kbdStatus |= ps2CtrlHit;
+    else if (0x11 == kbdDr[0])
+      kbdStatus |= ps2AltHit;
+    /* else if (0xFA == kbdDr[0]) ACKNOWLEDGEMENT FROM KBD */
+  }
+
+  /* --------------------------------------- */
+  if (drC == kbdTransL) {
+    if (3 == drC) {
+      KbdData = pgm_read_byte(ps2code2ascii+KeyData);
+      KbdDataAvail = 1;
+    }
+    drC = 0;
+  }
 }

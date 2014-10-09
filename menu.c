@@ -1,8 +1,26 @@
 #include <stdint.h>
-#include <stdlib.h>
+#include <avr/io.h>
+#include <util/delay.h>
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+#include <avr/crc16.h>
+#include <avr/eeprom.h>
+#include <avr/sleep.h>
+#include <util/twi.h>
 
+#include "ep_ds.h"
+#include "version.h"
+#include "assert.h"
+#include "lcd.h"
+#include "kbd.h"
+#include "ep_store.h"
+#include "billing.h"
+#include "i2c.h"
+#include "uart.h"
+#include "a1micro2mm.h"
+#include "ff.h"
 #include "menu.h"
+#include "main.h"
 
 #define ROW_JOIN
 #define COL_JOIN
@@ -12,7 +30,7 @@
 #define MENU_FUNC(A)
 #define ARG1(A, B)
 #define ARG2(A, B)
-const uint8_t *menu_names PROGMEM = MENU_ITEMS;
+const uint8_t menu_names[] PROGMEM = MENU_ITEMS;
 #undef  ARG2
 #undef  ARG1
 #undef  MENU_FUNC
@@ -155,8 +173,7 @@ const uint8_t menu_str1[] PROGMEM =
   ;
 
 /* */
-#define BILLFILENAME "billing.csv"
-const uint8_t BillFileName[] PROGMEM = BILLFILENAME;
+const uint8_t BillFileName[] PROGMEM = SD_BILLING_FILE;
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
@@ -200,7 +217,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   /* Ask a question */
   LCD_WR_LINE_NP(0, 0, prompt, MENU_PROMPT_LEN);
   LCD_POS(0, MENU_PROMPT_LEN);
-  LCD_WR(" ?");
+  LCD_WR_P(PSTR(" ?"));
   LCD_refresh();
 
   /* Set the prompt */
@@ -262,7 +279,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 	if (col_id == LCD_MAX_COL) {
 	  col_id--;
 	  assert(ui16_1>=(LCD_MAX_COL-1));
-	  if (ui16_1<(LCD_MAX_COL-1)) printf("ui16_1:%d\n", ui16_1);
+	  //if (ui16_1<(LCD_MAX_COL-1)) printf("ui16_1:%d\n", ui16_1);
 	  for (ui8_1=1; ui8_1<LCD_MAX_COL; ui8_1++) {
 	    lp[LCD_MAX_COL-ui8_1-1] = arg->value.str.sptr[ui16_1-ui8_1];
 	  }
@@ -413,7 +430,7 @@ menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_
     ui8_1 = LCD_MAX_COL-choice_len-1;
     LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, quest, ui8_1);
     LCD_POS(LCD_MAX_ROW-1, ui8_1);
-    LCD_WR(":");
+    LCD_WR_P(PSTR(":"));
     LCD_WR_N((opt_arr+(ret*choice_len)), choice_len);
     LCD_refresh();
 
@@ -491,7 +508,7 @@ menuFactorySettings(uint8_t mode)
 void
 menuUnimplemented(uint32_t line)
 {
-  LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, "unimplemented ", 14);
+  LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("unimplemented "), 14);
   LCD_PUT_UINT8X(line);
   LCD_refresh();
 }
@@ -516,7 +533,7 @@ menuSetUserPasswd(uint8_t mode)
     if ((!isalnum(ui8_3)) && (ui8_2 > 0))
       break;
     else if (!isalnum(ui8_3)) {
-      LCD_ALERT("Invalid User");
+      LCD_ALERT(PSTR("Invalid User"));
       LCD_refresh();
       KBD_RESET_KEY;
       KBD_GETCH;
@@ -531,7 +548,7 @@ menuSetUserPasswd(uint8_t mode)
   }
   ui8_2 = menuGetChoice(PSTR("Replace at?"), bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS-1) + 1;
   if (0 != menuGetYesNo(menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
-    LCD_ALERT("Aborting!");
+    LCD_ALERT(PSTR("Aborting!"));
     return;
   }
   /* Check user name is unique before accepting */
@@ -543,7 +560,7 @@ menuSetUserPasswd(uint8_t mode)
 	break;
     }
     if (EPS_MAX_UNAME == ui8_1) {
-      LCD_ALERT("Duplicate User");
+      LCD_ALERT(PSTR("Duplicate User"));
       return;
     }
   }
@@ -584,7 +601,7 @@ menuSetPasswd(uint8_t mode)
     }
 
     if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, passwds[(LoginUserId-1)])) != crc_old) {
-      LCD_ALERT("Passwd Wrong!!");
+      LCD_ALERT(PSTR("Passwd Wrong!!"));
       return;
     }
   }
@@ -603,7 +620,7 @@ menuSetPasswd(uint8_t mode)
   }
 
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
-  LCD_ALERT("Passwd Updated");
+  LCD_ALERT(PSTR("Passwd Updated"));
 }
 
 /* Logout an user */
@@ -637,7 +654,7 @@ menuUserLogin(uint8_t mode)
     if (EPS_MAX_UNAME == ui3)
       goto menuUserLogin_found;
   }
-  LCD_ALERT("No user");
+  LCD_ALERT(PSTR("No user"));
   return;
 
  menuUserLogin_found:
@@ -654,7 +671,7 @@ menuUserLogin(uint8_t mode)
   }
 
   if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, passwds) + (ui2*sizeof(uint16_t)))) != crc) {
-    LCD_ALERT("Wrong Passwd");
+    LCD_ALERT(PSTR("Wrong Passwd"));
     return;
   }
 
@@ -707,7 +724,7 @@ menuInit(void)
       assert(2 == ret_val);
       ui16_1 = bufSS[0]; ui16_1 <<= 8; ui16_1 |= bufSS[1];
       if (GIT_HASH_CRC != ui16_1) {
-	LCD_ALERT("Moved old data");
+	LCD_ALERT(PSTR("Moved old data"));
 	for (ui8_1=1; ui8_1; ui8_1++) {
 	  sprintf(bufSS+LCD_MAX_COL, "%s.%d", bufSS, ui8_1);
 	  if (FR_OK != f_stat(bufSS+LCD_MAX_COL, NULL))
@@ -717,7 +734,7 @@ menuInit(void)
       }
     }
   } else { /* SD not found */
-    LCD_ALERT("No SD Found");
+    LCD_ALERT(PSTR("No SD Found"));
     devStatus |= DS_NO_SD;
   }
   f_mount(NULL, "", 0);
@@ -817,8 +834,8 @@ menuBilling(uint8_t mode)
 
     /* Just Enter was hit, may be the user wants to proceed to billing */
     if (0 == ui8_3) {
-      LCD_WR_LINE_N(0, 0, menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_WR_LINE_N(LCD_MAX_ROW-1, 0, menu_str1+(MENU_STR1_IDX_ENTRYES*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+      LCD_WR_LINE_NP(0, 0, menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, menu_str1+(MENU_STR1_IDX_ENTRYES*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
       LCD_refresh();
       KBD_RESET_KEY;
       KBD_GETCH;
@@ -879,7 +896,7 @@ menuBilling(uint8_t mode)
     /* Enable edit of earlier added item  */
     do {
       /* Display item for confirmation */
-      LCD_WR_LINE_N(0, 0, menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+      LCD_WR_LINE_NP(0, 0, menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
       LCD_WR_LINE_N_EE24XX(LCD_MAX_ROW-1, 0, ((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2)), 7);
       LCD_WR_SPRINTF(LCD_MAX_ROW-1, 8, bufSS, "%d", sl->items[ui8_5].quantity);
       LCD_refresh();
@@ -944,7 +961,7 @@ menuBilling(uint8_t mode)
   /* Why would somebody make a 0 item bill? */
   for (; sl->items[ui8_5].quantity>0; ui8_5++) ;
   if (0 == ui8_5) {
-    LCD_ALERT("No bill items");
+    LCD_ALERT(PSTR("No bill items"));
     return;
   }
 
@@ -1020,7 +1037,7 @@ menuBilling(uint8_t mode)
       assert(2 == ret_val);
       ui16_2 = bufSS[0]; ui16_2 <<= 8; ui16_2 |= bufSS[1];
       if (GIT_HASH_CRC != ui16_2) {
-	LCD_ALERT("Del old files");
+	LCD_ALERT(PSTR("Del old files"));
       }
       /* */
       f_lseek(&Fil, ui32_2-2);
@@ -1066,7 +1083,7 @@ menuBilling(uint8_t mode)
     /* */
     f_close(&Fil);
   } else
-    LCD_ALERT("Can't save bill");
+    LCD_ALERT(PSTR("Can't save bill"));
   f_mount(NULL, "", 0);
 
   /* Now print the bill */
@@ -1103,9 +1120,9 @@ menuAddItem(uint8_t mode)
   }
   if ( ui16_1 >= (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2) ) {  /* check if we have enough space here */
     if (mode & MENU_MODITEM) {
-      LCD_ALERT("Invalid ID");
+      LCD_ALERT(PSTR("Invalid ID"));
     } else {
-      LCD_ALERT("Items full");
+      LCD_ALERT(PSTR("Items full"));
     }
     return;
   }
@@ -1113,7 +1130,7 @@ menuAddItem(uint8_t mode)
   goto menuItemSaveArg;
 
  menuItemInvalidArg:
-  LCD_ALERT("Invalid Argument");
+  LCD_ALERT(PSTR("Invalid Argument"));
   return;
 
  menuItemSaveArg:
@@ -1159,7 +1176,7 @@ menuAddItem(uint8_t mode)
 
   /* both shouldn't be empty */
   if ((0 == isgraph(it->name[0])) && (0 == isgraph(it->prod_code[0]))) {
-    LCD_ALERT("Invalid item");
+    LCD_ALERT(PSTR("Invalid item"));
     return;
   }
 
@@ -1243,7 +1260,7 @@ menuDelItem(uint8_t mode)
   /* check validity of argument */
   if ( (MENU_ITEM_ID != arg1.valid) || (0 == arg1.value.integer.i16) ||
        (arg1.value.integer.i16 > ITEM_MAX) ) {
-    ERROR("Invalid Option");
+    ERROR(PSTR("Invalid Option"));
     return;
   }
 
@@ -1535,7 +1552,7 @@ menuBillReports(uint8_t mode)
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     return;
   }
 
@@ -1548,12 +1565,12 @@ menuBillReports(uint8_t mode)
 	   ( (arg1.value.date.year == arg2.value.date.year) &&
 	     (arg1.value.date.month == arg2.value.date.month) &&
 	     (arg1.value.date.day < arg2.value.date.day) ) ) ) {
-    LCD_ALERT("Date Wrong Order");
+    LCD_ALERT(PSTR("Date Wrong Order"));
     return;
   }
   if ( !validDate(arg1.value.date.day, arg1.value.date.month, arg1.value.date.year) ||
        !validDate(arg2.value.date.day, arg2.value.date.month, arg2.value.date.year) ) {
-    LCD_ALERT("Invalid Date");
+    LCD_ALERT(PSTR("Invalid Date"));
     return;
   }
 
@@ -1563,7 +1580,7 @@ menuBillReports(uint8_t mode)
   ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
-    LCD_ALERT("Old Format   ");
+    LCD_ALERT(PSTR("Old Format   "));
     return;
   }
 
@@ -1604,7 +1621,7 @@ menuShowBill(uint8_t mode)
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     return;
   }
 
@@ -1614,7 +1631,7 @@ menuShowBill(uint8_t mode)
   ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
-    LCD_ALERT("Old Format   ");
+    LCD_ALERT(PSTR("Old Format   "));
     return;
   }
 
@@ -1668,6 +1685,7 @@ menuShowBill(uint8_t mode)
   f_mount(NULL, "", 0);
 }
 
+/* FIXME: PROGMEM */
 const struct menu_vars MenuVars[] PROGMEM = { MENU_VAR_TABLE };
 
 void
@@ -1769,7 +1787,7 @@ menuSettingSet(uint8_t mode)
       LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR("Quit ?"), sizeof("Quit ?"));
     } else {
       LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR("Change "), sizeof("Change "));
-      LCD_WR_LINE_NP(LCD_MAX_COL-1, sizeof("Change "), &(MenuVars[ui8_1-1].name[0]), MENU_VAR_NAME_LEN);
+      LCD_WR_LINE_NP(LCD_MAX_COL-1, sizeof("Change "), ((uint16_t)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name), MENU_VAR_NAME_LEN);
     }
     KBD_RESET_KEY;
     KBD_GETCH;
@@ -1858,7 +1876,7 @@ menuDelAllBill(uint8_t mode)
   memset(&FS, 0, sizeof(FS));
   f_mount(&FS, ".", 1);
   if (FR_OK == f_unlink(ui8_1p)) {
-    LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR(BILLFILENAME " Del'd"), sizeof(BILLFILENAME)+sizeof(" Del'd"));
+    LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR(SD_BILLING_FILE " Del'd"), sizeof(SD_BILLING_FILE)+sizeof(" Del'd"));
     _delay_ms(1000);
   }
 
@@ -1867,6 +1885,7 @@ menuDelAllBill(uint8_t mode)
 }
 
 #define DIAG_FLASHMEM_SIZE   16
+/* FIXME: PROGMEM */
 const uint8_t diagFlashMem[DIAG_FLASHMEM_SIZE] PROGMEM =
   { [ 0 ... (DIAG_FLASHMEM_SIZE - 1) ] = 0 };
 
@@ -1923,12 +1942,12 @@ menuRunDiag(uint8_t mode)
   _delay_ms(1000);
   ui8_1 = printerStatus();
   if (0 == ui8_1) {
-    LCD_ALERT("Printer:No Paper");
+    LCD_ALERT(PSTR("Printer:No Paper"));
     diagStatus |= DIAG_PRINTER;
   } else if (ui8_1 >= 60) {
-    LCD_ALERT("Printer Too Hot");
+    LCD_ALERT(PSTR("Printer Too Hot"));
   } else {
-    LCD_ALERT("Printer OK");
+    LCD_ALERT(PSTR("Printer OK"));
     diagStatus |= DIAG_PRINTER;
   }
   /* print default bill */
@@ -1979,7 +1998,7 @@ menuRunDiag(uint8_t mode)
 	break;
     diagStatus |= (ITEM_SIZEOF == ui8_1) ? DIAG_MEM3 : 0;
   } else {
-    LCD_ALERT("Item Full");
+    LCD_ALERT(PSTR("Item Full"));
   }
 
   /* Test timer */
@@ -2158,6 +2177,7 @@ menuRunDiag(uint8_t mode)
 #define MENU_FUNC(A) A
 #define ARG1(A, B)
 #define ARG2(A, B)
+/* FIXME: PROGMEM */
 menu_func_t menu_handlers[] PROGMEM = {
   MENU_ITEMS
 };
@@ -2178,6 +2198,7 @@ menu_func_t menu_handlers[] PROGMEM = {
 #define MENU_FUNC(A)
 #define ARG1(A, B)
 #define ARG2(A, B)
+/* FIXME: PROGMEM */
 const uint8_t menu_hier[] PROGMEM = {
   MENU_ITEMS
 };
@@ -2190,6 +2211,7 @@ const uint8_t menu_hier[] PROGMEM = {
 #undef  ROW_JOIN
 #undef  COL_JOIN
 
+/* FIXME: PROGMEM */
 const uint8_t menu_hier_names[] PROGMEM = MENU_HIER_NAMES;
 
 void
@@ -2231,16 +2253,16 @@ menuMainStart:
 
   if ((ASCII_ENTER == KbdData) && (0 == menu_selhier)) {
     menu_selhier = menu_selected + 1;
-    for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
+    for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
       if ( ((menu_hier[ui8_1]) == menu_selhier) /* menu appropriate */ &&
-	   (0 != (MenuMode & (menu_mode[ui8_1] & MENU_MODEMASK))) /* mode appropriate */
+	   (0 != (MenuMode & (pgm_read_byte(menu_mode+ui8_1) & MENU_MODEMASK))) /* mode appropriate */
 	   ) {
 	menu_selected = ui8_1;
 	break;
       }
     }
     /* No valid menu items, go back */
-    if (MENU_MAX == ui8_1) {
+    if (pgm_read_byte(&MENU_MAX) == ui8_1) {
       menu_selhier = 0; /* menu_selected remains the same */
     }
   } else if ((ASCII_ENTER == KbdData) && (0 != menu_selhier)) {
@@ -2255,19 +2277,19 @@ menuMainStart:
     arg1.valid = MENU_ITEM_NONE;
     arg1.value.str.sptr = bufSS;
     LCD_CLRSCR;
-    menuGetOpt(menu_prompt_str+((menu_prompts[menu_selected<<1])*MENU_PROMPT_LEN), &arg1, menu_args[(menu_selected<<1)]);
+    menuGetOpt(menu_prompt_str+(pgm_read_byte(menu_prompts+(menu_selected<<1))*MENU_PROMPT_LEN), &arg1, pgm_read_byte(menu_args+(menu_selected<<1)));
     KBD_RESET_KEY;
     arg2.valid = MENU_ITEM_NONE;
     arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
     LCD_CLRSCR;
-    menuGetOpt(menu_prompt_str+((menu_prompts[(menu_selected<<1)+1])*MENU_PROMPT_LEN), &arg2, menu_args[((menu_selected<<1)+1)]);
-    if ( (arg1.valid == menu_args[(menu_selected<<1)]) &&
-	 (arg2.valid == menu_args[(menu_selected<<1)+1]) ) {
+    menuGetOpt(menu_prompt_str+(pgm_read_byte(menu_prompts+(menu_selected<<1)+1)*MENU_PROMPT_LEN), &arg2, pgm_read_byte(menu_args+(menu_selected<<1)+1));
+    if ( (arg1.valid == pgm_read_byte(menu_args+(menu_selected<<1))) &&
+	 (arg2.valid == pgm_read_byte(menu_args+(menu_selected<<1)+1)) ) {
 #ifdef UNIT_TEST_MENU_1
       UNIT_TEST_MENU_1(menu_selected);
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
-	(menu_handlers[menu_selected])(menu_mode[menu_selected]);
+	(menu_handlers[menu_selected])(pgm_read_byte(menu_mode+menu_selected));
       }
 #endif
     }
@@ -2276,19 +2298,19 @@ menuMainStart:
       /* selection of menu */
       menu_selected = (0 == menu_selected) ? MENU_HIER_MAX-1 : menu_selected-1;
     } else { /* (0 != menu_selhier) && (0 != menu_selected) */
-      for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
+      for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
 	menu_selected--;
 	if (0 == menu_selected) {
 	  menu_selhier = 0;
 	  break;
 	} else if ( ((menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
-		   (0 != (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) /* mode appropriate */
+		    (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
 		   ) {
 	  break;
 	}
       }
       /* No valid menu items, go back */
-      if (MENU_MAX <= ui8_1) {
+      if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
 	menu_selected = menu_selhier = 0;
       }
     }
@@ -2296,16 +2318,16 @@ menuMainStart:
     if (0 == menu_selhier) {
       menu_selected = (menu_selected >= (MENU_HIER_MAX-1)) ? 0 : menu_selected+1;
     } else {
-      for (ui8_1=0; ui8_1<MENU_MAX; ui8_1++) {
-	menu_selected = (MENU_MAX < (1+menu_selected)) ? menu_selected+1 : 0;
+      for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
+	menu_selected = (pgm_read_byte(&MENU_MAX) < (1+menu_selected)) ? menu_selected+1 : 0;
 	if ( ((menu_hier[menu_selected]) == menu_selhier) /* menu appropriate */ &&
-		   (0 != (MenuMode & (menu_mode[menu_selected] & MENU_MODEMASK))) /* mode appropriate */
+	     (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
 		   ) {
 	  break;
 	}
       }
       /* No valid menu items, go back */
-      if (MENU_MAX <= ui8_1) {
+      if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
 	menu_selected = menu_selhier = 0;
       }
     }
@@ -2339,24 +2361,24 @@ menuSDLoadItem(uint8_t mode)
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     goto menuSDLoadItemExit;
   }
 
   /* check version string */
   if (0 == f_size(&Fil)) {
-    LCD_ALERT("File size error");
+    LCD_ALERT(PSTR("File size error"));
     goto menuSDLoadItemExit;
   } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
-    LCD_ALERT("File error");
+    LCD_ALERT(PSTR("File error"));
     goto menuSDLoadItemExit;
   } else if (GIT_HASH_SMALL_LEN != ret_size) {
-    LCD_ALERT("File error ");
+    LCD_ALERT(PSTR("File error "));
     goto menuSDLoadItemExit;
   }
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
     if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
-      LCD_ALERT("Incompatible file");
+      LCD_ALERT(PSTR("Incompatible file"));
       goto menuSDLoadItemExit;
     }
   }
@@ -2389,7 +2411,7 @@ menuSDLoadItem(uint8_t mode)
   ret_size |= bufSS[BUFSS_SIZE-1];
   if ((0 == ui16_1) || (ui16_1 != ret_size) || (2 != ui8_1)) {
     //    printf("ui16_1:%x ret_size:%x, ui8_1:%d\n", ui16_1, ret_size, ui8_1);
-    LCD_ALERT_16N("File error ", ui16_1);
+    LCD_ALERT_16N(PSTR("File error "), ui16_1);
     goto menuSDLoadItemExit;
   }
 
@@ -2431,7 +2453,7 @@ menuSDSaveItem(uint8_t mode)
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_WRITE)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     goto menuSDSaveItemExit;
   }
 
@@ -2489,24 +2511,24 @@ menuSDLoadSettings(uint8_t mode)
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_READ)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     goto menuSDLoadSettingsExit;
   }
 
   /* check version string */
   if (0 == f_size(&Fil)) {
-    LCD_ALERT("File size error");
+    LCD_ALERT(PSTR("File size error"));
     goto menuSDLoadSettingsExit;
   } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
-    LCD_ALERT("File error");
+    LCD_ALERT(PSTR("File error"));
     goto menuSDLoadSettingsExit;
   } else if (GIT_HASH_SMALL_LEN != ret_size) {
-    LCD_ALERT("File error ");
+    LCD_ALERT(PSTR("File error "));
     goto menuSDLoadSettingsExit;
   }
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
     if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
-      LCD_ALERT("Incompatible file");
+      LCD_ALERT(PSTR("Incompatible file"));
       goto menuSDLoadSettingsExit;
     }
   }
@@ -2537,7 +2559,7 @@ menuSDLoadSettings(uint8_t mode)
   ret_size |= bufSS[BUFSS_SIZE-1];
   if ((0 == ui16_1) || (ui16_1 != ret_size) || (4 != ui8_1)) {
     //    printf("ui16_1:%x ret_size:%x ui8_1:%d\n", ui16_1, ret_size, ui8_1);
-    LCD_ALERT_16N("File error ", ui16_1);
+    LCD_ALERT_16N(PSTR("File error "), ui16_1);
     goto menuSDLoadSettingsExit;
   }
 
@@ -2578,7 +2600,7 @@ menuSDSaveSettings(uint8_t mode)
   /* */
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_WRITE)) {
-    LCD_ALERT("File open error");
+    LCD_ALERT(PSTR("File open error"));
     goto menuSDSaveSettingsExit;
   }
 

@@ -5,6 +5,7 @@
 *.o
 *.elf
 *.lss
+*.lst
 ep_ds.h
 version.h
 \#*

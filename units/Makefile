@@ -1,7 +1,7 @@
 .PHONY: headers clean
 
 NCURSES := /tool/pandora/.package/ncurses-5.7
-CFLAGS  := -g -I. -I.. -DUNIT_TEST -DDEBUG $(CMDLINE_CFLAGS) -I$(NCURSES)/include
+CFLAGS  := -g -I. -I.. -DUNIT_TEST -DDEBUG $(CMDLINE_CFLAGS) -I$(NCURSES)/include -DLCD_USE_FUNCTIONS=1
 LDFLAGS := -L$(NCURSES)/lib -lncurses
 CC = gcc
 VPATH = .:..
