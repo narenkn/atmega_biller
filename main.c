@@ -17,7 +17,9 @@
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
+#if FF_ENABLE
 #include "ff.h"
+#endif
 #include "menu.h"
 #include "main.h"
 

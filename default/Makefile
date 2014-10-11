@@ -81,7 +81,8 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = lcd.c kbd.c ep_store.c i2c.c uart.c mmc_avr.c ff.c a1micro2mm.c menu.c main.c
+SRC = lcd.c kbd.c ep_store.c i2c.c uart.c mmc_avr.c a1micro2mm.c menu.c main.c
+#SRC += ff.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -166,7 +167,9 @@ CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
+## Our defines
 CFLAGS += -DERROR\(...\)= -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=272 -DDS1307 -DITEM_SUBIDX_NAME=4 -DATMega32=1
+CFLAGS += -DMENU_USER_ENABLE=1 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=1 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=0
 
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information

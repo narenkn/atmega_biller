@@ -18,7 +18,9 @@
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
+#if FF_ENABLE
 #include "ff.h"
+#endif
 #include "menu.h"
 #include "main.h"
 
@@ -187,8 +189,10 @@ static uint8_t devStatus = 0;   /* 0 is no err */
 #define DS_DEV_INVALID (0xFF)
 
 /* data struct for FF */
+#if FF_ENABLE
 FATFS FS;
 FIL   Fil;
+#endif
 
 /* Diagnosis */
 uint16_t diagStatus;
@@ -520,6 +524,7 @@ menuUnimplemented(uint32_t line)
 void
 menuSetUserPasswd(uint8_t mode)
 {
+#if MENU_USER_ENABLE
   uint8_t ui8_1, ui8_2, ui8_3;
   uint16_t ui16_1;
   assert(MENU_MSUPER == MenuMode);
@@ -573,12 +578,14 @@ menuSetUserPasswd(uint8_t mode)
   for (ui8_3=0; ui8_3<EPS_MAX_UNAME; ui8_3++) {
     eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+((ui8_2-1)*EPS_MAX_UNAME)+ui8_3), arg1.value.str.sptr[ui8_3]);
   }
+#endif
 }
 
 /* Set my password, arg1 is old passwd, arg2 is new passwd */
 void
 menuSetPasswd(uint8_t mode)
 {
+#if MENU_USER_ENABLE
   uint16_t crc_old = 0, crc_new = 0;
   uint8_t ui8_2, ui8_3, ui8_4;
 
@@ -621,22 +628,26 @@ menuSetPasswd(uint8_t mode)
 
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
   LCD_ALERT(PSTR("Passwd Updated"));
+#endif
 }
 
 /* Logout an user */
 void
 menuUserLogout(uint8_t mode)
 {
+#if MENU_USER_ENABLE
   if (0 == menuGetYesNo(PSTR("Logout?"), 7)) {
     LoginUserId = 0;
     MenuMode = MENU_MRESET;
   }
+#endif
 }
 
 /* Login an user */
 void
 menuUserLogin(uint8_t mode)
 {
+#if MENU_USER_ENABLE
   uint16_t crc = 0;
   uint8_t ui2, ui3, ui4, ui5;
 
@@ -678,6 +689,7 @@ menuUserLogin(uint8_t mode)
   /* */
   MenuMode = (0 == ui2) ? MENU_MSUPER : MENU_MNORMAL;
   LoginUserId = ui2+1;
+#endif
 }
 
 // Not unit tested
@@ -711,6 +723,7 @@ menuInit(void)
   devStatus = 0;
   diagStatus = 0;
 
+#if FF_ENABLE
   /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
   UINT ret_val;
   memset(&FS, 0, sizeof(FS));
@@ -727,10 +740,10 @@ menuInit(void)
 	LCD_ALERT(PSTR("Moved old data"));
 	for (ui8_1=1; ui8_1; ui8_1++) {
 	  sprintf(bufSS+LCD_MAX_COL, "%s.%d", bufSS, ui8_1);
-	  if (FR_OK != f_stat(bufSS+LCD_MAX_COL, NULL))
+	  if (FR_OK != FR_OK/*FIXME: f_stat(bufSS+LCD_MAX_COL, NULL)*/)
 	    break;
 	}
-	f_rename(bufSS, bufSS+LCD_MAX_COL);
+	/*FIXME: f_rename(bufSS, bufSS+LCD_MAX_COL);*/
       }
     }
   } else { /* SD not found */
@@ -738,6 +751,7 @@ menuInit(void)
     devStatus |= DS_NO_SD;
   }
   f_mount(NULL, "", 0);
+#endif
 
   /* Identify capability of device from serial number */
   ui16_1 = 0;
@@ -759,6 +773,11 @@ menuInit(void)
   } else {
     devStatus |= DS_DEV_INVALID;
   }
+
+#if !MENU_USER_ENABLE
+  LoginUserId = 1;
+  MenuMode = MENU_MSUPER;
+#endif
 }
 
 // Not unit tested
@@ -784,7 +803,6 @@ menuBilling(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
   uint16_t ui16_1, ui16_2;
-  UINT    brw;
 
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   for (ui8_2=0; ui8_2<SALE_SIZEOF; ui8_2++) {
@@ -1019,6 +1037,7 @@ menuBilling(uint8_t mode)
   for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
     sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
+#if FF_ENABLE
   /* Save the bill to SD */
   UINT ret_val;
   memset(&FS, 0, sizeof(FS));
@@ -1085,6 +1104,7 @@ menuBilling(uint8_t mode)
   } else
     LCD_ALERT(PSTR("Can't save bill"));
   f_mount(NULL, "", 0);
+#endif
 
   /* Now print the bill */
   menuPrnBill(sl);
@@ -1093,6 +1113,7 @@ menuBilling(uint8_t mode)
 void
 menuAddItem(uint8_t mode)
 {
+#if MENU_ITEM_FUNC
   uint8_t ui8_1, ui8_2, ui8_3;
   uint16_t ui16_1, ui16_2, ui16_3, ui16_4, ui16_5;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1247,11 +1268,13 @@ menuAddItem(uint8_t mode)
 
   /* only valid items needs to be buffered */
   menuIndexItem(it);
+#endif
 }
 
 void
 menuDelItem(uint8_t mode)
 {
+#if MENU_ITEM_FUNC
   uint16_t ui16_1, ui16_2;
   uint8_t  ui8_1, ui8_2;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1281,6 +1304,7 @@ menuDelItem(uint8_t mode)
   //  ee24xx_write_bytes(ui16_1, NULL, ITEM_SIZEOF);
   ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
   		     NULL, 1<<EEPROM_MAX_DEVICES_LOGN2);
+#endif
 }
 
 /* Index this one item */
@@ -1443,7 +1467,9 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 void
 menuPrintTestPage(uint8_t mode)
 {
+#if MENU_DIAG_FUNC
   PRINTER_PRINT_TEST_PAGE;
+#endif
 }
 
 // Not unit tested
@@ -1541,6 +1567,7 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
+#if FF_ENABLE
   UINT  ret_val;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint16_t ui16_1, ui16_2;
@@ -1600,12 +1627,14 @@ menuBillReports(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+#endif
 }
 
 // Not unit tested
 void
 menuShowBill(uint8_t mode)
 {
+#if FF_ENABLE
   UINT  ret_val;
   uint8_t  ui8_1;
   uint16_t ui16_1, ui16_2;
@@ -1683,8 +1712,10 @@ menuShowBill(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+#endif
 }
 
+#if MENU_SETTING_ENABLE
 /* FIXME: PROGMEM */
 const struct menu_vars MenuVars[] PROGMEM = { MENU_VAR_TABLE };
 
@@ -1762,6 +1793,37 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
 }
 
 // Not unit tested
+// FIXME: not complete
+void
+menuSettingPrint(uint8_t mode)
+{
+  uint8_t ui8_1, ui8_2, ui8_3;
+  uint16_t ui16_1;
+  uint32_t ui32_1;
+
+  for (ui8_1=0; ui8_1<MENU_VARS_SIZE; ui8_1++) {
+    ui8_2 = pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, type));
+    ui16_1 = pgm_read_word(MenuVars+ui8_1+offsetof(struct menu_vars, ep_ptr));
+    for (ui8_2=0; ui8_2<ITEM_NAME_BYTEL; ui8_2++)
+      PRINTER_PRINT(pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, name)+ui8_2));
+    PRINTER_PRINT('\t');
+    if ( (TYPE_UINT8 == ui8_2) || (TYPE_UINT16 == ui8_2) ||
+	 (TYPE_UINT32 == ui8_2) || (TYPE_BIT == ui8_2) ) {
+      for (ui8_3=0, ui32_1=0; ui8_3<(ui8_2&0x7); ui8_3++) {
+	ui32_1 <<= 8;
+	//ui32_1 |= pgm_read_byte(0); /* FIXME */
+      }
+    } else if (TYPE_STRING == ui8_2) {
+      //ui32_1 = pgm_read_byte(0); /* FIXME */
+    } else {
+      assert(0);
+    }
+  }
+
+}
+#endif
+
+// Not unit tested
 void
 menuSetDateTime(uint8_t mode)
 {
@@ -1777,6 +1839,7 @@ menuSetDateTime(uint8_t mode)
 void
 menuSettingSet(uint8_t mode)
 {
+#if MENU_SETTING_ENABLE
   uint8_t ui8_1, ui8_2;
   uint16_t ui16_1;
 
@@ -1829,42 +1892,14 @@ menuSettingSet(uint8_t mode)
   }
 
   goto menuSettingSetStart;
-}
-
-// Not unit tested
-// FIXME: not complete
-void
-menuSettingPrint(uint8_t mode)
-{
-  uint8_t ui8_1, ui8_2, ui8_3;
-  uint16_t ui16_1;
-  uint32_t ui32_1;
-
-  for (ui8_1=0; ui8_1<MENU_VARS_SIZE; ui8_1++) {
-    ui8_2 = pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, type));
-    ui16_1 = pgm_read_word(MenuVars+ui8_1+offsetof(struct menu_vars, ep_ptr));
-    for (ui8_2=0; ui8_2<ITEM_NAME_BYTEL; ui8_2++)
-      PRINTER_PRINT(pgm_read_byte(MenuVars+ui8_1+offsetof(struct menu_vars, name)+ui8_2));
-    PRINTER_PRINT('\t');
-    if ( (TYPE_UINT8 == ui8_2) || (TYPE_UINT16 == ui8_2) ||
-	 (TYPE_UINT32 == ui8_2) || (TYPE_BIT == ui8_2) ) {
-      for (ui8_3=0, ui32_1=0; ui8_3<(ui8_2&0x7); ui8_3++) {
-	ui32_1 <<= 8;
-	//ui32_1 |= pgm_read_byte(0); /* FIXME */
-      }
-    } else if (TYPE_STRING == ui8_2) {
-      //ui32_1 = pgm_read_byte(0); /* FIXME */
-    } else {
-      assert(0);
-    }
-  }
-
+#endif
 }
 
 // Not unit tested
 void
 menuDelAllBill(uint8_t mode)
 {
+#if MENU_DELBILL && FF_ENABLE
   uint16_t ui16_1;
   uint8_t ui8_1, ui8_2;
   uint8_t *ui8_1p = (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1882,16 +1917,20 @@ menuDelAllBill(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+#endif
 }
 
+#if MENU_DIAG_FUNC
 #define DIAG_FLASHMEM_SIZE   16
 const uint8_t diagFlashMem[DIAG_FLASHMEM_SIZE] PROGMEM =
   { [ 0 ... (DIAG_FLASHMEM_SIZE - 1) ] = 0 };
+#endif
 
 // Not unit tested
 void
 menuRunDiag(uint8_t mode)
 {
+#if MENU_DIAG_FUNC
   uint16_t ui16_1, rand_seed;
   uint8_t  ui8_1, ui8_2;
 
@@ -2128,6 +2167,7 @@ menuRunDiag(uint8_t mode)
   }
   diagStatus |= (0 == menuGetYesNo(PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
 
+#if FF_ENABLE
   /* FIXME: Verify SD card */
   LCD_CLRSCR;
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis SD"), 12);
@@ -2146,6 +2186,7 @@ menuRunDiag(uint8_t mode)
     } else {
     }
   }
+#endif
 
   /* Verify Buzzer */
   LCD_CLRSCR;
@@ -2166,6 +2207,7 @@ menuRunDiag(uint8_t mode)
   if (0 != menuGetYesNo(PSTR("Print Status?"), 13))
     return;
   /* We can't Diagonise Battery charging, so print sentence */
+#endif
 }
 
 #define ROW_JOIN ,
@@ -2348,6 +2390,7 @@ menuMainStart:
 void
 menuSDLoadItem(uint8_t mode)
 {
+#if FF_ENABLE
   UINT  ret_size, ui1;
   uint16_t ui16_1;
   uint8_t ui8_1;
@@ -2430,12 +2473,14 @@ menuSDLoadItem(uint8_t mode)
  menuSDLoadItemExit:
   /* */
   f_mount(NULL, "", 0);
+#endif
 }
 
 // Not unit tested
 void
 menuSDSaveItem(uint8_t mode)
 {
+#if MENU_SDSAVE_EN && FF_ENABLE
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, signature;
   struct item *it = (void *)bufSS;
@@ -2489,12 +2534,14 @@ menuSDSaveItem(uint8_t mode)
  menuSDSaveItemExit:
   /* */
   f_mount(NULL, "", 0);
+#endif
 }
 
 // Not unit tested
 void
 menuSDLoadSettings(uint8_t mode)
 {
+#if FF_ENABLE
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2;
   uint8_t ui8_1;
@@ -2578,12 +2625,14 @@ menuSDLoadSettings(uint8_t mode)
   /* */
   f_close(&Fil);
   f_mount(NULL, "", 0);
+#endif
 }
 
 // Not unit tested
 void
 menuSDSaveSettings(uint8_t mode)
 {
+#if MENU_SDSAVE_EN && FF_ENABLE
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, ui16_3, signature;
   uint8_t ui8_1;
@@ -2627,4 +2676,5 @@ menuSDSaveSettings(uint8_t mode)
  menuSDSaveSettingsExit:
   /* */
   f_mount(NULL, "", 0);
+#endif
 }

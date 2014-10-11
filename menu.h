@@ -197,11 +197,13 @@ void menuShowBill(uint8_t mode);
 void menuPrnBill(struct sale *sl);
 
 /* User option routines */
+#if MENU_SETTING_ENABLE
 void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars);
 void menuSettingUint32(uint16_t addr, const uint8_t *quest);
 void menuSettingUint16(uint16_t addr, const uint8_t *quest);
 void menuSettingUint8(uint16_t addr, const uint8_t *quest);
 void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
+#endif
 void menuSetDateTime(uint8_t mode);
 void menuSettingSet(uint8_t mode);
 
@@ -211,8 +213,8 @@ void menuDelAllBill(uint8_t mode);
 
 /* SD routines */
 void menuSDLoadItem(uint8_t mode);
-void menuSDSaveItem(uint8_t mode);
 void menuSDLoadSettings(uint8_t mode);
+void menuSDSaveItem(uint8_t mode);
 void menuSDSaveSettings(uint8_t mode);
 
 /* Other routines */
