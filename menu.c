@@ -1823,7 +1823,7 @@ menuSettingPrint(uint8_t mode)
 }
 #endif
 
-// Not unit tested
+// Not unit tested : not required I suppose...
 void
 menuSetDateTime(uint8_t mode)
 {
