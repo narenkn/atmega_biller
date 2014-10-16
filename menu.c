@@ -486,7 +486,7 @@ menuFactorySettings(uint8_t mode)
   /* Mark all items as deleted : (0==id) */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
     bufSS[ui8_1] = 0;
-  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
@@ -866,7 +866,7 @@ menuBilling(uint8_t mode)
       }
     }
 
-    for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+    for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
       ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
       /* invalid item */
@@ -2019,7 +2019,7 @@ menuRunDiag(uint8_t mode)
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis Mem3"), 14);
   _delay_ms(1000);
   struct item *it = (void *)bufSS;
-  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     if (0 == it->id)
@@ -2327,7 +2327,8 @@ menuMainStart:
       UNIT_TEST_MENU_1(menu_selected);
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
-	((menu_func_t)pgm_read_dword(menu_handlers+menu_selected))(pgm_read_byte(menu_mode+menu_selected));
+	//printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
+	((menu_func_t)pgm_read_dword(menu_handlers+menu_selected))(menu_mode+menu_selected);
       }
 #endif
     }
@@ -2396,6 +2397,7 @@ menuSDLoadItem(uint8_t mode)
   uint8_t ui8_1;
 
   /* */
+  LCD_ALERT(PSTR("at -2"));
   memset(&FS, 0, sizeof(FS));
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
@@ -2409,13 +2411,14 @@ menuSDLoadItem(uint8_t mode)
     LCD_ALERT(PSTR("File size error"));
     goto menuSDLoadItemExit;
   } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
-    LCD_ALERT(PSTR("File error"));
+    LCD_ALERT(PSTR("File1 error"));
     goto menuSDLoadItemExit;
   } else if (GIT_HASH_SMALL_LEN != ret_size) {
-    LCD_ALERT(PSTR("File error "));
+    LCD_ALERT(PSTR("File2 error "));
     goto menuSDLoadItemExit;
   }
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
+    printf("idx:%d obt:%x exp:%x\n", ui8_1, GIT_HASH_SMALL[ui8_1], bufSS[ui8_1]);
     if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
       LCD_ALERT(PSTR("Incompatible file"));
       goto menuSDLoadItemExit;
@@ -2423,13 +2426,15 @@ menuSDLoadItem(uint8_t mode)
   }
 
   /* Mark all other items as deleted : (0==id) */
-  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     /* id 0 is invalid */
-    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), bufSS+offsetof(struct item, id), 1<<EEPROM_MAX_DEVICES_LOGN2);
+    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), NULL, BUFSS_SIZE);
   }
+  LCD_ALERT(PSTR("at 1"));
 
   /* Check for crc in file */
+  assert(FR_OK == f_lseek(&Fil, 0));
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
   ui8_1 = 0, ui16_1 = 0;
   while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
@@ -2448,17 +2453,17 @@ menuSDLoadItem(uint8_t mode)
   ret_size = bufSS[BUFSS_SIZE-2];
   ret_size <<= 8;
   ret_size |= bufSS[BUFSS_SIZE-1];
-  if ((0 == ui16_1) || (ui16_1 != ret_size) || (2 != ui8_1)) {
-    //    printf("ui16_1:%x ret_size:%x, ui8_1:%d\n", ui16_1, ret_size, ui8_1);
-    LCD_ALERT_16N(PSTR("File error "), ui16_1);
+  if ((0 == ui16_1) || (ui16_1 != ret_size) || (9 != ui8_1)) {
+    //printf("ui16_1:%x ret_size:%x, ui8_1:%d\n", ui16_1, ret_size, ui8_1);
+    LCD_ALERT_16N(PSTR("File3 error "), ui16_1);
     goto menuSDLoadItemExit;
   }
 
   /* init indexes with 0s */
-  ee24xx_write_bytes(ITEM_MAX_ADDR, NULL, EEPROM_MAX_ADDRESS-ITEM_MAX_ADDR+1);
+  ee24xx_write_bytes((ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2), NULL, EEPROM_MAX_ADDRESS-ITEM_MAX_ADDR+1);
 
   /* */
-  assert(FR_OK == f_lseek(&Fil, 0));
+  assert(FR_OK == f_lseek(&Fil, GIT_HASH_SMALL_LEN));
   struct item *it = (void *)bufSS;
   while (FR_OK == f_read(&Fil, bufSS, ITEM_SIZEOF, &ret_size)) {
     if (ITEM_SIZEOF != ret_size) break; /* reached last */
@@ -2469,6 +2474,9 @@ menuSDLoadItem(uint8_t mode)
     ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
   }
   assert(2 == ret_size); /* crc would be pending */
+
+  /* when all goes well */
+  LCD_ALERT(PSTR("Item Loaded.."));
 
  menuSDLoadItemExit:
   /* */
@@ -2506,7 +2514,7 @@ menuSDSaveItem(uint8_t mode)
   assert(GIT_HASH_SMALL_LEN == ret_size);
 
   /* */
-  for (ui16_1=0; ui16_1 < ITEM_MAX_ADDR;
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     /* fix name, prod_code to uc */
@@ -2530,6 +2538,9 @@ menuSDSaveItem(uint8_t mode)
   bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
   f_write(&Fil, bufSS, 2, &ret_size);
   assert(2 == ret_size);
+
+  /* when all goes well */
+  LCD_ALERT(PSTR("Item Saved.."));
 
  menuSDSaveItemExit:
   /* */
@@ -2621,6 +2632,9 @@ menuSDLoadSettings(uint8_t mode)
   for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
     eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, serial_no[ui8_1]);
   
+  /* when all goes well */
+  LCD_ALERT(PSTR("Settings Loaded.."));
+
  menuSDLoadSettingsExit:
   /* */
   f_close(&Fil);
@@ -2672,6 +2686,9 @@ menuSDSaveSettings(uint8_t mode)
   bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
   f_write(&Fil, bufSS, 2, &ret_size);
   assert(2 == ret_size);
+
+  /* when all goes well */
+  LCD_ALERT(PSTR("Settings Saved.."));
 
  menuSDSaveSettingsExit:
   /* */

@@ -20,8 +20,10 @@ main(void)
   test_init();
   menuInit();
   KbdInit();
+  printerInit();
 
   printw("Press F2 to exit");
+  devStatus = 0;
   menuSDLoadItem(0);
   menuMain();
 

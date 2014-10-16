@@ -66,6 +66,25 @@ lcd_clrscr()
 }
 
 void
+LCD_WR_LINE(x, y, str)
+{
+  uint8_t ui1_t, ui2_t;
+  lcd_buf_p = &(lcd_buf[x][y]);
+  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {
+    if (0 == ((char *)str)[ui2_t]) {
+      lcd_buf_p[0] = ' ';
+    } else {
+      lcd_buf_p[0] = ((char *)str)[ui2_t];
+      ui2_t++;
+    }
+    lcd_buf_p++;
+    if ((ui1_t+1)<LCD_MAX_COL)
+      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  }
+  lcd_buf_prop |= LCD_PROP_DIRTY;
+}
+
+void
 LCD_WR_LINE_P(uint8_t x, uint8_t y, uint32_t str)
 {
   uint8_t ui1_t, ui2_t;

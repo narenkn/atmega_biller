@@ -55,6 +55,18 @@ uint8_t TIMSK, TCCR2;
 
 //assert(SPM_PAGESIZE == (1<<(FLASH_PAGE_SIZE_LOGN+1)));
 
+/* All Header overrides */
+#undef  SD_ITEM_FILE
+#define SD_ITEM_FILE "test_data/items_1.dat"
+#define LCD_ALERT(str)				\
+  LCD_WR_LINE(0, 0, str);			\
+  KBD_RESET_KEY; KBD_GETCH
+
+#define LCD_ALERT_16N(str, n)			\
+  LCD_WR_LINE(0, 0, str);			\
+  LCD_PUT_UINT16X(n);				\
+  KBD_RESET_KEY; KBD_GETCH
+
 #include "lcd.c"
 #include "kbd.c"
 #include "ep_store.c"

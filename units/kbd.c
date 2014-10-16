@@ -9,7 +9,7 @@ volatile uint8_t KbdDataAvail;
 
 uint16_t test_key_idx = -1;
 uint8_t test_key_arr_idx = 0;
-#define NUM_TEST_KEY_ARR 16
+#define NUM_TEST_KEY_ARR 32
 uint8_t *test_key[NUM_TEST_KEY_ARR];
 
 #define RESET_TEST_KEYS KbdInit()

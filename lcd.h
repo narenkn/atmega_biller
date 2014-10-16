@@ -294,14 +294,26 @@
   }						\
 }
 
-#define LCD_ALERT(str)	  \
-  LCD_WR_LINE_P(0, 0, str)
+#define LCD_ALERT(str)				\
+  LCD_WR_LINE_P(0, 0, str);			\
+  LCD_refresh()
 
-#define LCD_ALERT_16N(str, n) \
-  LCD_WR_LINE_P(0, 0, str);     \
-  LCD_PUT_UINT16X(n)
+#define LCD_ALERT_16N(str, n)			\
+  LCD_WR_LINE_P(0, 0, str);			\
+  LCD_POS(0, 12);				\
+  LCD_PUT_UINT16X(n);				\
+  LCD_refresh()
 
 #else /* #if !LCD_USE_FUNCTIONS */
+
+# define LCD_wrnib(var)	\
+  LCD_PORT(var);	\
+  _delay_us(50);	\
+  LCD_rs_high;		\
+  _delay_us(50);	\
+  LCD_en_high;		\
+  _delay_us(50);	\
+  LCD_en_low
 
 void lcd_clrscr();
 #define LCD_CLRSCR lcd_clrscr()
@@ -313,6 +325,8 @@ void lcd_clrscr();
   lcd_buf_p = lcd_buf[0]+((x)*LCD_MAX_COL)+(y)
 
 #ifndef UNIT_TEST
+
+void LCD_WR_LINE(x, y, str);
 
 void LCD_WR_LINE_P(uint8_t x, uint8_t y, uint16_t str);
 
@@ -333,12 +347,15 @@ void LCD_WR_SPRINTF(uint8_t x, uint8_t y, uint8_t *BUF, uint8_t *FMT, uint8_t N)
 
 #endif
 
-#define LCD_ALERT(str)	  \
-  LCD_WR_LINE_P(0, 0, str)
+#define LCD_ALERT(str)				\
+  LCD_WR_LINE_P(0, 0, str);			\
+  LCD_refresh()
 
-#define LCD_ALERT_16N(str, n) \
-  LCD_WR_LINE_P(0, 0, str);     \
-  LCD_PUT_UINT16X(n)
+#define LCD_ALERT_16N(str, n)			\
+  LCD_WR_LINE_P(0, 0, str);			\
+  LCD_POS(0, 12);				\
+  LCD_PUT_UINT16X(n);				\
+  LCD_refresh()
 
 #endif
 

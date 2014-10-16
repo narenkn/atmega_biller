@@ -5,6 +5,7 @@ import time
 import re
 import sys
 import csv
+import os
 
 TYPE_NONE    = 0
 TYPE_UINT8   = 1
@@ -149,6 +150,11 @@ class csv2dat:
       outfile = open(self.options.out_file, 'wb')
       signature = 0
       assert(outfile)
+      ## Write CRC string
+      tt = os.popen('git log --pretty=format:"%h"').readline()
+      for i in range(7):
+        outfile.write(tt[i])
+        signature = self.crc16(bytearray(tt[i]), signature)
 #      pbytes = []
 #      for i in range(1, -1, -1):
 #        pbytes.append((csv_lines >> (i*8)) & 0xFF);
