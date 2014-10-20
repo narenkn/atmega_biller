@@ -1317,7 +1317,6 @@ menuIndexItem(struct item *it)
   itemIdxs_t itIdx;
 
   /* init */
-  assert(8 == sizeof(itemIdxs_t));
   ui32_1 = (uint32_t)((uint32_t)((uint32_t)ITEM_MAX_ADDR + (sizeof(itemIdxs_t) * (it->id-1))) >> EEPROM_MAX_DEVICES_LOGN2);
   assert(ui32_1 < EEPROM_MAX_ADDRESS);
   ee24xx_read_bytes(ui32_1, (uint8_t *)&itIdx, sizeof(itemIdxs_t));
@@ -2418,7 +2417,6 @@ menuSDLoadItem(uint8_t mode)
     goto menuSDLoadItemExit;
   }
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
-    printf("idx:%d obt:%x exp:%x\n", ui8_1, GIT_HASH_SMALL[ui8_1], bufSS[ui8_1]);
     if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
       LCD_ALERT(PSTR("Incompatible file"));
       goto menuSDLoadItemExit;
@@ -2484,7 +2482,6 @@ menuSDLoadItem(uint8_t mode)
 #endif
 }
 
-// Not unit tested
 void
 menuSDSaveItem(uint8_t mode)
 {
@@ -2495,19 +2492,19 @@ menuSDSaveItem(uint8_t mode)
   uint8_t ui8_1;
 
   /* init */
-  signature = 0;
   memset(&FS, 0, sizeof(FS));
   memset(&Fil, 0, sizeof(Fil));
 
   /* */
   f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_WRITE)) {
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE ".out", FA_WRITE)) {
     LCD_ALERT(PSTR("File open error"));
     goto menuSDSaveItemExit;
   }
 
   /* Add version string */
-  sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
+  strncpy_P(bufSS, PSTR(GIT_HASH_SMALL), GIT_HASH_SMALL_LEN);
+  signature = 0;
   f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
     signature = _crc16_update(signature, bufSS[ui8_1]);

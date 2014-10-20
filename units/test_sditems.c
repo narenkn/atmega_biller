@@ -1,40 +1,9 @@
-#include <stddef.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <assert.c>
-
-#include <avr/pgmspace.h>
-#include <avr/eeprom.h>
-#include <util/crc16.h>
-
-#define TEST_KEY_ARR_SIZE 128
-
-#include "lcd.h"
-#include "kbd.h"
-#include "ep_store.h"
-#include "billing.h"
-#include "i2c.h"
-#include "uart.h"
-#include "a1micro2mm.h"
-#include "menu.h"
-#include "main.h"
 
 /* All Header overrides */
 #undef  SD_ITEM_FILE
 #define SD_ITEM_FILE "test_data/items_1.dat"
 
-#include "lcd.c"
-#include "kbd.c"
-#include "ep_store.c"
-#include "i2c.c"
-#include "uart.c"
-#include "ff.c"
-#include "a1micro2mm.c"
-#include "menu.c"
+#include "test_common.c"
 
 int
 main(void)
@@ -47,7 +16,7 @@ main(void)
   /* Load the items, FIXME: make it selfcheck */
   menuSDLoadItem(MENU_MSUPER);
 
-  for (ui16_1 = 0; (EEPROM_MAX_ADDRESS-ui16_1+1)>=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
        ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
     ui16_2 = ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
     assert(ITEM_SIZEOF == ui16_2);
@@ -66,10 +35,10 @@ main(void)
     printf("item id:%d\n", it->id);
     //    printf("item prod_code:%s\n", it->prod_code);
     printf("item vat_sel:%d\n", it->vat_sel);
-    printf("item has_cess2:%d\n", it->has_cess2);
+    //    printf("item has_cess2:%d\n", it->has_cess2);
     printf("item has_weighing_mc:%d\n", it->has_weighing_mc);
     printf("item name_in_unicode:%d\n", it->name_in_unicode);
-    printf("item has_cess1:%d\n", it->has_cess1);
+    //    printf("item has_cess1:%d\n", it->has_cess1);
     //    printf("item is_biller_item:%d\n", it->is_biller_item);
     printf("item has_common_discount:%d\n", it->has_common_discount);
     printf("item has_serv_tax:%d\n", it->has_serv_tax);
@@ -80,6 +49,9 @@ main(void)
     printf("item unused_2:%d\n", it->unused_2);
     printf("item unused_1:%d\n", it->unused_1);
   }
+
+  /* save item */
+  menuSDSaveItem(MENU_MSUPER);
 
   return 0;
 }

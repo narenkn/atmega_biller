@@ -124,6 +124,7 @@ class csv2dat:
         data[h] = []
       for row in reader:
         csv_lines += 1
+
         for h, v in zip(headers, row):
           data[h].append(v)
       ##
@@ -174,7 +175,7 @@ class csv2dat:
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
                 pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
-          elif TYPE_ARR == vardict[var][2]:
+          elif (TYPE_ARR == vardict[var][2]) and (TYPE_UINT8 == vardict[var][3]):
             i,j,k,l = 0,0,0,0
             while ((i < vardict[var][1]) and (j < len(data[var][li]))): ## each bytes
               c = data[var][li][j]
@@ -186,6 +187,16 @@ class csv2dat:
                   i += 1
                 l += 1
               j += 1
+          elif (TYPE_ARR == vardict[var][2]) and ((TYPE_UINT16 == vardict[var][3]) or (TYPE_UINT16 == vardict[var][3])):
+            ## Expect a ';' seperated list of values
+            for s_data in data[var][li].split(';'):
+              j = i/2
+              k = int(s_data, 16)
+              pbytes[vardict[var][4]+j] = k>>(vardict[var][3]-  vardict[vardict[var][3]
+              if s_data
+            ##for w in split(';')
+          elif (TYPE_ARR == vardict[var][2]):
+            assert(0) ## Not yet implemented
           elif TYPE_STRING == vardict[var][2]:
             for i in range(vardict[var][1]): ## each bytes
               if (i >= len(data[var][li])) or (not re_graph.match(data[var][li][i])):
@@ -279,13 +290,13 @@ class ep_store_layout:
       'ComnDis' : ['', 2, TYPE_UINT16],
       'RndOff' : ['', 2, TYPE_UINT16],
       'unused_DiagStat' : ['', 2, TYPE_UINT16],
-      'passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
+      'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },
     'uint8_t' : {
       ## User options
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
-      'users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
+      'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 16, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
