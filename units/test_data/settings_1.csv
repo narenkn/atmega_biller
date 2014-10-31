@@ -1,3 +1,5 @@
-'Vat','ServTax','ComnDis','RndOff','currency','b_pfix','caption','shop_name','b_head','b_foot','key_buzz_off','idle_wait','sum_in_words','b_conf','b_copies'
-2;2;2;2,2,2,2,8,8,10,32,128,64,?,?,?,?,?
+'Vat'|'ServTax'|'ComnDis'|'RndOff'|'shop_name'|'b_head'|'b_foot'|'b_pfix'|'caption'|'b_copies'|'b_conf'|'sum_in_words'|'idle_wait'|'currency'|'key_buzz_off'
+2;2;2;2|2|2|32|128|64|8|1|?|?|8|?|?
+2;3;4;5|0|0|0| Sri Ganapathy Stores| '56, second cross, marthahalli, bangalore-32'| 'Have a nice day'| A00| Invoice| 2| 0| 1| 1| Rupees| 0
+
 

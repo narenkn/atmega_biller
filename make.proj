@@ -7,7 +7,6 @@ PYTHON := python
 	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
 	git log --pretty=format:"%h %an %s" ../utils/csv2dat | wc -l | xargs expr 1 + | xargs echo "#define SW_VERSION " >> $@
 	@echo "#define GIT_HASH_SMALL_LEN 7" >> $@
-	@echo '#define GIT_HASH_SMALL_LEN_STR "7"' >> $@
 	@echo -n "#define GIT_HASH_SMALL " >> $@
 	@git log --pretty=format:'"%h"' | head -1 >> $@
 	@echo -n "#define GIT_HASH " >> $@

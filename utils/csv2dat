@@ -116,26 +116,28 @@ class csv2dat:
     csv_lines = 0
     data = {}
     if csvfile:
-      reader = csv.reader(csvfile, delimiter=',', quotechar="'")
+      reader = csv.reader(csvfile, delimiter='|', quotechar="'")
       re_int = re.compile(r'\d+')
       headers = reader.next()
       comment_line = reader.next()
       for h in headers:
         data[h] = []
       for row in reader:
+        if not row: continue
         csv_lines += 1
 
         for h, v in zip(headers, row):
-          data[h].append(v)
+          data[h].append(v.strip())
       ##
       vardict = {}
+      vardict_keys = []
       goffset = 0
       for t_var, tvars in sorted(cl.variables.items()):
         for var, s_var in sorted(tvars.items(), key=lambda x: x[1][0], reverse=True):
           if re_1.match(var):
             pass
           elif var not in data:
-            print "column '%s' not found in csv(%s)" % (var, self.file)
+            print "column '%s' not found in csv(%s)" % (var, csvfile)
             self.error += 1
             return
           if 0 == s_var[1]: s_var[1] = offsetof(cl);
@@ -145,8 +147,9 @@ class csv2dat:
           s_var.append(goffset)
           assert var not in vardict
           vardict[var] = s_var
+          vardict_keys.append(var)
           goffset += s_var[1]
-#          print "var:%s goffset:%f" % (var, goffset)
+          ##print "var:%s goffset:%f" % (var, goffset)
       ## Sanity check is complete, things should work from here
       outfile = open(self.options.out_file, 'wb')
       signature = 0
@@ -165,10 +168,12 @@ class csv2dat:
       goffset += 0.9
       for li in range(csv_lines):
         pbytes = [0] * int(goffset)
-        for var in vardict:
+        for var in vardict_keys:
           offset = vardict[var][3]
           if options.debug:
-            print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset)
+            print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset),
+            if var in data: print data[var]
+            else: print ""
           if var not in data:
             pass
           elif (TYPE_UINT16 == vardict[var][2]) or (TYPE_UINT32 == vardict[var][2]):
@@ -187,14 +192,15 @@ class csv2dat:
                   i += 1
                 l += 1
               j += 1
-          elif (TYPE_ARR == vardict[var][2]) and ((TYPE_UINT16 == vardict[var][3]) or (TYPE_UINT16 == vardict[var][3])):
+          elif (TYPE_ARR == vardict[var][2]) and ((TYPE_UINT16 == vardict[var][3]) or (TYPE_UINT32 == vardict[var][3])):
             ## Expect a ';' seperated list of values
+            i=0
             for s_data in data[var][li].split(';'):
-              j = i/2
-              k = int(s_data, 16)
-              pbytes[vardict[var][4]+j] = k>>(vardict[var][3]-  vardict[vardict[var][3]
-              if s_data
-            ##for w in split(';')
+              k = int(s_data)
+              for j in reversed(range(vardict[var][3])):
+                pbytes[(vardict[var][4]+(i*vardict[var][3]))+j] = (k>>(j*vardict[var][3]*8)) & 0xFF
+##                print pbytes[vardict[var][4]+j]
+              i+=1
           elif (TYPE_ARR == vardict[var][2]):
             assert(0) ## Not yet implemented
           elif TYPE_STRING == vardict[var][2]:
@@ -209,7 +215,12 @@ class csv2dat:
               pbytes[int(vardict[var][3])] |= int(data[var][li]) << (int((vardict[var][3]*10)%10))
 #              print "TYPE_BIT ", var, ", ", int(vardict[var][3]), ", ", int(data[var][li]), ", ", (7 - int((vardict[var][3]*10)%10)),
 #              print pbytes[int(vardict[var][3])]
-          else: assert(0 == "Field '%s' is not type matched" % var)
+          elif TYPE_UINT8 == vardict[var][2]:
+            if '' != data[var][li]:
+              offset = int(vardict[var][3])
+              if (0 != (vardict[var][3]*10)%10): offset += 1
+              pbytes[offset] = int(data[var][li])
+          else: assert(0), "Field '%s' is not type matched ;%s;" % (var, data[var])
         if options.debug: print "pbytes:", pbytes
         outfile.write(bytearray(pbytes))
         signature = self.crc16(bytearray(pbytes), signature)
@@ -365,6 +376,12 @@ if "__main__" == __name__:
   parser.add_option("", "--debug",
                   action="store_true", dest="debug", default=False,
                   help=SUPPRESS_HELP);
+  parser.add_option("", "--items",
+                  action="store_true", dest="items", default=False,
+                  help="process items");
+  parser.add_option("", "--settings",
+                  action="store_true", dest="settings", default=False,
+                  help="process settings");
   parser.add_option("", "--crc16",
                   action="store_true", dest="crc16", default=False,
                   help=SUPPRESS_HELP);
@@ -375,7 +392,7 @@ if "__main__" == __name__:
                   action="store_true", dest="to_csv", default=False,
                   help="Create dat file from csv");
   parser.add_option("-i", "--in_file", dest="in_file", default="settings.csv",
-                  help="Settings file");
+                  help="Input file");
   parser.add_option("", "--dat2bill", dest="dat2bill", default=None,
                   help="Convert billed data to xls");
   parser.add_option("", "--from_date", dest="to_date", default=None,
@@ -410,7 +427,9 @@ if "__main__" == __name__:
     error += ds.error
   elif options.to_dat:
     cd = csv2dat(options)
-    cd.make_dat(it)
+    if options.items: cd.make_dat(it)
+    elif options.settings: cd.make_dat(ep)
+    else: assert(0), "either --items or --settings needs to be provided"
     error += cd.error
   elif options.to_csv:
     cd = csv2dat(options)

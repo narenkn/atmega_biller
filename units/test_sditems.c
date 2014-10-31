@@ -12,6 +12,7 @@ main(void)
   struct item *it = (void *)bufSS;
 
   /* FIXME: corrupt a byte and find crc fails */
+  menuInit();
 
   /* Load the items, FIXME: make it selfcheck */
   menuSDLoadItem(MENU_MSUPER);

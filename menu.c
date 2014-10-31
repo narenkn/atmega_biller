@@ -547,7 +547,7 @@ menuSetUserPasswd(uint8_t mode)
   }
   /* where to replace it ? */
   for (
-       ui8_2=0, ui16_1=offsetof(struct ep_store_layout, users)+EPS_MAX_UNAME;
+       ui8_2=0, ui16_1=offsetof(struct ep_store_layout, unused_users)+EPS_MAX_UNAME;
        ui8_2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui8_2++, ui16_1++ ) {
     bufSS[(LCD_MAX_COL*3)+ui8_2] = eeprom_read_byte((uint8_t *)ui16_1);
   }
@@ -559,7 +559,7 @@ menuSetUserPasswd(uint8_t mode)
   /* Check user name is unique before accepting */
   for (ui8_3=0; ui8_3<EPS_MAX_USERS; ui8_3++) {
     if (ui8_2 == ui8_3) continue; /* skip choosen name */
-    ui16_1 = offsetof(struct ep_store_layout, users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
+    ui16_1 = offsetof(struct ep_store_layout, unused_users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
     for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
       if (arg1.value.str.sptr[ui8_1] != eeprom_read_byte(ui16_1+ui8_1))
 	break;
@@ -576,7 +576,7 @@ menuSetUserPasswd(uint8_t mode)
   menuSetPasswd(mode & ~MENU_MVALIDATE);
   LoginUserId = ui8_3;
   for (ui8_3=0; ui8_3<EPS_MAX_UNAME; ui8_3++) {
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+((ui8_2-1)*EPS_MAX_UNAME)+ui8_3), arg1.value.str.sptr[ui8_3]);
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+((ui8_2-1)*EPS_MAX_UNAME)+ui8_3), arg1.value.str.sptr[ui8_3]);
   }
 #endif
 }
@@ -607,7 +607,7 @@ menuSetPasswd(uint8_t mode)
 	crc_old = _crc16_update(crc_old, ui8_2);
     }
 
-    if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, passwds[(LoginUserId-1)])) != crc_old) {
+    if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds[(LoginUserId-1)])) != crc_old) {
       LCD_ALERT(PSTR("Passwd Wrong!!"));
       return;
     }
@@ -626,7 +626,7 @@ menuSetPasswd(uint8_t mode)
       crc_new = _crc16_update(crc_new, ui8_2);
   }
 
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
   LCD_ALERT(PSTR("Passwd Updated"));
 #endif
 }
@@ -656,7 +656,7 @@ menuUserLogin(uint8_t mode)
 
   for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
     for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
-      ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+(ui2*EPS_MAX_UNAME)+ui3));
+      ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+(ui2*EPS_MAX_UNAME)+ui3));
       if (ui4 != arg1.value.str.sptr[ui3]) {
 	break;
       } else if ((0 == ui3) && (0 == ui2) && (!isgraph(ui4)))
@@ -681,7 +681,7 @@ menuUserLogin(uint8_t mode)
       crc = _crc16_update(crc, ui3);
   }
 
-  if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, passwds) + (ui2*sizeof(uint16_t)))) != crc) {
+  if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
     LCD_ALERT(PSTR("Wrong Passwd"));
     return;
   }
@@ -711,13 +711,13 @@ menuInit(void)
   assert(0 == (ITEM_SIZEOF % (1<<EEPROM_MAX_DEVICES_LOGN2)));
 
   /* edit eeprom for users[0] = 'admin' */
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+0), 'a');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+1), 'd');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+2), 'm');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+3), 'i');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+4), 'n');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+0), 'a');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+1), 'd');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+2), 'm');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+3), 'i');
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+4), 'n');
   for (ui8_1=5; ui8_1<EPS_MAX_UNAME; ui8_1++)
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, users)+ui8_1), ' ');
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+ui8_1), ' ');
 
   /* init global vars */
   devStatus = 0;
@@ -1035,7 +1035,7 @@ menuBilling(uint8_t mode)
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
   for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
-    sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
+    sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
 #if FF_ENABLE
   /* Save the bill to SD */
@@ -2545,7 +2545,6 @@ menuSDSaveItem(uint8_t mode)
 #endif
 }
 
-// Not unit tested
 void
 menuSDLoadSettings(uint8_t mode)
 {
@@ -2590,7 +2589,8 @@ menuSDLoadSettings(uint8_t mode)
 
   /* Check for crc in file */
   bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
-  ui8_1 = 0, ui16_1 = 0;
+  ui16_1 = 0;
+  assert(FR_OK == f_lseek(&Fil, 0));
   while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
     if (0 == ret_size) break;
     if (0 != ui16_1) { /* skip first time */
@@ -2602,14 +2602,12 @@ menuSDLoadSettings(uint8_t mode)
     }
     bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
     bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
-    ui8_1 = (ret_size + ui8_1) % ITEM_SIZEOF;
-    //    printf("ret_size:%d ui8_1:%d ITEM_SIZEOF:%d\n", ret_size, ui8_1, ITEM_SIZEOF);
   }
   ret_size = bufSS[BUFSS_SIZE-2];
   ret_size <<= 8;
   ret_size |= bufSS[BUFSS_SIZE-1];
-  if ((0 == ui16_1) || (ui16_1 != ret_size) || (4 != ui8_1)) {
-    //    printf("ui16_1:%x ret_size:%x ui8_1:%d\n", ui16_1, ret_size, ui8_1);
+  if ((0 == ui16_1) || (ui16_1 != ret_size)) {
+    printf("ui16_1:%x ret_size:%x\n", ui16_1, ret_size);
     LCD_ALERT_16N(PSTR("File error "), ui16_1);
     goto menuSDLoadSettingsExit;
   }
@@ -2617,13 +2615,13 @@ menuSDLoadSettings(uint8_t mode)
   /* */
   assert(FR_OK == f_lseek(&Fil, 0));
   ui16_1 = 0;
+  assert(FR_OK == f_lseek(&Fil, GIT_HASH_SMALL_LEN));
   while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE, &ret_size)) {
-    if (BUFSS_SIZE != ret_size) break; /* reached last */
-    ui16_2 = ((EP_STORE_LAYOUT_SIZEOF-ui16_1)<ret_size) ? (EP_STORE_LAYOUT_SIZEOF-ui16_1): ret_size;
-    eeprom_update_block((const void *)bufSS, (void *)ui16_1, ui16_2);
-    ui16_1 += ui16_2;
+    if (0 == ret_size) break; /* reached last */
+    eeprom_update_block((const void *)bufSS, (void *)ui16_1, ret_size);
+    ui16_1 += ret_size;
   }
-  assert(EP_STORE_LAYOUT_SIZEOF == ui16_1); /* crc would be pending */
+  assert((EP_STORE_LAYOUT_SIZEOF+2) == ui16_1); /* crc would be pending */
 
   /* restore serial number */
   for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
@@ -2639,7 +2637,6 @@ menuSDLoadSettings(uint8_t mode)
 #endif
 }
 
-// Not unit tested
 void
 menuSDSaveSettings(uint8_t mode)
 {
@@ -2661,7 +2658,7 @@ menuSDSaveSettings(uint8_t mode)
   }
 
   /* Add version string */
-  sprintf(bufSS, "%" GIT_HASH_SMALL_LEN_STR "s", GIT_HASH_SMALL);
+  strncpy_P(bufSS, PSTR(GIT_HASH_SMALL), GIT_HASH_SMALL_LEN);
   f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
   for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
     signature = _crc16_update(signature, bufSS[ui8_1]);
@@ -2669,12 +2666,11 @@ menuSDSaveSettings(uint8_t mode)
 
   /* */
   for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1+=ui16_3) {
-    ui16_3 = (EP_STORE_LAYOUT_SIZEOF-ui16_1) > BUFSS_SIZE ? BUFSS_SIZE :
-      (EP_STORE_LAYOUT_SIZEOF-ui16_1);
+    ui16_3 = ((EP_STORE_LAYOUT_SIZEOF-ui16_1) >= BUFSS_SIZE) ?
+      BUFSS_SIZE : (EP_STORE_LAYOUT_SIZEOF-ui16_1);
     eeprom_read_block((void *)bufSS, (const void *)ui16_1, ui16_3);
-    for (ui16_2=0; ui16_2<ui16_3; ui16_2+=ret_size) {
-      f_write(&Fil, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
-    }
+    f_write(&Fil, bufSS, ui16_3, &ret_size);
+    assert(ret_size == ui16_3);
     for (ui16_2=0; ui16_2<ui16_3; ui16_2++) {
       signature = _crc16_update(signature, bufSS[ui16_2]);
     }
