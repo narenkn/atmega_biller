@@ -10,4 +10,7 @@ ep_ds.h
 version.h
 \#*
 dep
+utils/build
+utils/dist
+tests/test_uart2.c
 default/*

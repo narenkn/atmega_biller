@@ -1,3 +1,5 @@
+#undef LCD_USE_FUNCTIONS
+#define LCD_USE_FUNCTIONS 0
 
 #define assert(x)
 
@@ -20,7 +22,7 @@ main()
   LCD_WR_LINE(0, 0, "UART Testing:");
   LCD_refresh();
   _delay_ms(1000);
-  uart_init();
+  uartInit();
 
   DDRD |= 0x60;
   PORTD |= 0<<5;
@@ -34,9 +36,9 @@ main()
       LCD_PUTCH('a'+ui1);
 //      LCD_PUTCH(ui2);
       LCD_refresh();
-      uart_transmitByte('a'+ui1);
-      uart_transmitByte('\r');
-      uart_transmitByte('\n');
+      uartTransmitByte('a'+ui1);
+      uartTransmitByte('\r');
+      uartTransmitByte('\n');
       _delay_ms(1000);
     }
   }

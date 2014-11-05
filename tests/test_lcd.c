@@ -1,6 +1,6 @@
 
-#define assert(x)
-
+#undef LCD_USE_FUNCTIONS
+#define LCD_USE_FUNCTIONS 0
 #include "lcd.c"
 
 int
