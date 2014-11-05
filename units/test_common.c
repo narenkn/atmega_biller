@@ -58,6 +58,8 @@ uint8_t TIMSK, TCCR2;
 /* All Header overrides */
 #undef  SD_ITEM_FILE
 #define SD_ITEM_FILE "test_data/items_1.dat"
+
+#ifndef  __UNITS_KBD_C
 #define LCD_ALERT(str)				\
   LCD_WR_LINE(0, 0, str);			\
   KBD_RESET_KEY; KBD_GETCH
@@ -66,6 +68,7 @@ uint8_t TIMSK, TCCR2;
   LCD_WR_LINE(0, 0, str);			\
   LCD_PUT_UINT16X(n);				\
   KBD_RESET_KEY; KBD_GETCH
+#endif
 
 #include "lcd.c"
 #include "kbd.c"

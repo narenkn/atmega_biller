@@ -21,7 +21,7 @@ main(void)
   assert(sizeof(struct sale)+LCD_MAX_COL+LCD_MAX_COL+4 <= BUFSS_SIZE);
   sl->info.n_items = 1;
   sl->info.prop    = 0;
-  strncpy_P(sl->info.user, PSTR("naren"), 6);
+  strncpy_P(sl->info.user, PSTR("naren   "), 8);
   sl->info.date_yy = 44;
   sl->info.date_mm = 9;
   sl->info.date_dd = 4;
@@ -51,6 +51,8 @@ main(void)
   sl->it[0].is_disabled = 0;
 
   menuPrnBill(sl);
+
+  LCD_end();
 
   return 0;
 }

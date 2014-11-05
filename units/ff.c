@@ -128,7 +128,7 @@ FRESULT f_open (
   }
 
   /* */
-  fp->fp = fopen(fp->fpath, (FA_READ&mode)?"r":"a");
+  fp->fp = fopen(fp->fpath, (((FA_READ|FA_WRITE)&mode)==(FA_READ|FA_WRITE)) ? "a+" : (FA_READ&mode) ? "r":"a");
   if (NULL == fp->fp) {
     return FR_DISK_ERR;
   }
