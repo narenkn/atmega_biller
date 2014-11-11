@@ -46,8 +46,8 @@ FIXME:
 31. Ability to generate serial number and program it to chip
 32. Before doing any disk operations, make sure disk is present..
     if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
-33. Mark certain bills invalid (choose invalid mode)
-34. Mark previous bill invalid
+--33. Mark certain bills invalid (choose invalid mode)
+--34. Mark previous bill invalid
 35. Have short cuts for menu actions (make previous bill invalid)
 36. Code weighing machine isr routine
 37. Send sale data through serial/USB port

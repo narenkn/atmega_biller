@@ -457,7 +457,7 @@ eeprom_update_byte_NP(uint16_t addr, uint8_t *pstr, uint8_t size)
 {
   uint8_t ui8_1;
   for (; size; size--) {
-    ui8_1 = pgm_read_byte(pstr);
+    ui8_1 = (0 == pstr) ? 0 : pgm_read_byte(pstr);
     if (0 == ui8_1) break;
     eeprom_update_byte(addr, ui8_1);
     addr++;
@@ -471,10 +471,6 @@ eeprom_update_byte_NP(uint16_t addr, uint8_t *pstr, uint8_t size)
 
 // Not unit tested
 /* Load in the factory settings */
-/* Todo:
-   1. admin passwd needs to be reset
-   2. users : make default user names
- */
 void
 menuFactorySettings(uint8_t mode)
 {
@@ -482,6 +478,22 @@ menuFactorySettings(uint8_t mode)
   uint16_t ui16_1;
 
   assert(MENU_MSUPER == MenuMode);
+
+  /* confirm before proceeding */
+  LCD_WR_LINE_NP(0, 0, PSTR("Reset2 Factory"), 14);
+  ui8_1 = menuGetYesNo("Delete All Data?", LCD_MAX_COL);
+  if (0 != ui8_1) return;
+
+  /* store & restore serial #
+     Eraze all locations
+  */
+  for (ui16_1=0; ui16_1<SERIAL_NO_MAX; ui16_1++)
+    bufSS[ui16_1] = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui16_1);
+  for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1)
+    eeprom_update_byte(ui16_1, 0);
+  for (ui16_1=0; ui16_1<SERIAL_NO_MAX; ui16_1++)
+    eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui16_1,
+		     bufSS[ui16_1]);
 
   /* Mark all items as deleted : (0==id) */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
@@ -495,8 +507,6 @@ menuFactorySettings(uint8_t mode)
   /* */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, shop_name),
 			PSTR("Sri Ganapathy Medicals"), SHOP_NAME_SZ_MAX);
-  eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_serial_no),
-			PSTR("ABCDEFGHIJKL"), SERIAL_NO_MAX);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, b_head),
 			PSTR("12 Agraharam street, New Tippasandara,\n Bangalore - 52\n TIN:299007249"), HEADER_SZ_MAX);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, b_foot),
@@ -507,6 +517,33 @@ menuFactorySettings(uint8_t mode)
 			PSTR("A000"), EPS_WORD_LEN);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, caption),
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
+
+  /* user names & passwd needs to be reset */
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, users),
+			PSTR("admin"), EPS_MAX_UNAME);
+  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
+    eeprom_update_byte_NP(offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*ui8_1),
+			  0, EPS_MAX_UNAME);
+  }
+  ui16_1 = 0;
+  ui16_1 = _crc16_update(ui16_1, 'a');
+  ui16_1 = _crc16_update(ui16_1, 'd');
+  ui16_1 = _crc16_update(ui16_1, 'm');
+  ui16_1 = _crc16_update(ui16_1, 'i');
+  ui16_1 = _crc16_update(ui16_1, 'n');
+  eeprom_update_word(offsetof(struct ep_store_layout, passwd), ui16_1);
+  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
+    eeprom_update_word(offsetof(struct ep_store_layout, passwd) + (sizeof(uint16_t)*ui8_1), 0);
+  }
+
+  /* All numerical data */
+  eeprom_update_word(offsetof(struct ep_store_layout, RndOff), 50);
+
+  /* */
+  eeprom_update_byte(offsetof(struct ep_store_layout, idle_wait), 5);
+
+  /* At the end, log out the user */
+  menuUserLogout(mode);
 }
 
 void
@@ -694,7 +731,7 @@ menuUserLogin(uint8_t mode)
 
 // Not unit tested
 void
-menuInit(void)
+menuInit()
 {
   uint16_t ui16_1, ui16_2;
   uint8_t ui8_1, ui8_2;
@@ -753,7 +790,11 @@ menuInit(void)
   f_mount(NULL, "", 0);
 #endif
 
+  # Used to find if we are looping multiple times
+  ui8_2 = 0;
+
   /* Identify capability of device from serial number */
+ menuInitIdentifyDevice:
   ui16_1 = 0;
   for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
     ui16_1 = _crc16_update(ui16_1, eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
@@ -770,6 +811,21 @@ menuInit(void)
   } else if ( (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
 	      (0 == ((ui16_2 ^ (ui16_1<<8)) & 0xFF00)) ) {
     devStatus |= DS_DEV_20K;
+  } else if (0 == ui8_2) {
+    /* Serial # doesn't exist, load from addr 0 */
+    for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
+      ui8_2 = eeprom_read_byte(ui8_1);
+      eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
+			 ui8_2);
+    }
+
+    ui8_2 = MenuMode;
+    MenuMode = MENU_MSUPER;
+    menuFactorySettings(mode);
+    MenuMode = ui8_2;
+
+    ui8_2 = 1;
+    goto menuInitIdentifyDevice;
   } else {
     devStatus |= DS_DEV_INVALID;
   }
@@ -866,36 +922,13 @@ menuBilling(uint8_t mode)
       }
     }
 
-    for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-      ee24xx_read_bytes(ui16_1, (void *)&(sl->it[0]), ITEM_SIZEOF);
-      /* invalid item */
-      if ((0 == sl->it[0].id) || (sl->it[0].is_disabled))
-	continue;
-      //printf("id:%d ui16_2:%d\n", sl->it[0].id, ui16_2);
-      if (ui8_2) { /* integer */
-	if (sl->it[0].id == ui16_2)
-	  break;
-      } else { /* string */
-	/* FIXME: Speed up search.. */
-	ui8_4 = 1 /* full match */;
-	for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++) {
-	  if ( (!isgraph(arg1.value.str.sptr[ui8_3])) &&
-	       (!isgraph(sl->it[0].name[ui8_3])) ) {
-	    continue;
-	  } else { /* match */
-	    ui8_4 &= (toupper(arg1.value.str.sptr[ui8_3]) == toupper(sl->it[0].name[ui8_3])) ? 1 : 0;
-	    //printf("ui8_4:%d ui8_3:%d arg1[ui8_3]:'%c' it.name:'%c'\n", ui8_4, ui8_3, arg1.value.str.sptr[ui8_3], sl->it[0].name[ui8_3]);
-	  }
-	}
-	if (1 == ui8_4)
-	  break;
-      }
+    /* Find item */
+    ui16_1 = menuItemFind(arg1.value.str.sptr, arg1.value.str.sptr, sl->it, 0);
+    if (0 == ui16_1) {
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Invalid Item"), 12);
+      _delay_ms(1000);
+      continue; /* match not found */
     }
-    ui8_4 = (EEPROM_MAX_ADDRESS-ui16_1+1) >= (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2);
-    //printf("chars:%d match:%d\n", ui8_3, ui8_4);
-
-    if (1 != ui8_4) continue; /* match not found */
 
     /* common inputs */
     sl->items[ui8_5].ep_item_ptr = ui16_1;
@@ -1590,8 +1623,10 @@ menuBillReports(uint8_t mode)
   }
 
   /* check that dates are in order */
-  if ((MENU_ITEM_DATE != arg1.valid) || (MENU_ITEM_DATE != arg2.valid))
+  if ((MENU_ITEM_DATE != arg1.valid) || (MENU_ITEM_DATE != arg2.valid)) {
+    LCD_ALERT(PSTR("Invalid Dates"));
     return;
+  }
   if ( ! ( (arg1.value.date.year < arg2.value.date.year) ||
 	   ( (arg1.value.date.year == arg2.value.date.year) &&
 	     (arg1.value.date.month < arg2.value.date.month) ) ||
@@ -1613,22 +1648,34 @@ menuBillReports(uint8_t mode)
   ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
-    LCD_ALERT(PSTR("Old Format   "));
+    LCD_ALERT(PSTR("Incompatible File"));
     return;
   }
 
   /* Find # records */
-  ui32_1 = (f_size(&Fil)-2) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
-  assert (0 == ((f_size(&Fil)-2) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
+  ui32_1 = f_size(&Fil);
+  if (0 == ui32_1) return; /* don't expect to find anything */
+  assert (0 == ((ui32_1-4) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
+  ui32_1 = (ui32_1-4) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
 
   /* iterate records */
-  for (ui32_2=0, ui8_1=1; ;) {
+  for (ui32_2=0; ui32_2<ui32_1; ui32_2++) {
     /* Display this item */
     f_lseek( &Fil, 2+(ui32_2*(sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))) );
     f_read(&Fil, (void *)sl, sizeof(struct sale), &ret_val);
     assert(sizeof(struct sale) == ret_val);
 
-    /* FIXME: complete this.. */
+    /* complete this.. */
+    if ( (arg1.value.date.year < sl->info.date_yy) ||
+	 ((arg1.value.date.year == sl->info.date_yy) && (arg1.value.date.month < sl->info.date_mm)) ||
+	 ((arg1.value.date.year == sl->info.date_yy) && (arg1.value.date.month == sl->info.date_mm) && (arg1.value.date.day < sl->info.date_dd)) )
+      continue;
+    else if ( (sl->info.date_yy < arg2.value.date.year) ||
+	 ((sl->info.date_yy == arg2.value.date.year) && (sl->info.date_mm < arg2.value.date.month)) ||
+	 ((sl->info.date_yy == arg2.value.date.year) && (sl->info.date_mm == arg2.value.date.month) && (sl->info.date_dd < arg2.value.date.day)) )
+      continue;
+
+    /* FIXME: */
   }
 
   /* */

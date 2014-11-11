@@ -215,8 +215,29 @@ class Atmega32:
 ##    if (0x0C != (in_val&0x3F)):
 ##      print " : Failed (Exp:0x0C Obt:0x%x)" % (in_val&0x3F);
 ##      self.error += 1;
+##      break;
 ##    else:
 ##      print " : Done";
+    ## 9. Write serial number
+    if options.serial_no:
+      print "Info: Writing serial number...",;
+      for i in range(16):
+        self.Out(0xC0); self.Out(0x00); self.Out(i); self.Out(ord(options.serial_no[i]));
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      for i in range(16):
+        self.Out(0xA0); self.Out(0x00); self.Out(i); in_val = self.Out(0);
+        if (ord(options.serial_no[i]) != in_val):
+          print " : Failed (idx:%d Exp:0x%x Obt:0x%x)" % (i, ord(options.serial_no[i]), in_val&0xFF);
+          self.error += 1;
+          break;
+        else:
+          print " : Done";
 
 if "__main__" == __name__:
   ## Constants
@@ -246,6 +267,8 @@ if "__main__" == __name__:
                   action="store_true", help="Use reset values wherever applicable");
   parser.add_option("-F", "--program_fuse", dest="program_fuse", default=False,
                   action="store_true", help="release the drive");
+  parser.add_option("", "--serial_no", dest="serial_no", default=None,
+                  help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
 
   dev = Atmega32(options.lpt_addr);
@@ -259,6 +282,16 @@ if "__main__" == __name__:
     dev.Reset();
     dev.Release();
     exit(dev.error);
+
+  ## 
+  if options.serial_no:
+    assert(12 == len(options.serial_no));
+    ui16 = cd.crc16(bytearray(options.serial_no));
+    options.serial_no += chr(ord('a')+((ui16>>12)&0xF))
+    options.serial_no += chr(ord('a')+((ui16>>8)&0xF))
+    options.serial_no += chr(ord('a')+((ui16>>4)&0xF))
+    options.serial_no += chr(ord('a')+((ui16>>0)&0xF))
+    assert(16 == len(options.serial_no));
 
   ##
   f = open(options.ihex);

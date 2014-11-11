@@ -69,7 +69,7 @@ class data_struct:
         if TYPE_ARR == s_var[2]:
           for idx in range(0, s_var[1], s_var[3]):
             num_vars += 1;
-            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s[%d])}, \\" % (self.get_type(s_var[2]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3])
+            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s)+(%d*%d)}, \\" % (self.get_type(s_var[2]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3], s_var[3])
         elif TYPE_BIT == s_var[2]:
           num_vars += 1;
           print "\t{%s, %d, %d, \"%s\", %d}, \\" % (self.get_type(s_var[2]), int((s_var[1]*10)%10), int((goffset*10)%10), var, int(goffset))
@@ -395,24 +395,16 @@ if "__main__" == __name__:
                   help="Input file");
   parser.add_option("", "--dat2bill", dest="dat2bill", default=None,
                   help="Convert billed data to xls");
-  parser.add_option("", "--from_date", dest="to_date", default=None,
+  parser.add_option("", "--from_date", dest="from_date", default=None,
                   help="Starting date to analyze from");
-  parser.add_option("", "--to_date", dest="to_csv", default=None,
+  parser.add_option("", "--to_date", dest="to_date", default=None,
                   help="Ending date to analyze upto");
   parser.add_option("-o", "--out_file", dest="out_file", default="settings.dat",
                   help="Output file");
-  parser.add_option("", "--prod_code", dest="prod_code", default=None,
-                  help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
 
   it = item('item')
   ep = ep_store_layout('ep_store_layout')
-
-  if options.prod_code:
-    assert(16 == options.prod_code);
-    ui16 = cd.crc16(bytearray(options.prod_code));
-    options.prod_code += "%c%c%c%c" % ( chr(ord('a')+((ui16>>12)&0xF)), chr(ord('a')+((ui16>>8)&0xF)),
-      chr(ord('a')+((ui16>>4)&0xF)), chr(ord('a')+((ui16)&0xF)) )
 
   if options.crc16:
     cd = csv2dat(None)
