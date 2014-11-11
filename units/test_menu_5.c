@@ -148,16 +148,5 @@ main()
     //printf("val:%x\n", (ui16_3 & ((1<<ui8_5)-1)));
   }
 
-  /* FIXME: for menuSetDateTime */
-  for (loop=0; loop<0; loop++) {
-    ui8_1 = rand() % 40;
-    ui8_1++;
-    ui8_2 = rand() % 60;
-    ui8_3 = rand() % 60;
-    menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE);
-    menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_TIME);
-//    timerDateGet();
-  }
-
   return errors;
 }

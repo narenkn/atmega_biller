@@ -519,10 +519,10 @@ menuFactorySettings(uint8_t mode)
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
 
   /* user names & passwd needs to be reset */
-  eeprom_update_byte_NP(offsetof(struct ep_store_layout, users),
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users),
 			PSTR("admin"), EPS_MAX_UNAME);
   for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
-    eeprom_update_byte_NP(offsetof(struct ep_store_layout, users) + (EPS_MAX_UNAME*ui8_1),
+    eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1),
 			  0, EPS_MAX_UNAME);
   }
   ui16_1 = 0;
@@ -531,9 +531,9 @@ menuFactorySettings(uint8_t mode)
   ui16_1 = _crc16_update(ui16_1, 'm');
   ui16_1 = _crc16_update(ui16_1, 'i');
   ui16_1 = _crc16_update(ui16_1, 'n');
-  eeprom_update_word(offsetof(struct ep_store_layout, passwd), ui16_1);
+  eeprom_update_word(offsetof(struct ep_store_layout, unused_passwds), ui16_1);
   for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
-    eeprom_update_word(offsetof(struct ep_store_layout, passwd) + (sizeof(uint16_t)*ui8_1), 0);
+    eeprom_update_word(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_1), 0);
   }
 
   /* All numerical data */
@@ -790,7 +790,7 @@ menuInit()
   f_mount(NULL, "", 0);
 #endif
 
-  # Used to find if we are looping multiple times
+  /* Used to find if we are looping multiple times */
   ui8_2 = 0;
 
   /* Identify capability of device from serial number */
@@ -821,7 +821,7 @@ menuInit()
 
     ui8_2 = MenuMode;
     MenuMode = MENU_MSUPER;
-    menuFactorySettings(mode);
+    menuFactorySettings(MenuMode);
     MenuMode = ui8_2;
 
     ui8_2 = 1;
@@ -1769,7 +1769,6 @@ menuShowBill(uint8_t mode)
 }
 
 #if MENU_SETTING_ENABLE
-/* FIXME: PROGMEM */
 const struct menu_vars MenuVars[] PROGMEM = { MENU_VAR_TABLE };
 
 void
@@ -1778,12 +1777,15 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
   uint8_t ui8_1, ui8_2;
   uint16_t ui16_1;
 
-  arg1.valid = MENU_ITEM_NONE;
-  arg1.value.str.sptr = bufSS;
-  arg1.value.str.len = max_chars;
-  menuGetOpt(quest, &arg1, MENU_ITEM_STR);
-  if (MENU_ITEM_STR != arg1.valid)
+  do {
+    arg1.valid = MENU_ITEM_NONE;
+    arg1.value.str.sptr = bufSS;
+    arg1.value.str.len = max_chars;
+    menuGetOpt(quest, &arg1, MENU_ITEM_STR);
+  } while (MENU_ITEM_STR != arg1.valid);
+  if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+
   for (ui16_1=0; ui16_1<max_chars; ui16_1++) {
     //    if (!isgraph(arg1.value.str.sptr[ui16_1]))
     //      arg1.value.str.sptr[ui16_1] = ' ';
@@ -1795,10 +1797,12 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
 void
 menuSettingUint32(uint16_t addr, const uint8_t *quest)
 {
-  arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
-  if (MENU_ITEM_ID != arg1.valid)
-    assert(0);
+  do {
+    arg1.valid = MENU_ITEM_NONE;
+    menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  } while (MENU_ITEM_ID != arg1.valid);
+  if (menuGetYesNo(PSTR("Confirm?"), 8))
+    return;
 
   uint32_t val = arg1.value.integer.i32;
   eeprom_update_dword((void *)addr, val);
@@ -1808,9 +1812,11 @@ void
 menuSettingUint16(uint16_t addr, const uint8_t *quest)
 {
   arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
-  if (MENU_ITEM_ID != arg1.valid)
-    assert(0);
+  do {
+    menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  } while  (MENU_ITEM_ID != arg1.valid);
+  if (menuGetYesNo(PSTR("Confirm?"), 8))
+    return;
 
   uint16_t val = arg1.value.integer.i16;
   eeprom_update_word((void *)addr, val);
@@ -1819,10 +1825,12 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
 void
 menuSettingUint8(uint16_t addr, const uint8_t *quest)
 {
-  arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
-  if (MENU_ITEM_ID != arg1.valid)
-    assert(0);
+  do {
+    arg1.valid = MENU_ITEM_NONE;
+    menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  } while (MENU_ITEM_ID != arg1.valid);
+  if (menuGetYesNo(PSTR("Confirm?"), 8))
+    return;
 
   uint8_t val = arg1.value.integer.i16;
   eeprom_update_byte((void *)addr, val);
@@ -1833,10 +1841,12 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
 {
   uint8_t ui8_1, ui8_2;
   
-  arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID);
-  if (MENU_ITEM_ID != arg1.valid)
-    assert(0);
+  do {
+    arg1.valid = MENU_ITEM_NONE;
+    menuGetOpt(quest, &arg1, MENU_ITEM_ID);
+  } while (MENU_ITEM_ID != arg1.valid);
+  if (menuGetYesNo(PSTR("Confirm?"), 8))
+    return;
 
   ui8_1 = eeprom_read_byte((void *)(addr));
   ui8_2 = (1<<size)-1;
@@ -1876,7 +1886,6 @@ menuSettingPrint(uint8_t mode)
 }
 #endif
 
-// Not unit tested : not required I suppose...
 void
 menuSetDateTime(uint8_t mode)
 {
@@ -1888,7 +1897,6 @@ menuSetDateTime(uint8_t mode)
   }
 }
 
-// Not unit tested
 void
 menuSettingSet(uint8_t mode)
 {
@@ -1899,12 +1907,14 @@ menuSettingSet(uint8_t mode)
  menuSettingSetStart:
   for (ui8_1=1; ;) {
     ui8_1 %= (MENU_VARS_SIZE+1);
+    LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Settings"), sizeof("Settings"));
     if (0 == ui8_1) {
-      LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR("Quit ?"), sizeof("Quit ?"));
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Quit ?"), sizeof("Quit ?"));
     } else {
-      LCD_WR_LINE_NP(LCD_MAX_COL-1, 0, PSTR("Change "), sizeof("Change "));
-      LCD_WR_LINE_NP(LCD_MAX_COL-1, sizeof("Change "), ((uint16_t)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name), MENU_VAR_NAME_LEN);
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, PSTR("Change "), sizeof("Change "));
+      LCD_WR_LINE_NP(LCD_MAX_ROW-1, sizeof("Change "), ((uint32_t)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name), MENU_VAR_NAME_LEN);
     }
+    LCD_refresh();
     KBD_RESET_KEY;
     KBD_GETCH;
     if (ASCII_ENTER == KbdData) {
@@ -1917,27 +1927,27 @@ menuSettingSet(uint8_t mode)
   }
   if (0 == ui8_1) return;
 
-  ui8_2 = pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, type));
-  ui16_1 = pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, ep_ptr)+1);
+  ui8_2 = pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, type));
+  ui16_1 = pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, ep_ptr)+1);
   ui8_1 <= 8;
-  ui16_1 |= pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, ep_ptr));
+  ui16_1 |= pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, ep_ptr));
   switch (ui8_2) {
   case TYPE_UINT8:
-    menuSettingUint8(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
+    menuSettingUint8(ui16_1, ((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name));
   case TYPE_UINT16:
-    menuSettingUint16(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
+    menuSettingUint16(ui16_1, ((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name));
     break;
   case TYPE_UINT32:
-    menuSettingUint32(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name));
+    menuSettingUint32(ui16_1, ((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name));
     break;
   case TYPE_STRING:
-    menuSettingString(ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name),
-		      pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)));
+    menuSettingString(ui16_1, ((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name),
+		      pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)));
     break;
   case TYPE_BIT:
-    menuSettingBit( ui16_1, MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name),
-		    pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)),
-		    pgm_read_byte(MenuVars+(ui8_1-1)+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size2)) );
+    menuSettingBit( ui16_1, ((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name),
+		    pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size)),
+		    pgm_read_byte(((uint8_t *)(MenuVars+(ui8_1-1)))+offsetof(struct menu_vars, name)+offsetof(struct menu_vars, size2)) );
     break;
   default:
     assert(0);

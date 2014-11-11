@@ -19,10 +19,9 @@ main(void)
   menuInit();
   KbdInit();
 
-  printw("Press F2 to exit");
-  menuSDLoadItem(0);
-  menuMain();
+  menuSettingSet(MENU_MSUPER);
 
   /* Prepare to exit */
+  KBD_GETCH;
   LCD_end();
 }

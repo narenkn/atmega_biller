@@ -69,7 +69,7 @@ class data_struct:
         if TYPE_ARR == s_var[2]:
           for idx in range(0, s_var[1], s_var[3]):
             num_vars += 1;
-            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s)+(%d*%d)}, \\" % (self.get_type(s_var[2]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3], s_var[3])
+            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s)+(%d*%d)}, \\" % (self.get_type(s_var[3]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3], s_var[3])
         elif TYPE_BIT == s_var[2]:
           num_vars += 1;
           print "\t{%s, %d, %d, \"%s\", %d}, \\" % (self.get_type(s_var[2]), int((s_var[1]*10)%10), int((goffset*10)%10), var, int(goffset))
