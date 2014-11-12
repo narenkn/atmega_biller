@@ -2,7 +2,7 @@ FIXME:
 3. Choice to print words of total bill
 4. Print duplicate bill
 5. Item, tax total
-7. Add version string in all dat files & check compatible in menu.c
+##7. Add version string in all dat files & check compatible in menu.c
 ##  7.a Settings file
 ##  7.b dat file
 ##  7.c Sale csv
@@ -49,7 +49,7 @@ FIXME:
 --33. Mark certain bills invalid (choose invalid mode)
 --34. Mark previous bill invalid
 35. Have short cuts for menu actions (make previous bill invalid)
-36. Code weighing machine isr routine
+##36. Code weighing machine isr routine
 37. Send sale data through serial/USB port
 38. Store default bill in EEPROM, print in diagnosis.
 ##39. Check for name/ prod-code in item before accepting it

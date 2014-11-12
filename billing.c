@@ -105,9 +105,11 @@ billingDeleteAll()
 {
 }
 
+uint32_t billingIterAddr;
 void
 billingIterStart()
 {
+  billingIterStart = 0;
 }
 
 void

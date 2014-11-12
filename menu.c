@@ -1021,19 +1021,15 @@ menuBilling(uint8_t mode)
   sl->t_stax = 0, sl->t_vat = 0, sl->t_discount = 0, sl->total = 0;
   ui32_2 = 0;
   for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
-    ui32_1 = sl->items[ui8_3].cost > sl->items[ui8_3].discount ?
-      (sl->items[ui8_3].cost - sl->items[ui8_3].discount) :
-      sl->items[ui8_3].cost;
-    if (0 != sl->items[ui8_3].discount) {
-      sl->t_discount += sl->items[ui8_3].cost - ui32_1;
+    if (sl->items[ui8_3].cost > sl->items[ui8_3].discount) {
+      ui32_1 = (sl->items[ui8_3].cost - sl->items[ui8_3].discount);
+      sl->t_discount += sl->items[ui8_3].discount;
     } else if (sl->items[ui8_3].has_common_discount) {
-      ui32_2 = eeprom_read_byte((void *)offsetof(struct ep_store_layout, ComnDis));
-      ui32_2 <<= 8;
-      ui32_2 |= eeprom_read_byte((void *)offsetof(struct ep_store_layout, ComnDis) + 1);
-      ui32_2 = ((10000 - ui32_2) * ui32_1) / 100;
-      /* ui32_1 = FIXME: complete this */
-      sl->t_discount += ui32_2;
-      ui32_1 -= ui32_2;
+      ui32_1 = eeprom_read_byte((void *)offsetof(struct ep_store_layout, ComnDis));
+      ui32_1 <<= 8;
+      ui32_1 |= eeprom_read_byte((void *)(offsetof(struct ep_store_layout, ComnDis) + 1));
+      ui32_1 = ((10000 - ui32_1) * sl->items[ui8_3].cost);
+      sl->t_discount += (sl->items[ui8_3].cost - ui32_1);
     }
     ui32_1 *= sl->items[ui8_3].quantity;
 
@@ -1606,27 +1602,31 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
-#if FF_ENABLE
   UINT  ret_val;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint16_t ui16_1, ui16_2;
   uint32_t ui32_1, ui32_2;
   uint8_t ui8_1;
 
-  /* */
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-  f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
-    LCD_ALERT(PSTR("File open error"));
-    return;
+  /* if dates not provided assume today */
+  {
+    uint8_t ymd[3];
+    timerDateGet(ymd);
+    if (MENU_ITEM_DATE != arg1.valid) {
+      arg1.valid = MENU_ITEM_DATE;
+      arg1.value.date.day = ymd[0];
+      arg1.value.date.month = ymd[1];
+      arg1.value.date.year = ymd[2];
+    }
+    if (MENU_ITEM_DATE != arg2.valid) {
+      arg2.valid = MENU_ITEM_DATE;
+      arg2.value.date.day = ymd[0];
+      arg2.value.date.month = ymd[1];
+      arg2.value.date.year = ymd[2];
+    }
   }
 
   /* check that dates are in order */
-  if ((MENU_ITEM_DATE != arg1.valid) || (MENU_ITEM_DATE != arg2.valid)) {
-    LCD_ALERT(PSTR("Invalid Dates"));
-    return;
-  }
   if ( ! ( (arg1.value.date.year < arg2.value.date.year) ||
 	   ( (arg1.value.date.year == arg2.value.date.year) &&
 	     (arg1.value.date.month < arg2.value.date.month) ) ||
@@ -1642,6 +1642,17 @@ menuBillReports(uint8_t mode)
     return;
   }
 
+  /* */
+#if FF_ENABLE
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
+    LCD_ALERT(PSTR("File open error"));
+    f_mount(NULL, "", 0);
+    return;
+  }
+
   /* If version doesn't match, escape... */
   f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
   assert(2 == ret_val);
@@ -1649,6 +1660,7 @@ menuBillReports(uint8_t mode)
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
     LCD_ALERT(PSTR("Incompatible File"));
+    f_mount(NULL, "", 0);
     return;
   }
 
@@ -1694,16 +1706,13 @@ menuShowBill(uint8_t mode)
   uint32_t ui32_1, ui32_2;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
-  if (MENU_ITEM_STR != arg2.valid) {
-    assert(MENU_ITEM_NONE == arg2.valid);
-  }
-
   /* */
   memset(&FS, 0, sizeof(FS));
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
   if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
     LCD_ALERT(PSTR("File open error"));
+    f_mount(NULL, "", 0);
     return;
   }
 
@@ -1714,23 +1723,31 @@ menuShowBill(uint8_t mode)
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
   if (GIT_HASH_CRC != ui16_2) {
     LCD_ALERT(PSTR("Old Format   "));
+    f_mount(NULL, "", 0);
+    return;
+  }
+  ui32_2 = f_size(&Fil);
+  if ( (0 == ui32_2) ||
+       (0 != ((ui32_2-4) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item))))) ) {
+    LCD_ALERT(PSTR("Corrupted File"));
+    f_mount(NULL, "", 0);
     return;
   }
 
   /* Find # records */
-  ui32_1 = (f_size(&Fil)-2) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
-  assert (0 == ((f_size(&Fil)-2) % (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))));
+  ui32_1 = (f_size(&Fil)-4) / (sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)));
 
   /* iterate records */
   for (ui32_2=0, ui8_1=1; ;) {
     /* Display this item */
     f_lseek( &Fil, 2+(ui32_2*(sizeof(struct sale) + ((MAX_ITEMS_IN_BILL-1)*sizeof(struct item)))) );
     f_read(&Fil, (void *)sl, sizeof(struct sale), &ret_val);
+    assert(sizeof(struct sale) == ret_val);
     if (MENU_ITEM_DATE == arg1.valid) {
       if ( (sl->info.date_yy != arg1.value.date.year) ||
 	   (sl->info.date_mm != arg1.value.date.month) ||
 	   (sl->info.date_dd != arg1.value.date.day) ) {
-	if ((0 == (ui8_1&1)) && (ui32_2>1)) { /* prev */
+	if ((0 == (ui8_1&1)) && (ui32_2>0)) { /* prev */
 	  ui32_2--;
 	  continue;
 	} else if ((1 == (ui8_1&1)) && (ui32_2<(ui32_1-1))) { /* next */
@@ -1738,14 +1755,14 @@ menuShowBill(uint8_t mode)
 	  continue;
 	} else if ((ui8_1 & 0xF0) > 0x10) {
 	  break;
-	} else { /* not found, change dir */
+	} else { /* not found, change direction */
 	  ui8_1 += 0x10;
 	  ui8_1 ^= 1;
 	  continue;
 	}
       }
     }
-    assert(sizeof(struct sale) == ret_val);
+    ui8_1 &= ~0xF0;
 
     /* FIXME: Display bill */
 
@@ -2246,6 +2263,7 @@ menuRunDiag(uint8_t mode)
 	}
       } else {
       }
+      f_mount(NULL, "", 0);
     } else {
     }
   }
