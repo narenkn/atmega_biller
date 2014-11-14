@@ -761,6 +761,8 @@ menuInit()
   diagStatus = 0;
 
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
+
   /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
   UINT ret_val;
   memset(&FS, 0, sizeof(FS));
@@ -788,6 +790,7 @@ menuInit()
     devStatus |= DS_NO_SD;
   }
   f_mount(NULL, "", 0);
+  }
 #endif
 
   /* Used to find if we are looping multiple times */
@@ -1067,6 +1070,7 @@ menuBilling(uint8_t mode)
     sl->info.user[ui8_2] = eeprom_read_byte((void *) (offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   /* Save the bill to SD */
   UINT ret_val;
   memset(&FS, 0, sizeof(FS));
@@ -1140,6 +1144,7 @@ menuBilling(uint8_t mode)
   } else
     LCD_ALERT(PSTR("Can't save bill"));
   f_mount(NULL, "", 0);
+  }
 #endif
 
   /* Now print the bill */
@@ -1644,6 +1649,7 @@ menuBillReports(uint8_t mode)
 
   /* */
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   memset(&FS, 0, sizeof(FS));
   memset(&Fil, 0, sizeof(Fil));
   f_mount(&FS, ".", 1);
@@ -1692,6 +1698,7 @@ menuBillReports(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -1700,6 +1707,7 @@ void
 menuShowBill(uint8_t mode)
 {
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   UINT  ret_val;
   uint8_t  ui8_1;
   uint16_t ui16_1, ui16_2;
@@ -1782,6 +1790,7 @@ menuShowBill(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -1980,6 +1989,7 @@ void
 menuDelAllBill(uint8_t mode)
 {
 #if MENU_DELBILL && FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   uint16_t ui16_1;
   uint8_t ui8_1, ui8_2;
   uint8_t *ui8_1p = (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1997,6 +2007,7 @@ menuDelAllBill(uint8_t mode)
 
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -2248,6 +2259,7 @@ menuRunDiag(uint8_t mode)
   diagStatus |= (0 == menuGetYesNo(PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
 
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   /* FIXME: Verify SD card */
   LCD_CLRSCR;
   LCD_WR_LINE_NP(0, 0, PSTR("Diagnosis SD"), 12);
@@ -2266,6 +2278,7 @@ menuRunDiag(uint8_t mode)
       f_mount(NULL, "", 0);
     } else {
     }
+  }
   }
 #endif
 
@@ -2473,6 +2486,7 @@ void
 menuSDLoadItem(uint8_t mode)
 {
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   UINT  ret_size, ui1;
   uint16_t ui16_1;
   uint8_t ui8_1;
@@ -2561,6 +2575,7 @@ menuSDLoadItem(uint8_t mode)
  menuSDLoadItemExit:
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -2568,6 +2583,7 @@ void
 menuSDSaveItem(uint8_t mode)
 {
 #if MENU_SDSAVE_EN && FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, signature;
   struct item *it = (void *)bufSS;
@@ -2624,6 +2640,7 @@ menuSDSaveItem(uint8_t mode)
  menuSDSaveItemExit:
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -2631,6 +2648,7 @@ void
 menuSDLoadSettings(uint8_t mode)
 {
 #if FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2;
   uint8_t ui8_1;
@@ -2716,6 +2734,7 @@ menuSDLoadSettings(uint8_t mode)
   /* */
   f_close(&Fil);
   f_mount(NULL, "", 0);
+  }
 #endif
 }
 
@@ -2723,6 +2742,7 @@ void
 menuSDSaveSettings(uint8_t mode)
 {
 #if MENU_SDSAVE_EN && FF_ENABLE
+  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   UINT  ret_size, ui1;
   uint16_t ui16_1, ui16_2, ui16_3, signature;
   uint8_t ui8_1;
@@ -2768,5 +2788,6 @@ menuSDSaveSettings(uint8_t mode)
  menuSDSaveSettingsExit:
   /* */
   f_mount(NULL, "", 0);
+  }
 #endif
 }

@@ -44,8 +44,8 @@ FIXME:
 29. Support 3" printer for 20K product
 30. Use EEPROM to store recent bills (or have a copy of last bill)
 31. Ability to generate serial number and program it to chip
-32. Before doing any disk operations, make sure disk is present..
-    if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
+##32. Before doing any disk operations, make sure disk is present..
+##    if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
 --33. Mark certain bills invalid (choose invalid mode)
 --34. Mark previous bill invalid
 35. Have short cuts for menu actions (make previous bill invalid)
