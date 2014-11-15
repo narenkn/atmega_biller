@@ -369,13 +369,15 @@ void LCD_WR_SPRINTF(uint8_t x, uint8_t y, uint8_t *BUF, uint8_t *FMT, uint8_t N)
 
 #define LCD_ALERT(str)				\
   LCD_WR_LINE_P(0, 0, str);			\
-  LCD_refresh()
+  LCD_refresh();				\
+  getch()
 
 #define LCD_ALERT_16N(str, n)			\
   LCD_WR_LINE_P(0, 0, str);			\
   LCD_POS(0, 12);				\
   LCD_PUT_UINT16X(n);				\
-  LCD_refresh()
+  LCD_refresh();				\
+  getch()
 
 #endif
 

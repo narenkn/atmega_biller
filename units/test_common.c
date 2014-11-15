@@ -70,6 +70,8 @@ uint8_t TIMSK, TCCR2;
   KBD_RESET_KEY; KBD_GETCH
 #endif
 
+#define ISR(A) void A()
+
 #include "lcd.c"
 #include "kbd.c"
 #include "ep_store.c"

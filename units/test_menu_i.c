@@ -9,7 +9,13 @@
 void
 test_init()
 {
-  eeprom_update_block("My Shop", (uint16_t *)(offsetof(struct ep_store_layout, shop_name)), sizeof("My Shop")-1);
+  uint16_t ui16_1, ui16_2;
+  eeprom_update_block("abcdefghijklmn", 0, 14);
+  ui16_1 = 0;
+  for (ui16_2=0; ui16_2<14; ui16_2++)
+    ui16_1 = _crc16_update(ui16_1, 'a'+ui16_2);
+  eeprom_update_byte(14, (ui16_1>>8)&0xFF);
+  eeprom_update_byte(15, (ui16_1>>0)&0xFF);
 }
 
 int
@@ -17,15 +23,15 @@ main(void)
 {
   LCD_init();
   ep_store_init();
+  KbdInit();
   test_init();
   menuInit();
-  KbdInit();
   printerInit();
 
   printw("Press F2 to exit");
-  devStatus = 0;
   menuSDLoadItem(0);
   menuMain();
+  getch();
 
   /* Prepare to exit */
   LCD_end();
