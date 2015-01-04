@@ -6,6 +6,7 @@
 #include <util/crc16.h>
 #include <avr/eeprom.h>
 #include <util/twi.h>
+#include <avr/sleep.h>
 
 #include "ep_ds.h"
 #include "version.h"

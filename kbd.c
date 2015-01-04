@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <util/crc16.h>
 #include <avr/eeprom.h>
+#include <avr/sleep.h>
 
 #include "ep_ds.h"
 #include "version.h"
@@ -44,12 +45,7 @@ keyMap[] PROGMEM = {
   ASCII_LEFT,  0,  ASCII_RIGHT,        ASCII_ENTER
 };
 
-volatile struct { 
-  uint8_t KbdData;
-  uint8_t _kbdData;
-  uint8_t count;
-  uint8_t KbdDataAvail;
-} keyHitData;
+keyHitData_t keyHitData;
 
 void
 KbdInit(void)

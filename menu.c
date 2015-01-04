@@ -7,6 +7,7 @@
 #include <avr/eeprom.h>
 #include <avr/sleep.h>
 #include <util/twi.h>
+#include <avr/sleep.h>
 
 #include "ep_ds.h"
 #include "version.h"
@@ -242,7 +243,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     KBD_RESET_KEY;
     KBD_GETCH;
 
-    switch (KbdData) {
+    switch (keyHitData.KbdData) {
     case ASCII_BACKSPACE:
     case ASCII_LEFT:
     case ASCII_UP:
@@ -277,9 +278,9 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     case ASCII_F2:
       break;
     default:
-      lp[col_id] = KbdData;
+      lp[col_id] = keyHitData.KbdData;
       if (MENU_ITEM_STR == item_type) {
-	arg->value.str.sptr[ui16_1] = KbdData;
+	arg->value.str.sptr[ui16_1] = keyHitData.KbdData;
 	ui16_1++;
 	col_id++;
 	if (col_id == LCD_MAX_COL) {
@@ -297,7 +298,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
       }
       //printf("ui16_1:%d col_id:%d\n", ui16_1, col_id);
     }
-  } while (KbdData != ASCII_ENTER);
+  } while (keyHitData.KbdData != ASCII_ENTER);
 
   menu_error = 1;
   if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
@@ -412,11 +413,11 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     KBD_RESET_KEY;
     KBD_GETCH;
 
-    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+    if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
       ret++;
-    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+    } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
       ret--;
-    } else if (ASCII_ENTER == KbdData) {
+    } else if (ASCII_ENTER == keyHitData.KbdData) {
       return ret & 1;
     } else {
       ret = 3;
@@ -444,11 +445,11 @@ menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_
     KBD_RESET_KEY;
     KBD_GETCH;
 
-    if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+    if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
       ret = ((max_idx-1)==ret) ? 0 : ret+1;
-    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+    } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
       ret = (0==ret) ? max_idx-1 : ret-1;
-    } else if (ASCII_ENTER == KbdData) {
+    } else if (ASCII_ENTER == keyHitData.KbdData) {
       return ret;
     }
   } while (1);
@@ -929,7 +930,7 @@ menuBilling(uint8_t mode)
       LCD_refresh();
       KBD_RESET_KEY;
       KBD_GETCH;
-      if ( (ASCII_ENTER == KbdData) ||
+      if ( (ASCII_ENTER == keyHitData.KbdData) ||
 	   (0 == sl->items[0].quantity) /* no items yet */ ) {
 	break;
       } else {
@@ -970,10 +971,10 @@ menuBilling(uint8_t mode)
 
       KBD_RESET_KEY;
       KBD_GETCH;
-      if (ASCII_ENTER == KbdData) {
+      if (ASCII_ENTER == keyHitData.KbdData) {
 	ui8_5++;
-      } else if ( (ASCII_LEFT == KbdData) ||
-		(ASCII_RIGHT == KbdData) ) {
+      } else if ( (ASCII_LEFT == keyHitData.KbdData) ||
+		(ASCII_RIGHT == keyHitData.KbdData) ) {
 	/* FIXME: add default values from item data */
 	do {
 	  arg2.valid = MENU_ITEM_NONE;
@@ -1004,9 +1005,9 @@ menuBilling(uint8_t mode)
 	  menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT);
 	  sl->items[ui8_5].quantity = arg2.value.integer.i16;
 	} while (MENU_ITEM_NONE == arg2.valid);
-      } else if ( (ASCII_UP == KbdData) ||
-		  (ASCII_DOWN == KbdData) ) {
-	if (ASCII_UP == KbdData) {
+      } else if ( (ASCII_UP == keyHitData.KbdData) ||
+		  (ASCII_DOWN == keyHitData.KbdData) ) {
+	if (ASCII_UP == keyHitData.KbdData) {
 	  ui8_5 ? --ui8_5 : 0;
 	} else {
 	  if ( (ui8_5 < MAX_ITEMS_IN_BILL) &&
@@ -1014,7 +1015,7 @@ menuBilling(uint8_t mode)
 	    ui8_5++;
 	}
 	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
-      } else if (ASCII_DEL == KbdData) {
+      } else if (ASCII_DEL == keyHitData.KbdData) {
 	for (ui8_2=ui8_5; sl->items[ui8_2+1].quantity>0; ui8_2++) {
 	  memcpy(&(sl->items[ui8_2]), &(sl->items[ui8_2+1]), ITEM_SIZEOF);
 	}
@@ -1790,13 +1791,13 @@ menuShowBill(uint8_t mode)
     /* according to user's wish */
     KBD_RESET_KEY;
     KBD_GETCH;
-    if ((ASCII_ENTER == KbdData) || (ASCII_PRNSCRN == KbdData)) {
+    if ((ASCII_ENTER == keyHitData.KbdData) || (ASCII_PRNSCRN == keyHitData.KbdData)) {
       menuPrnBill(sl);
-    } else if ( ASCII_UP == KbdData ) {
+    } else if ( ASCII_UP == keyHitData.KbdData ) {
       ui8_1 = 0;
-    } else if ( ASCII_DOWN == KbdData ) {
+    } else if ( ASCII_DOWN == keyHitData.KbdData ) {
       ui8_1 = 1;
-    } else if ( (ASCII_LEFT == KbdData) || (ASCII_RIGHT == KbdData) ) {
+    } else if ( (ASCII_LEFT == keyHitData.KbdData) || (ASCII_RIGHT == keyHitData.KbdData) ) {
       break;
     }
   }
@@ -1956,11 +1957,11 @@ menuSettingSet(uint8_t mode)
     LCD_refresh();
     KBD_RESET_KEY;
     KBD_GETCH;
-    if (ASCII_ENTER == KbdData) {
+    if (ASCII_ENTER == keyHitData.KbdData) {
       break;
-    } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+    } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
       ui8_1 = (ui8_1 > 0) ? ui8_1-1 : MENU_VARS_SIZE;
-    } else if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+    } else if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
       ui8_1 = (ui8_1 > MENU_VARS_SIZE) ? 0 : ui8_1+1;
     }
   }
@@ -2206,7 +2207,7 @@ menuRunDiag(uint8_t mode)
     LCD_refresh();
     KBD_RESET_KEY;
     KBD_GETCH;
-    if (ASCII_ENTER == KbdData) {
+    if (ASCII_ENTER == keyHitData.KbdData) {
       ui8_1++;
       if (ui8_1 >= 2)
 	break;
@@ -2214,7 +2215,7 @@ menuRunDiag(uint8_t mode)
       ui8_1 = 0;
       for (ui8_2=0; ui8_2<(LCD_MAX_COL-1); ui8_2++)
 	lcd_buf[LCD_MAX_ROW-1][ui8_2] = lcd_buf[LCD_MAX_ROW-1][ui8_2+1];
-      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = KbdData;
+      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = keyHitData.KbdData;
     }
   }
   diagStatus |= (0 == menuGetYesNo(PSTR("Did Keypad work?"), 16)) ? DIAG_KEYPAD : 0;
@@ -2232,7 +2233,7 @@ menuRunDiag(uint8_t mode)
     LCD_refresh();
     KBD_RESET_KEY;
     KBD_GETCH;
-    if (!isgraph(KbdData)) {
+    if (!isgraph(keyHitData.KbdData)) {
       ui8_1++;
       if (ui8_1 >= 2)
 	break;
@@ -2240,7 +2241,7 @@ menuRunDiag(uint8_t mode)
       ui8_1 = 0;
       for (ui8_2=0; ui8_2<(LCD_MAX_COL-1); ui8_2++)
 	lcd_buf[LCD_MAX_ROW-1][ui8_2] = lcd_buf[LCD_MAX_ROW-1][ui8_2+1];
-      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = KbdData;
+      lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1] = keyHitData.KbdData;
     }
   }
   diagStatus |= (0 == menuGetYesNo(PSTR("Did PS2 worked?"), 15)) ? DIAG_PS2 : 0;
@@ -2261,7 +2262,7 @@ menuRunDiag(uint8_t mode)
     LCD_refresh();
     _delay_ms(500);
     if (KBD_HIT) {
-      if (ASCII_ENTER == KbdData) {
+      if (ASCII_ENTER == keyHitData.KbdData) {
 	ui8_1++;
 	if (ui8_1 >= 2)
 	  break;
@@ -2393,9 +2394,10 @@ menuMainStart:
   LCD_refresh();
 
   /* Wait until get command from user */
+  KBD_RESET_KEY;
   KBD_GETCH;
 
-  if ((ASCII_ENTER == KbdData) && (0 == menu_selhier)) {
+  if ((ASCII_ENTER == keyHitData.KbdData) && (0 == menu_selhier)) {
     menu_selhier = menu_selected + 1;
     for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
       if ( ((pgm_read_byte(menu_hier+ui8_1)) == menu_selhier) /* menu appropriate */ &&
@@ -2409,7 +2411,7 @@ menuMainStart:
     if (pgm_read_byte(&MENU_MAX) == ui8_1) {
       menu_selhier = 0; /* menu_selected remains the same */
     }
-  } else if ((ASCII_ENTER == KbdData) && (0 != menu_selhier)) {
+  } else if ((ASCII_ENTER == keyHitData.KbdData) && (0 != menu_selhier)) {
     /* */
     LCD_WR_LINE_NP(0, 0, (menu_hier_names+((menu_selhier-1)*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
     LCD_POS(0, (LCD_MAX_COL>>1)&0xF);
@@ -2438,7 +2440,7 @@ menuMainStart:
       }
 #endif
     }
-  } else if ((ASCII_LEFT == KbdData) || (ASCII_UP == KbdData)) {
+  } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
     if (0 == menu_selhier) {
       /* selection of menu */
       menu_selected = (0 == menu_selected) ? MENU_HIER_MAX-1 : menu_selected-1;
@@ -2454,14 +2456,14 @@ menuMainStart:
       }
       /* No valid menu items, go back */
       if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
-	if (ASCII_UP == KbdData) {
+	if (ASCII_UP == keyHitData.KbdData) {
 	  menu_selhier = menu_selected = 0;
 	} else {
 	  menu_selected = ui8_2;
 	}
       }
     }
-  } else if ((ASCII_RIGHT == KbdData) || (ASCII_DOWN == KbdData)) {
+  } else if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
     if (0 == menu_selhier) {
       menu_selected = (menu_selected >= (MENU_HIER_MAX-1)) ? 0 : menu_selected+1;
     } else {
@@ -2476,7 +2478,7 @@ menuMainStart:
       }
       /* No valid menu items, go back */
       if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
-	if (ASCII_DOWN == KbdData) {
+	if (ASCII_DOWN == keyHitData.KbdData) {
 	  menu_selhier = menu_selected = 0;
 	} else {
 	  menu_selected = ui8_2;
@@ -2491,7 +2493,7 @@ menuMainStart:
   //  printw("menu_selhier:%d  menu_selected:%d", menu_selhier, menu_selected);
 
   /* Provide means to excape the infinite hold */
-  if (ASCII_F2 == KbdData) {
+  if (ASCII_F2 == keyHitData.KbdData) {
     KBD_RESET_KEY;
     return;
   }

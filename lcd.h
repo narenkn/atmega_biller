@@ -138,183 +138,173 @@
 #define LCD_CUR_POS_P lcd_buf_p
 #define LCD_CUR_POS   (&(lcd_buf[0][0])-lcd_buf_p)
 
-#define LCD_WR_LINE(x, y, str)  {	\
-  uint8_t ui1_t, ui2_t;				\
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    if (0 == ((char *)str)[ui2_t]) {			\
-      lcd_buf_p[0] = ' ';		\
-    } else {				\
-      lcd_buf_p[0] = ((char *)str)[ui2_t];	\
-      ui2_t++;					\
-    }					\
-    lcd_buf_p++;						\
-    if ((ui1_t+1)<LCD_MAX_COL)					\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }					\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
+#define LCD_WR_LINE(x, y, str)  {				\
+    uint8_t ui1_t, ui2_t;					\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);			\
+    lcd_buf_p += (y % LCD_MAX_COL);				\
+    for (ui1_t=0, ui2_t=0; (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {	\
+      if (0 == ((char *)str)[ui2_t]) {				\
+	lcd_buf_p[0] = ' ';					\
+      } else {							\
+	lcd_buf_p[0] = ((char *)str)[ui2_t];			\
+	ui2_t++;						\
+      }								\
+      lcd_buf_p++;						\
+    }								\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
 }
 
-#define LCD_WR_LINE_P(x, y, str)  {	\
-  uint8_t ui1_t, ui2_t;				\
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    if (0 == pgm_read_byte(((char *)str)+ui2_t)) {		\
-      lcd_buf_p[0] = ' ';		\
-    } else {				\
-      lcd_buf_p[0] = pgm_read_byte(((char *)str)+ui2_t);	\
-      ui2_t++;					\
-    }					\
-    lcd_buf_p++;						\
-    if ((ui1_t+1)<LCD_MAX_COL)					\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }					\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-}
+#define LCD_WR_LINE_P(x, y, str)  {				\
+    uint8_t ui1_t, ui2_t;					\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);			\
+    lcd_buf_p += (y % LCD_MAX_COL);				\
+    for (ui1_t=0, ui2_t=0; (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {	\
+      if (0 == pgm_read_byte(str+ui2_t)) {			\
+	lcd_buf_p[0] = ' ';					\
+      } else {							\
+	lcd_buf_p[0] = pgm_read_byte(str+ui2_t);		\
+	ui2_t++;						\
+      }								\
+      lcd_buf_p++;						\
+    }								\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+  }
 
-#define LCD_WR_LINE_N(x, y, str, len)  {	\
-  uint8_t ui1_t;			        \
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  for (ui1_t=0; (0 != (str+ui1_t)[0]) && (ui1_t<len) && (ui1_t < LCD_MAX_COL); ui1_t++) { \
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    lcd_buf_p[0] = (str+ui1_t)[0];					\
-    lcd_buf_p++;							\
-    if ((ui1_t+1)<len)							\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));		\
-  }						\
-  for (; 0 != (ui1_t<LCD_MAX_COL); ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    lcd_buf_p[0] = ' ';				\
-    lcd_buf_p++;				\
-  }						\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-}
+#define LCD_WR_LINE_N(x, y, str, len)  {				\
+    uint8_t ui1_t, len_s;						\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);				\
+    lcd_buf_p += (y % LCD_MAX_COL);					\
+    len_s = (len) % (LCD_MAX_COL+1-y);					\
+    for (ui1_t=0; (0 != (str+ui1_t)[0]) && (ui1_t<len_s); ui1_t++) {	\
+      lcd_buf_p[0] = (str+ui1_t)[0];					\
+      lcd_buf_p++;							\
+    }									\
+    for (; 0 != (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {			\
+      lcd_buf_p[0] = ' ';						\
+      lcd_buf_p++;							\
+    }									\
+    lcd_buf_prop |= LCD_PROP_DIRTY;					\
+  }
 
 #define LCD_WR_LINE_NP(x, y, str, len)  {	\
-  uint8_t ui1_t;			        \
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  for (ui1_t=0; (ui1_t<len); ui1_t++) {		\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    lcd_buf_p[0] = pgm_read_byte(((char *)str)+ui1_t);	\
-    if (0 == lcd_buf_p[0]) break;		\
-    lcd_buf_p++;				\
-    if ((ui1_t+1)<len)				\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }						\
-  for (; ui1_t < LCD_MAX_COL; ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    lcd_buf_p[0] = ' ';				\
-    lcd_buf_p++;				\
-  }						\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-}
+    uint8_t ui1_t, len_s;			\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);	\
+    lcd_buf_p += (y % LCD_MAX_COL);		\
+    len_s = (len) % (LCD_MAX_COL+1-y);		\
+    for (ui1_t=0; (ui1_t<len_s); ui1_t++) {	\
+      lcd_buf_p[0] = pgm_read_byte(str+ui1_t);	\
+      if (0 == lcd_buf_p[0]) break;		\
+      lcd_buf_p++;				\
+    }						\
+    for (; ui1_t < (LCD_MAX_COL-y); ui1_t++) {	\
+      lcd_buf_p[0] = ' ';			\
+      lcd_buf_p++;				\
+    }						\
+    lcd_buf_prop |= LCD_PROP_DIRTY;		\
+  }
 
-#define LCD_WR_LINE_N_EE24XX(x, y, str, len)  {	\
-  uint8_t ui1_t;			        \
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  ee24xx_read_bytes((uint16_t)(str), lcd_buf_p, len);			\
-  for (ui1_t = len, lcd_buf_p+=len; ui1_t < LCD_MAX_COL; ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
-      break;							\
-    lcd_buf_p[0] = ' ';				\
-    lcd_buf_p++;				\
-  }						\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-}
+#define LCD_WR_LINE_N_EE24XX(x, y, str, len)  {			\
+    uint8_t ui1_t, len_s;					\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);			\
+    lcd_buf_p += (y % LCD_MAX_COL);				\
+    len_s = (len) % (LCD_MAX_COL-y);				\
+    ee24xx_read_bytes((uint16_t)(str), lcd_buf_p, len_s+1);	\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+  }
 
 #define LCD_POS(x, y)				\
   lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);	\
   lcd_buf_p += (y % LCD_MAX_COL)
 
 #define LCD_WR_N(str, len) {					\
-  uint8_t ui1_t;						\
-  for (ui1_t=0; (0 != str[ui1_t]) && (ui1_t<len); ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
+    uint8_t ui1_t, len_s;					\
+    len_s = (len) % (LCD_MAX_COL+1);				\
+    for (ui1_t=0; (0 != str[ui1_t]) && (ui1_t<len_s); ui1_t++) {	\
+      lcd_buf_p[0] = str[ui1_t];				\
+      if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+	break;							\
+      lcd_buf_p++;						\
+    }								\
+    for (; (ui1_t<len_s); ui1_t++) {				\
+      lcd_buf_p[0] = ' ';					\
+      if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+	break;							\
+      lcd_buf_p++;						\
+    }								\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+  }
+
+#define LCD_WR_P(str) {						\
+    uint8_t ui1_t, ui2_t;					\
+    for (ui1_t=0; (ui1_t < LCD_MAX_COL); ui1_t++) {		\
+      if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+	break;							\
+      ui2_t = pgm_read_byte(str+ui1_t);				\
+      if (0 == ui2_t)						\
+	break;							\
+      lcd_buf_p[0] = ui2_t;					\
+      lcd_buf_p++;						\
+    }								\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+  }
+
+#define LCD_PUT_UINT8X(ch) do {					\
+    uint8_t ui2_a = (ch>>4) & 0xF;				\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
       break;							\
-    lcd_buf_p[0] = str[ui1_t];					\
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
     lcd_buf_p++;						\
-    if ((ui1_t+1)<len)						\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }								\
-  for (; (ui1_t<len); ui1_t++) {				\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
       break;							\
-    lcd_buf_p[0] = ' ';						\
+    ui2_a = ch & 0xF;						\
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
     lcd_buf_p++;						\
-    if ((ui1_t+1)<len)						\
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }								\
-  lcd_buf_prop |= LCD_PROP_DIRTY;				\
-}
+  } while (0)
 
-#define LCD_WR_P(str) {				 \
-  uint8_t ui1_t;						\
-  for (ui1_t=0; 0 != pgm_read_byte(str+ui1_t); ui1_t++) {	\
-    if ( 0 == ((lcd_buf_p-lcd_buf[0]+1)%LCD_MAX_COL) )		\
+#define LCD_PUT_UINT16X(ch) do {				\
+    uint8_t ui2_a = (ch>>12) & 0xF;				\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
       break;							\
-    lcd_buf_p[0] = pgm_read_byte(str+ui1_t);			\
-    lcd_buf_p++;		 \
-    assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));	\
-  }				 \
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-}
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
+    lcd_buf_p++;						\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+      break;							\
+    ui2_a = (ch>>8) & 0xF;					\
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
+    lcd_buf_p++;						\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+      break;							\
+    ui2_a = (ch>>4) & 0xF;					\
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
+    lcd_buf_p++;						\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+      break;							\
+    ui2_a = ch & 0xF;						\
+    lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;		\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+    lcd_buf_p++;						\
+  } while (0)
 
-#define LCD_PUT_UINT8X(ch) {			\
-  uint8_t ui2_a = (ch>>4) & 0xF;			\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-  ui2_a = ch & 0xF;				\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-}
+#define LCD_PUTCH(ch) do {					\
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))	\
+      break;							\
+    lcd_buf_p[0] = ch;						\
+    lcd_buf_p++;						\
+    lcd_buf_prop |= LCD_PROP_DIRTY;				\
+  } while (0)
 
-#define LCD_PUT_UINT16X(ch) {			\
-  uint8_t ui2_a = (ch>>12) & 0xF;			\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-  ui2_a = (ch>>8) & 0xF;				\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-  ui2_a = (ch>>4) & 0xF;				\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-  ui2_a = ch & 0xF;				\
-  lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  lcd_buf_p++;					\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-}
-
-#define LCD_PUTCH(ch) {				\
-  lcd_buf_p[0] = ch;				\
-  lcd_buf_p++;					\
-  lcd_buf_prop |= LCD_PROP_DIRTY;		\
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL)); \
-}
-
-#define LCD_WR_SPRINTF(x, y, BUF, FMT, N) {	\
-  uint8_t ui8_1;				\
-  sprintf(BUF, FMT, N);				\
-  lcd_buf_p = &(lcd_buf[x][y]);			\
-  for (ui8_1=0; 0!=BUF[ui8_1]; ui8_1++)  {	\
-    lcd_buf_p[0] = BUF[ui8_1];			\
-    lcd_buf_p++;				\
-  }						\
-}
+#define LCD_WR_SPRINTF(x, y, BUF, FMT, N) do {				\
+    uint8_t ui8_1;							\
+    sprintf(BUF, FMT, N);						\
+    lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);				\
+    lcd_buf_p += (y % LCD_MAX_COL);					\
+    for (ui8_1=0; (0!=BUF[ui8_1]) && (ui8_1 < (LCD_MAX_COL-y)); ui8_1++)  { \
+      lcd_buf_p[0] = BUF[ui8_1];					\
+      lcd_buf_p++;							\
+    }									\
+    lcd_buf_prop |= LCD_PROP_DIRTY;					\
+  } while (0)
 
 #define LCD_ALERT(str)				\
   LCD_WR_LINE_P(0, 0, str);			\
@@ -330,13 +320,13 @@
 
 #else /* #if LCD_USE_FUNCTIONS */
 
-# define LCD_wrnib(var)	\
-  LCD_PORT(var);	\
-  _delay_us(50);	\
-  LCD_rs_high;		\
-  _delay_us(50);	\
-  LCD_en_high;		\
-  _delay_us(50);	\
+# define LCD_wrnib(var)				\
+  LCD_PORT(var);				\
+  _delay_us(50);				\
+  LCD_rs_high;					\
+  _delay_us(50);				\
+  LCD_en_high;					\
+  _delay_us(50);				\
   LCD_en_low
 
 void lcd_clrscr();

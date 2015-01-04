@@ -69,6 +69,15 @@
 #define KCHAR_SHIFT_SZ     5
 #define KBD_SHIFT       0x80
 
+typedef volatile struct {
+  uint8_t KbdData;
+  uint8_t _kbdData;
+  uint8_t count;
+  uint8_t KbdDataAvail;
+} keyHitData_t;
+
+extern keyHitData_t keyHitData;
+
 void    KbdInit(void);
 void    KbdScan(void);
 uint8_t KbdIsShiftPressed(void);
