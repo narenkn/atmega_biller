@@ -1,7 +1,14 @@
+#include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+#include <util/crc16.h>
+#include <avr/eeprom.h>
+#include <util/twi.h>
 
-#undef LCD_USE_FUNCTIONS
-#define LCD_USE_FUNCTIONS 0
 #include "lcd.c"
+#include "i2c.c"
 
 int
 main()
@@ -9,23 +16,15 @@ main()
   LCD_init();
 
   DDRD |= 0x10 ; LCD_bl_on;
-  LCD_WR_LINE(0, 0, "Hello World 7");
+  LCD_WR_LINE_NP(0, 0, PSTR("Hello World 7"), 13);
   LCD_refresh();
-  _delay_ms(1);
-  LCD_WR_LINE(1, 0, "Hello World 8");
+  _delay_ms(1000);
+  LCD_WR_LINE_NP(1, 0, PSTR("Hello World 8"), 13);
   LCD_refresh();
-  _delay_ms(1);
+  _delay_ms(1000);
 
-  //Infinite loop
-  uint16_t ui16_1;
-  for (ui16_1=0; ; ui16_1+=50) {
-    LCD_bl_on;
-    _delay_us(ui16_1);
-    LCD_bl_off;
-    _delay_us(ui16_1);
-    if (ui16_1 > 1000)
-      ui16_1 = 0;
-  }
+  _delay_ms(4000);
+  while (1) {}
 
   return 0;
 }

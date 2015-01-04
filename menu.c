@@ -483,7 +483,7 @@ menuFactorySettings(uint8_t mode)
   assert(MENU_MSUPER == MenuMode);
 
   /* confirm before proceeding */
-  ui8_1 = menuGetYesNo("Factory Set?", 12);
+  ui8_1 = menuGetYesNo(PSTR("Factory Set?"), 12);
   if (0 != ui8_1) return;
 
   /* store & restore serial #
@@ -742,9 +742,7 @@ menuInit()
 
   /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
   assert(56 == ITEM_SIZEOF);
-
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
-  
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
@@ -795,6 +793,9 @@ menuInit()
   f_mount(NULL, "", 0);
   }
 #endif
+  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 77"), 14);
+  LCD_refresh();
+  _delay_ms(1000);
 
   /* Used to find if we are looping multiple times */
   ui8_2 = 0;
@@ -828,13 +829,22 @@ menuInit()
     }
 
     MenuMode = MENU_MSUPER;
+  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 78"), 14);
+  LCD_refresh();
+  _delay_ms(1000);
     menuFactorySettings(MenuMode);
 
     ui8_2 = 1;
     goto menuInitIdentifyDevice;
   } else {
+  LCD_WR_LINE_NP(ui8_2, 0, PSTR("Device Init 79"), 14);
+  LCD_refresh();
+  _delay_ms(1000);
     devStatus |= DS_DEV_INVALID;
   }
+  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 790"), 15);
+  LCD_refresh();
+  _delay_ms(1000);
 
 #if !MENU_USER_ENABLE
   LoginUserId = 1;
@@ -1610,7 +1620,6 @@ menuPrnBill(struct sale *sl)
 void
 menuBillReports(uint8_t mode)
 {
-  UINT  ret_val;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint16_t ui16_1, ui16_2;
   uint32_t ui32_1, ui32_2;
@@ -1652,6 +1661,7 @@ menuBillReports(uint8_t mode)
 
   /* */
 #if FF_ENABLE
+  UINT  ret_val;
   if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
   memset(&FS, 0, sizeof(FS));
   memset(&Fil, 0, sizeof(Fil));

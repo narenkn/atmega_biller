@@ -1,5 +1,6 @@
 
 #include "lcd.c"
+#include "i2c.c"
 
 #define LCD_WriteDirect(loc, str, len) do {	\
   uint8_t _ui1;					\
@@ -28,6 +29,12 @@ main(void)
   LCD_WriteDirect(LCD_CMD_CUR_10, "Hello World A", 13);
   LCD_WriteDirect(LCD_CMD_CUR_20, "Hello World B", 13);
   _delay_ms(1000);
+
+  LCD_WR_LINE_NP(1, 0, PSTR("Hello World 10"), 14);
+  LCD_refresh();
+  _delay_ms(1000);
+
+  while (1) {}
 
   PORTD = 0x0;
 

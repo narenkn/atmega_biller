@@ -45,26 +45,23 @@
 #define ASCII_ESCAPE     0xA9
 
 #define KBD_RESET_KEY          \
-  KbdDataAvail = 0 ; KbdData = 0xFF
+  keyHitData.KbdData=0, keyHitData._kbdData=0, keyHitData.count=0, keyHitData.KbdDataAvail=0
 
-#define KBD_HIT      (0x0 != KbdDataAvail)
-#define KBD_NOT_HIT  (0x0 == KbdDataAvail)
+#define KBD_HIT      (0x0 != keyHitData.KbdDataAvail)
+#define KBD_NOT_HIT  (0x0 == keyHitData.KbdDataAvail)
 
-#ifndef UNIT_TEST
+#ifdef UNIT_TEST
+# define KBD_GETCH KbdGetCh()
+#else
 # define KBD_GETCH				\
   while (KBD_NOT_HIT) {				\
-    if (timer2_msb > timer2_sleep_delay) {	\
-      /* put the device to sleep */		\
-      LCD_bl_off;				\
-      sleep_enable();				\
-      sleep_cpu();				\
-      sleep_disable();				\
-      timer2_msb = 0;				\
-      LCD_bl_on;				\
-    }						\
-  }
-#else
-# define KBD_GETCH KbdGetCh()
+    /* put the device to sleep */		\
+    sleep_enable();				\
+    sleep_cpu();				\
+    /* some event has to occur to come here */	\
+    sleep_disable();				\
+  }						\
+  LCD_bl_on
 #endif
 
 #define KCHAR_ROWS        10

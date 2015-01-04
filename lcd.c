@@ -46,8 +46,10 @@ LCD_init(void)
 #endif
 
   /*  Function set: 2 Line, 8-bit, 5x7 dots */
-  for (ui8_1=1; ui8_1; ui8_1++)
+  for (ui8_1=1; ui8_1; ui8_1++) {
     LCD_cmd(LCD_CMD_2LINE_5x7);
+    _delay_us(100);
+  }
   _delay_ms(100);
 
   /* Display on, Curson blinking command */
@@ -78,6 +80,8 @@ LCD_refresh(void)
   }
   lcd_buf_prop &= ~LCD_PROP_DIRTY;
 
+  cli(); /* stop interrupts */
+
   /**************************************************/
   /*****************   LCD   ************************/
   /**************************************************/
@@ -98,6 +102,8 @@ LCD_refresh(void)
     }
     ui3_p++;
   }
+
+  sei(); /* interrupts */
 }
 
 #if LCD_USE_FUNCTIONS
@@ -116,13 +122,12 @@ lcd_clrscr()
 }
 
 void
-LCD_WR_LINE(x, y, str)
+LCD_WR_LINE(uint8_t x, uint8_t y, uint16_t str)
 {
   uint8_t ui1_t, ui2_t;
-  lcd_buf_p = &(lcd_buf[x][y]);
-  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  for (ui1_t=0, ui2_t=0; (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {
     if (0 == ((char *)str)[ui2_t]) {
       lcd_buf_p[0] = ' ';
     } else {
@@ -130,8 +135,6 @@ LCD_WR_LINE(x, y, str)
       ui2_t++;
     }
     lcd_buf_p++;
-    if ((ui1_t+1)<LCD_MAX_COL)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
   lcd_buf_prop |= LCD_PROP_DIRTY;
 }
@@ -140,10 +143,9 @@ void
 LCD_WR_LINE_P(uint8_t x, uint8_t y, uint16_t str)
 {
   uint8_t ui1_t, ui2_t;
-  lcd_buf_p = &(lcd_buf[x][y]);
-  for (ui1_t=0, ui2_t=0; (ui1_t<LCD_MAX_COL); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  for (ui1_t=0, ui2_t=0; (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {
     if (0 == pgm_read_byte(str+ui2_t)) {
       lcd_buf_p[0] = ' ';
     } else {
@@ -151,8 +153,6 @@ LCD_WR_LINE_P(uint8_t x, uint8_t y, uint16_t str)
       ui2_t++;
     }
     lcd_buf_p++;
-    if ((ui1_t+1)<LCD_MAX_COL)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
   lcd_buf_prop |= LCD_PROP_DIRTY;
 }
@@ -161,18 +161,14 @@ void
 LCD_WR_LINE_N(uint8_t x, uint8_t y, uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t;
-  lcd_buf_p = &(lcd_buf[x][y]);
-  for (ui1_t=0; (0 != (str+ui1_t)[0]) && (ui1_t<len) && (ui1_t < LCD_MAX_COL); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  len %= (LCD_MAX_COL+1-y);
+  for (ui1_t=0; (0 != (str+ui1_t)[0]) && (ui1_t<len); ui1_t++) {
     lcd_buf_p[0] = (str+ui1_t)[0];
     lcd_buf_p++;
-    if ((ui1_t+1)<len)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
-  for (; 0 != (ui1_t<LCD_MAX_COL); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  for (; 0 != (ui1_t<(LCD_MAX_COL-y)); ui1_t++) {
     lcd_buf_p[0] = ' ';
     lcd_buf_p++;
   }
@@ -183,19 +179,15 @@ void
 LCD_WR_LINE_NP(uint8_t x, uint8_t y, uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t;
-  lcd_buf_p = &(lcd_buf[x][y]);
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  len %= (LCD_MAX_COL+1-y);
   for (ui1_t=0; (ui1_t<len); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
     lcd_buf_p[0] = pgm_read_byte(str+ui1_t);
     if (0 == lcd_buf_p[0]) break;
     lcd_buf_p++;
-    if ((ui1_t+1)<len)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
-  for (; ui1_t < LCD_MAX_COL; ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  for (; ui1_t < (LCD_MAX_COL-y); ui1_t++) {
     lcd_buf_p[0] = ' ';
     lcd_buf_p++;
   }
@@ -206,21 +198,18 @@ void
 LCD_WR_N(uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t;
+  len %= (LCD_MAX_COL+1);
   for (ui1_t=0; (0 != str[ui1_t]) && (ui1_t<len); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
     lcd_buf_p[0] = str[ui1_t];
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+      break;
     lcd_buf_p++;
-    if ((ui1_t+1)<len)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
   for (; (ui1_t<len); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
     lcd_buf_p[0] = ' ';
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+      break;
     lcd_buf_p++;
-    if ((ui1_t+1)<len)
-      assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
   lcd_buf_prop |= LCD_PROP_DIRTY;
 }
@@ -228,13 +217,15 @@ LCD_WR_N(uint8_t *str, uint8_t len)
 void
 LCD_WR_P(uint16_t str)
 {
-  uint8_t ui1_t;
-  for (ui1_t=0; 0 != pgm_read_byte(str+ui1_t); ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
+  uint8_t ui1_t, ui2_t;
+  for (ui1_t=0; (ui1_t < LCD_MAX_COL); ui1_t++) {
+    if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
       break;
-    lcd_buf_p[0] = pgm_read_byte(str+ui1_t);
+    ui2_t = pgm_read_byte(str+ui1_t);
+    if (0 == ui2_t)
+      break;
+    lcd_buf_p[0] = ui2_t;
     lcd_buf_p++;
-    assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
   }
   lcd_buf_prop |= LCD_PROP_DIRTY;
 }
@@ -243,45 +234,52 @@ void
 LCD_PUT_UINT8X(uint8_t ch)
 {
   uint8_t ui2_a = (ch>>4) & 0xF;
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
   lcd_buf_p++;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   ui2_a = ch & 0xF;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
-  lcd_buf_p++;
   lcd_buf_prop |= LCD_PROP_DIRTY;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  lcd_buf_p++;
 }
 
 void
 LCD_PUT_UINT16X(uint16_t ch)
 {
   uint8_t ui2_a = (ch>>12) & 0xF;
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
   lcd_buf_p++;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   ui2_a = (ch>>8) & 0xF;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
   lcd_buf_p++;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   ui2_a = (ch>>4) & 0xF;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
   lcd_buf_p++;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   ui2_a = ch & 0xF;
   lcd_buf_p[0] = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
-  lcd_buf_p++;
   lcd_buf_prop |= LCD_PROP_DIRTY;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
+  lcd_buf_p++;
 }
 
 void
 LCD_PUTCH(uint8_t ch)
 {
+  if ((lcd_buf_p-lcd_buf[0]) >= (LCD_MAX_COL*LCD_MAX_ROW))
+    return;
   lcd_buf_p[0] = ch;
   lcd_buf_p++;
   lcd_buf_prop |= LCD_PROP_DIRTY;
-  assert(0 != ((lcd_buf_p-(uint8_t*)lcd_buf)%LCD_MAX_COL));
 }
 
 void
@@ -289,27 +287,23 @@ LCD_WR_SPRINTF(uint8_t x, uint8_t y, uint8_t *BUF, uint8_t *FMT, uint8_t N)
 {
   uint8_t ui8_1;
   sprintf(BUF, FMT, N);
-  lcd_buf_p = &(lcd_buf[x][y]);
-  for (ui8_1=0; 0!=BUF[ui8_1]; ui8_1++)  {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  for (ui8_1=0; (0!=BUF[ui8_1]) && (ui8_1 < (LCD_MAX_COL-y)); ui8_1++)  {
     lcd_buf_p[0] = BUF[ui8_1];
     lcd_buf_p++;
   }
+  lcd_buf_prop |= LCD_PROP_DIRTY;
 }
 
 void
 LCD_WR_LINE_N_EE24XX(uint8_t x, uint8_t y, uint16_t str, uint8_t len)
 {
   uint8_t ui1_t;
-  lcd_buf_p = &(lcd_buf[x][y]);
-  ee24xx_read_bytes((uint16_t)(str), lcd_buf_p, len);
-  for (ui1_t = len, lcd_buf_p+=len; ui1_t < LCD_MAX_COL; ui1_t++) {
-    if ( 0 == ((lcd_buf_p-lcd_buf[0])%LCD_MAX_COL) )
-      break;
-    lcd_buf_p[0] = ' ';
-    lcd_buf_p++;
-  }
+  lcd_buf_p = lcd_buf + (x % LCD_MAX_ROW);
+  lcd_buf_p += (y % LCD_MAX_COL);
+  len %= (LCD_MAX_COL-y);
+  ee24xx_read_bytes((uint16_t)(str), lcd_buf_p, len+1);
   lcd_buf_prop |= LCD_PROP_DIRTY;
 }
 

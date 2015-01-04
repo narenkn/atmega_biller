@@ -20,13 +20,13 @@ void expect_else_assert(const char *s, const char *f, const uint32_t l);
 #if 0
 #define assert(X)			       \
   if (!(X)) {				       \
-    LCD_WR_LINE_N(1, 0, __FILE__, 12);	       \
-    LCD_wrchar('0' + (((__LINE__/10)/10)%10)); \
-    LCD_wrchar('0' + ((__LINE__/10)%10));      \
-    LCD_wrchar('0' + (__LINE__%10));	       \
+    LCD_WR_LINE_N(1, 0, __FILE__, 11);	       \
+    LCD_PUTCH(':');			       \
+    LCD_PUT_UINT16X(__LINE__);		       \
+    while (1) {}			       \
   }
 #else
-#define  assert(X)
+#define  assert(X)  while (!(X)) {}
 #endif
 
 #define ERROR(msg) { /*FIXME: flash error message*/ }

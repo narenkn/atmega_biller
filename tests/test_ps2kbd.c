@@ -4,8 +4,9 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
+#include "i2c.c"
+
 volatile uint8_t KbdData, KbdDataAvail=0;
-#define KBD_HIT (0 != KbdDataAvail)
 #define KBD_PS2_CLK      ((PIND >> 2)&1)
 #define KBD_PS2_CLK_NS   (PIND & 0x4)
 #define KBD_PS2_DATA     ((PIND >> 3)&1)
@@ -189,16 +190,16 @@ main(void)
       LCD_wrchar(KbdData);
       KbdDataAvail = 0;
     }
-//    LCD_cmd((LCD_CMD_CUR_10+11));
-//    LCD_uint8x(drC);
-//    LCD_cmd((LCD_CMD_CUR_10+14));
-//    LCD_uint8x(ui1);
-//    LCD_cmd(LCD_CMD_CUR_20);
-//    LCD_uint8x(bitC);
-//    LCD_uint8x(kbdDr[0]);
-//    LCD_uint8x(kbdDr[1]);
-//    LCD_uint8x(kbdDr[2]);
-//    LCD_uint8x(kbdDr[3]);
+    LCD_cmd((LCD_CMD_CUR_10+11));
+    LCD_uint8x(drC);
+    LCD_cmd((LCD_CMD_CUR_10+14));
+    LCD_uint8x(ui1);
+    LCD_cmd(LCD_CMD_CUR_20);
+    LCD_uint8x(bitC);
+    LCD_uint8x(kbdDr[0]);
+    LCD_uint8x(kbdDr[1]);
+    LCD_uint8x(kbdDr[2]);
+    LCD_uint8x(kbdDr[3]);
     _delay_ms(1000);
   }
 

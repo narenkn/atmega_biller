@@ -1,5 +1,6 @@
 from optparse import OptionParser
 from ctypes import windll
+from optparse import SUPPRESS_HELP
 import time
 import re
 

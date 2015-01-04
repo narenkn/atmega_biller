@@ -100,6 +100,32 @@ main_init(void)
 int
 main(void)
 {
+    LCD_init();
+  LCD_bl_on;
+    KbdInit();
+    ep_store_init();
+    i2c_init();
+    uartInit();
+    printerInit();
+    main_init();
+  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 8"), 13);
+  LCD_refresh();
+  _delay_ms(1000);
+    menuInit();
+  KBD_GETCH;
+
+    /* real main program */
+    LCD_bl_on;
+    LCD_WR_LINE_NP(0, 0, PSTR("Device Init done"), 16);
+    LCD_refresh();
+    KBD_GETCH;
+    menuMain();
+
+    /* we souldn't be reaching here */
+    LCD_WR_LINE_NP(0, 0, PSTR("Exit of menuMain"), 16);
+    LCD_refresh();
+    KBD_GETCH;
+
   return 0;
 }
 
