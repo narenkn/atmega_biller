@@ -8,7 +8,7 @@ LDFLAGS := -L$(NCURSES)/lib -lncurses
 CC = gcc
 VPATH = .:..
 
-SOURCES = $(wildcard test_*.c)
+SOURCES = $(wildcard *.c)
 TARGETS = $(subst .c, , $(SOURCES))
 
 include ../make.proj
