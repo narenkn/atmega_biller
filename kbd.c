@@ -82,7 +82,7 @@ KbdInit(void)
   MCUCR |= 1<<ISC01 | 0<<ISC00;
 
   /* when sleep get to powerdown mode */
-//  set_sleep_mode(2);
+  set_sleep_mode(2);
 }
 
 /* At reset/ idle state

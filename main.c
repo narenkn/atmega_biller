@@ -43,13 +43,6 @@ eeprom_setting2ram()
 void
 main_init(void)
 {
-  /* PS2 keypad */
-  DDRD &= ~((1<<PD2)|(1<<PD3));
-  //  PORTD |= (1<<PD2) | (1<<PD3); /* not required as we have a pullup on board */
-  /* PS2 : Int0 falling edge */
-  GICR = 1<<INT0;
-  MCUCR |= 1<<ISC01 | 0<<ISC00;
-
   /* For Fat32 */
   DDRB  |= 0xB2;
   PORTB |= 0xF2;
@@ -62,9 +55,9 @@ main_init(void)
      # cycles to skip : (5*F_CPU)
      # clock div is 1024, so we need to skip : (5*F_CPU)>>10
    */
-//  TCCR2 |= (0x7 << CS20);
-//  TCNT2 = 0;
-//  TIMSK |= (1 << TOIE2);
+  TCCR2 |= (0x7 << CS20);
+  TCNT2 = 0;
+  TIMSK |= (1 << TOIE2);
 
   /* */
   eeprom_setting2ram();
@@ -82,8 +75,9 @@ main_init(void)
 */
 ISR(TIMER2_OVF_vect)
 {
-  static uint16_t timer2_beats;
+  static uint16_t timer2_beats=0;
 
+  timer2_beats++;
   if (timer2_beats < ((5*F_CPU)>>10))
     return;
   timer2_beats = 0;
