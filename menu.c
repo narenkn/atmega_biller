@@ -181,13 +181,7 @@ const uint8_t BillFileName[] PROGMEM = SD_BILLING_FILE;
 /* */
 static uint8_t MenuMode = MENU_MRESET;
 static uint8_t LoginUserId = 0; /* 0 is invalid */
-static uint8_t devStatus = 0;   /* 0 is no err */
-#define DS_NO_SD    (1<<0)
-#define DS_NO_TFT   (1<<1)
-#define DS_DEV_1K   (1<<2)
-#define DS_DEV_5K   (1<<3)
-#define DS_DEV_20K  (1<<4)
-#define DS_DEV_INVALID (1<<5)
+uint8_t devStatus = 0;   /* 0 is no err */
 
 /* data struct for FF */
 #if FF_ENABLE

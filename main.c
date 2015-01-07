@@ -101,31 +101,45 @@ main_init(void)
 int
 main(void)
 {
-    LCD_init();
-  LCD_bl_on;
-    KbdInit();
-    ep_store_init();
-    i2c_init();
-    uartInit();
-    printerInit();
-    main_init();
-  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 8"), 13);
-  LCD_refresh();
-  _delay_ms(1000);
-    menuInit();
-  KBD_GETCH;
+  LCD_init();
 
-    /* real main program */
-    LCD_bl_on;
-    LCD_WR_LINE_NP(0, 0, PSTR("Device Init done"), 16);
+  /* Welcome screen */
+  LCD_bl_on;
+  LCD_WR_LINE_NP(0, 0, PSTR("Welcome..."), 10);
+  LCD_WR_LINE_NP(1, 0, PSTR("   Initializing..."), 15);
+
+  /* All other devices */
+  KbdInit();
+  ep_store_init();
+  i2c_init();
+  uartInit();
+  printerInit();
+  main_init();
+  menuInit();
+
+  /* Check if all devices are ready to go, else give
+     error and exit */
+  if (0 == devStatus) {
+    LCD_WR_LINE_NP(1, 0, PSTR("   Initialized!"), 15);
     LCD_refresh();
     KBD_GETCH;
     menuMain();
-
-    /* we souldn't be reaching here */
-    LCD_WR_LINE_NP(0, 0, PSTR("Exit of menuMain"), 16);
+  } else if (devStatus & DS_DEV_INVALID) {
+    LCD_WR_LINE_NP(0, 0, PSTR("Invalid Prod Key"), 15);
     LCD_refresh();
+    _delay_ms(5000);
+  } else {
+    /* hardware issues found ....
+     FIXME: ASK and run factory tests */
+  }
+
+  /* reach here and you could never get out */
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(1, 0, PSTR("   Power Off Now"), 16);
+  LCD_refresh();
+  while (1) {
     KBD_GETCH;
+  }
 
   return 0;
 }
