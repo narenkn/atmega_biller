@@ -61,8 +61,7 @@ uint8_t TIMSK, TCCR2;
 
 #ifndef  __UNITS_KBD_C
 #define LCD_ALERT(str)				\
-  LCD_WR_LINE(0, 0, str);			\
-  KBD_RESET_KEY; KBD_GETCH
+  LCD_WR_LINE(0, 0, str)
 
 #define LCD_ALERT_16N(str, n)			\
   LCD_WR_LINE(0, 0, str);			\
@@ -115,4 +114,23 @@ int2str(char *str, uint32_t ui, uint32_t *idx)
   str[*idx] = '0' + (ui%10);
   (*idx)++;
   str[*idx] = 0;
+}
+
+void
+common_init()
+{
+  uint8_t ui8_1, ui8_2;
+  uint16_t crc=0;
+ 
+  for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
+    ui8_2 = '0' + (rand() % 70);
+    assert(isgraph(ui8_2));
+    crc = _crc16_update(crc, ui8_2);
+    eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
+  }
+  ui8_2 = crc>>8;
+  eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
+  ui8_1++;
+  ui8_2 = crc;
+  eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
 }

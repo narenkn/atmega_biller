@@ -71,9 +71,9 @@
 
 typedef volatile struct {
   uint8_t KbdData;
+  uint8_t KbdDataAvail;
   uint8_t _kbdData;
   uint8_t count;
-  uint8_t KbdDataAvail;
 } keyHitData_t;
 
 extern keyHitData_t keyHitData;
