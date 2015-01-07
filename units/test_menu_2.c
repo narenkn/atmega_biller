@@ -215,10 +215,10 @@ main(void)
     }
     inp2[ui2] = 0;
     assert( (ui1 & 1) == (1 & menuGetYesNo(inp2, ui2)) );
-    ui2 += (ui1 & 1) ? sprintf(inp2+ui2, ": No") :
-      sprintf(inp2+ui2, ": Yes");
+    ui2 += (ui1 & 1) ? sprintf(inp2+ui2, ":No ?") :
+      sprintf(inp2+ui2, ":Yes?");
     assert(0 == strncmp(inp2, lcd_buf[LCD_MAX_ROW-1], ui2));
-    //    printf("ui2:%d inp2:'%s' lcd_buf:'%s'\n", ui2, inp2, lcd_buf[LCD_MAX_ROW-1]);
+    //printf("ui2:%d inp2:'%s' lcd_buf:'%s'\n", ui2, inp2, lcd_buf[LCD_MAX_ROW-1]);
   }
 
   return 0;

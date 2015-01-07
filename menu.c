@@ -398,15 +398,19 @@ uint8_t
 menuGetYesNo(const uint8_t *quest, uint8_t size)
 {
   uint8_t ui8_1, ui8_2, ret;
-  
+
+  size %= 12; /* 5 bytes for :Yes? */
+  assert(size);
   for (ret=0; ;) {
-    ret &= 3;
+    ret &= 1;
     LCD_WR_LINE_NP(LCD_MAX_ROW-1, 0, quest, size);
     LCD_POS(LCD_MAX_ROW-1, size);
-    LCD_PUTCH(' ');
+    LCD_PUTCH(':');
     //printf("lcd_buf[1]:%p lcd_buf_p:%p\n", lcd_buf[1], LCD_CUR_POS_P);
     //printf("before lcd_buf[1]:'%s'\n", lcd_buf[1]);
     PSTR2STRN(menu_str1+((MENU_STR1_IDX_YesNo+ret)*MENU_PROMPT_LEN), LCD_CUR_POS_P, ui8_1, ui8_2, 3);
+    LCD_POS(LCD_MAX_ROW-1, size+4);
+    LCD_PUTCH('?');
     //printf("after  lcd_buf[1]:'%s'\n", lcd_buf[1]);
     LCD_refresh();
 
@@ -420,7 +424,7 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     } else if (ASCII_ENTER == keyHitData.KbdData) {
       return ret & 1;
     } else {
-      ret = 3;
+      ret = 1;
     }
   }
   assert(0);
@@ -636,16 +640,20 @@ menuSetPasswd(uint8_t mode)
   /* Compute CRC on old password, check */
   if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
     assert(MENU_ITEM_STR == arg1.valid);
-    for (ui8_4=0; ui8_4<LCD_MAX_COL; ui8_4++) {
+    for (ui8_4=0; ui8_4<arg1.value.str.len; ui8_4++) {
       ui8_2 = arg1.value.str.sptr[ui8_4];
       /* check isprintable? */
-      for (ui8_3=0; (isgraph(ui8_2)) && (ui8_3<(KCHAR_COLS*KCHAR_ROWS)); ui8_3++) {
-	if (ui8_2 == keyChars[ui8_3])
-	  break;
-      }
-      if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
+//      for (ui8_3=0; (isgraph(ui8_2)) && (ui8_3<(KCHAR_COLS*KCHAR_ROWS)); ui8_3++) {
+//	if (ui8_2 == keyChars[ui8_3])
+//	  break;
+//      }
+//      if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
+      printf("sptr:%s ", arg1.value.str.sptr);
+      if (isgraph(ui8_2)) {
 	crc_old = _crc16_update(crc_old, ui8_2);
+      }
     }
+    printf("\n");
 
     if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds[(LoginUserId-1)])) != crc_old) {
       LCD_ALERT(PSTR("Passwd Wrong!!"));

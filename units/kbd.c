@@ -4,8 +4,7 @@
 #ifndef  __UNITS_KBD_C
 #define  __UNITS_KBD_C
 
-volatile uint8_t KbdData;
-volatile uint8_t KbdDataAvail;
+keyHitData_t keyHitData;
 
 uint16_t test_key_idx = -1;
 uint8_t test_key_arr_idx = 0;
@@ -77,35 +76,35 @@ KbdGetCh(void)
   /* last char of pipe */
   if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) {
     assert (test_key_idx >= 0);
-    //printf("hack2 kbd.c sending:0x%x\n", KbdData);
-    KbdData = ASCII_ENTER;
-    KbdDataAvail = 1;
+    //printf("hack2 kbd.c sending:0x%x\n", keyHitData.KbdData);
+    keyHitData.KbdData = ASCII_ENTER;
+    keyHitData.KbdDataAvail = 1;
     test_key_idx = -1;
     return;
   }
 
   if ((ASCII_ENTER==test_key[0][test_key_idx]) || (ASCII_LEFT==test_key[0][test_key_idx]) || (ASCII_RIGHT==test_key[0][test_key_idx])) {
-    KbdData = test_key[0][test_key_idx];
-    KbdDataAvail = 1;
+    keyHitData.KbdData = test_key[0][test_key_idx];
+    keyHitData.KbdDataAvail = 1;
     test_key_idx++;
-    //    printf("hack kbd.c sending:0x%x\n", KbdData);
+    //    printf("hack kbd.c sending:0x%x\n", keyHitData.KbdData);
     return;
   }
 
-  KbdData = test_key[0][test_key_idx];
-  KbdDataAvail = 1;
+  keyHitData.KbdData = test_key[0][test_key_idx];
+  keyHitData.KbdDataAvail = 1;
   test_key_idx++;
   if (2 <= do_correct) {
     do_correct = 0;
-    //printf("Added correct key:'%c' '%s'\n", KbdData, test_key[0]);
+    //printf("Added correct key:'%c' '%s'\n", keyHitData.KbdData, test_key[0]);
   } else if (1 == do_correct) {
-    KbdData = ASCII_LEFT;
+    keyHitData.KbdData = ASCII_LEFT;
     test_key_idx--;
     do_correct++;
     //    printf("Added back key\n");
   } else if ((0 == do_correct) && (0 == (rand() % 2))) {
-    KbdData = 'a' + (rand() % 26);
-    //    printf("Added random key: %c\n", KbdData);
+    keyHitData.KbdData = 'a' + (rand() % 26);
+    //    printf("Added random key: %c\n", keyHitData.KbdData);
     do_correct++;
     test_key_idx--;
   }
@@ -131,8 +130,7 @@ KbdIsShiftPressed(void)
 #include <ncurses/ncurses.h>
 #include "kbd.h"
 
-volatile uint8_t KbdData;
-volatile uint8_t KbdDataAvail;
+keyHitData_t keyHitData;
 
 //extern PROGMEM uint8_t ps2code2ascii[];
 //extern PROGMEM uint8_t ps2code2asciiE0[];
@@ -208,23 +206,23 @@ KbdScan(void)
 #undef KBD_GETCH
 #define KBD_GETCH	do {			\
   uint16_t  t_data;				\
-  KbdDataAvail = 0;				\
+  keyHitData.KbdDataAvail = 0;				\
   t_data = getch();				\
   assert(t_data < sizeof(cursesKbdFixes));	\
   /*move(1, 0);*/						\
   /*printw("kbd raw1:0x%x    ", t_data);*/			\
   if (ASCII_UNDEF == cursesKbdFixes[t_data]) {			\
   } else if (ASCII_DEFINED == cursesKbdFixes[t_data]) {	\
-    KbdData = t_data;						\
-    assert(KbdData == t_data); /* check data size */		\
-    KbdDataAvail = 1;				\
+    keyHitData.KbdData = t_data;						\
+    assert(keyHitData.KbdData == t_data); /* check data size */		\
+    keyHitData.KbdDataAvail = 1;				\
   } else {					\
-    KbdData = cursesKbdFixes[t_data];		\
-    KbdDataAvail = 1;				\
+    keyHitData.KbdData = cursesKbdFixes[t_data];		\
+    keyHitData.KbdDataAvail = 1;				\
   }						\
   /*move(2, 0);*/						\
-  /*printw("kbd raw2:0x%x    ", KbdData);*/			\
-} while (0 == KbdDataAvail)
+  /*printw("kbd raw2:0x%x    ", keyHitData.KbdData);*/			\
+} while (0 == keyHitData.KbdDataAvail)
 
 uint8_t
 KbdIsShiftPressed(void)

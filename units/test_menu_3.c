@@ -8,6 +8,7 @@ main(void)
   uint8_t ui1, ui2, ui3, ui4;
 
   srand(time(NULL));
+  common_init();
 
   /* */
   assert_init();
@@ -16,7 +17,7 @@ main(void)
   ep_store_init();
 
   /* menuSetPasswd */
-  for (loop=0; loop<0; loop++) {
+  for (loop=0; loop<1000; loop++) {
     RESET_TEST_KEYS;
  
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -28,7 +29,7 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    arg2.value.sptr = bufSS+LCD_MAX_COL+2;
+    arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
     menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
 
     LCD_CLRSCR;
@@ -40,15 +41,17 @@ main(void)
 
     /* sometimes corrupt the password */
     uint8_t corrupted = rand() % 2;
+    printf("before:'%s'\n", inp);
     if (corrupted) {
       ui4 = rand()%passwd_size;
       inp[ui4]++;
       if (inp[ui4] > '~') inp[ui4] -= 2;
     }
+    printf("after:'%s'\n", inp);
 
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    arg1.value.sptr = bufSS;
+    arg1.value.str.sptr = bufSS;
     menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
     menuSetPasswd(ui3|MENU_MVALIDATE);
 
@@ -56,13 +59,14 @@ main(void)
       assert(0 == strncmp("Passwd Wrong!!  ", lcd_buf[0], LCD_MAX_COL));
     } else {
       assert(0 == strncmp("Passwd Updated  ", lcd_buf[0], LCD_MAX_COL));
+      printf("%s\n", lcd_buf[0]);
     }
     assert(MenuMode == ui3);
     assert(LoginUserId == ui2);
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<0; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -75,7 +79,7 @@ main(void)
     INIT_TEST_KEYS(inp);
     inp[passwd_size] = 0;
     KBD_RESET_KEY;
-    arg2.value.sptr = bufSS+LCD_MAX_COL+2;
+    arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
     menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
     //    printf("passwd:'%s'", inp);
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
@@ -91,7 +95,7 @@ main(void)
     inp2[EPS_MAX_UNAME] = 0;
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
-    arg1.value.sptr = bufSS;
+    arg1.value.str.sptr = bufSS;
     menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
 
@@ -128,12 +132,12 @@ main(void)
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
-    arg2.value.sptr[0] ^= ui4;
+    arg2.value.str.sptr[0] ^= ui4;
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
     menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
-    arg1.value.sptr[0] ^= ui3;
-    //    printf("inp2:'%s' arg1:'%s'\n", inp2, arg1.value.sptr);
+    arg1.value.str.sptr[0] ^= ui3;
+    //    printf("inp2:'%s' arg1:'%s'\n", inp2, arg1.value.str.sptr);
     menuUserLogin(MENU_MRESET);
     if (ui3) {
       assert(0 == strncmp("No user         ", lcd_buf[0], LCD_MAX_COL));
