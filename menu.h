@@ -167,6 +167,7 @@ extern uint8_t devStatus;
 #define DS_DEV_5K   (1<<3)
 #define DS_DEV_20K  (1<<4)
 #define DS_DEV_INVALID (1<<5)
+#define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD)
 
 #define PSTR2STR(pstr, str, ui_1, ui_2)		\
   for (ui_2=0; ;ui_2++) {			\

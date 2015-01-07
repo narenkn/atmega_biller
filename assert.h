@@ -20,7 +20,7 @@ void expect_else_assert(const char *s, const char *f, const uint32_t l);
 #if 0
 #define assert(X)			       \
   if (!(X)) {				       \
-    LCD_WR_LINE_N(1, 0, __FILE__, 11);	       \
+    LCD_WR_LINE_NP(1, 0, PSTR(__FILE__), 11);   \
     LCD_PUTCH(':');			       \
     LCD_PUT_UINT16X(__LINE__);		       \
     while (1) {}			       \

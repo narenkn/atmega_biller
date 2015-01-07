@@ -25,19 +25,6 @@
 #include "main.h"
 
 
-// FIXME: Not unit tested
-/* 1 sec has F_CPU clocks
-   timer is prescaled to 1024 cycles
-   so, for 5 sec delay :
-     (F_CPU/1024)*5 ~= 40000 = 0x9C40;
- */
-volatile uint8_t timer2_msb = 0;
-volatile uint16_t timer2_sleep_delay = 0x9C;
-ISR(TIMER2_OVF_vect)
-{
-  timer2_msb++;
-}
-
 volatile uint8_t eeprom_setting0 = 0, eeprom_setting1 = 0;
 
 void
@@ -71,29 +58,38 @@ main_init(void)
   DDRD |= 0x80;
   BUZZER_OFF;
 
-  /* enable timer 2 for periodic checks */
-  TIMSK |= (1 << TOIE2);
-
-  /* setup timer 2 */
-  // Set CS10 bit so timer runs at clock speed:
-  TCCR2 = 0;
-  TCCR2 |= (0x7 << CS20);
-
-  /* */
-  uint8_t ui8_1 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, idle_wait)));
-  ui8_1 %= 60; /* max 60 seconds */
-  if (0 == ui8_1) ui8_1 = 5;
-  timer2_sleep_delay = ui8_1;
-  timer2_sleep_delay *= (F_CPU>>10);
-
-  /* */
-  timer2_msb = 0;
+  /* setup timer 2 : need to get 5 sec pulse
+     # cycles to skip : (5*F_CPU)
+     # clock div is 1024, so we need to skip : (5*F_CPU)>>10
+   */
+//  TCCR2 |= (0x7 << CS20);
+//  TCNT2 = 0;
+//  TIMSK |= (1 << TOIE2);
 
   /* */
   eeprom_setting2ram();
 
+  /* clear display buffer */
+  LCD_CLRSCR;
+
   /* Enable Global Interrupts */
   sei();
+}
+
+/* setup timer 2 : need to get 5 sec pulse
+   # cycles to skip : (5*F_CPU)
+   # clock div is 1024, so we need to skip : (5*F_CPU)>>10
+*/
+ISR(TIMER2_OVF_vect)
+{
+  static uint16_t timer2_beats;
+
+  if (timer2_beats < ((5*F_CPU)>>10))
+    return;
+  timer2_beats = 0;
+
+  LCD_init();
+  LCD_refresh();
 }
 
 #ifndef NO_MAIN
@@ -106,7 +102,9 @@ main(void)
   /* Welcome screen */
   LCD_bl_on;
   LCD_WR_LINE_NP(0, 0, PSTR("Welcome..."), 10);
-  LCD_WR_LINE_NP(1, 0, PSTR("   Initializing..."), 15);
+  LCD_WR_LINE_NP(1, 0, PSTR("  Initializing.."), 1);
+  LCD_refresh();
+  _delay_ms(500);
 
   /* All other devices */
   KbdInit();
@@ -119,10 +117,10 @@ main(void)
 
   /* Check if all devices are ready to go, else give
      error and exit */
-  if (0 == devStatus) {
+  if (0 == (devStatus&DS_DEV_ERROR)) {
     LCD_WR_LINE_NP(1, 0, PSTR("   Initialized!"), 15);
     LCD_refresh();
-    KBD_GETCH;
+    _delay_ms(1000);
     menuMain();
   } else if (devStatus & DS_DEV_INVALID) {
     LCD_WR_LINE_NP(0, 0, PSTR("Invalid Prod Key"), 15);
@@ -135,7 +133,7 @@ main(void)
 
   /* reach here and you could never get out */
   LCD_CLRSCR;
-  LCD_WR_LINE_NP(1, 0, PSTR("   Power Off Now"), 16);
+  LCD_WR_LINE_NP(0, 0, PSTR("Power Off Now"), 13);
   LCD_refresh();
   while (1) {
     KBD_GETCH;

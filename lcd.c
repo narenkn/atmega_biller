@@ -59,7 +59,6 @@ LCD_init(void)
   /* Clear LCD */
   for (ui8_1=1; ui8_1; ui8_1++)
     LCD_cmd(LCD_CMD_CLRSCR);
-  LCD_CLRSCR;
   _delay_ms(100);
 
   /* Entry mode, auto increment with no shift */

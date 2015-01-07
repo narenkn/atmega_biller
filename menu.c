@@ -482,7 +482,7 @@ menuFactorySettings(uint8_t mode)
   assert(MENU_MSUPER == MenuMode);
 
   /* confirm before proceeding */
-  ui8_1 = menuGetYesNo(PSTR("Factory Set?"), 12);
+  ui8_1 = menuGetYesNo(PSTR("Fact Reset"), 11);
   if (0 != ui8_1) return;
 
   /* store & restore serial #
@@ -764,42 +764,6 @@ menuInit()
   devStatus = 0;
   diagStatus = 0;
 
-#if FF_ENABLE
-  if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID)) {
-
-  /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
-  UINT ret_val;
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-  //  change_sd(0); /* FIXME: */
-  PSTR2STR(BillFileName, bufSS, ui8_1, ui8_2);
-  if ( (FR_OK == f_mount(&FS, ".", 1)) &&
-       (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) ) {
-    if (f_size(&Fil) > 0) { /* check version */
-      f_read(&Fil, bufSS, 2, &ret_val);
-      assert(2 == ret_val);
-      ui16_1 = bufSS[0]; ui16_1 <<= 8; ui16_1 |= bufSS[1];
-      if (GIT_HASH_CRC != ui16_1) {
-	LCD_ALERT(PSTR("Moved old data"));
-	for (ui8_1=1; ui8_1; ui8_1++) {
-	  sprintf(bufSS+LCD_MAX_COL, "%s.%d", bufSS, ui8_1);
-	  if (FR_OK != FR_OK/*FIXME: f_stat(bufSS+LCD_MAX_COL, NULL)*/)
-	    break;
-	}
-	/*FIXME: f_rename(bufSS, bufSS+LCD_MAX_COL);*/
-      }
-    }
-  } else { /* SD not found */
-    LCD_ALERT(PSTR("No SD Found"));
-    devStatus |= DS_NO_SD;
-  }
-  f_mount(NULL, "", 0);
-  }
-#endif
-  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 77"), 14);
-  LCD_refresh();
-  _delay_ms(1000);
-
   /* Used to find if we are looping multiple times */
   ui8_2 = 0;
 
@@ -813,17 +777,7 @@ menuInit()
   ui16_2 <<= 8;
   ui16_2 |= eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
   /* the CRC needs to be in the printable char set */
-  if ((0 != ui16_2) && (ui16_2 == ui16_1)) {
-    devStatus |= DS_DEV_1K;
-  } else if ( (0 != ui16_2) &&
-	      (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
-	      (0 == ((ui16_2 ^ (ui16_1<<8)) & 0xFF00)) ) {
-    devStatus |= DS_DEV_5K;
-  } else if ( (0 != ui16_2) &&
-	      (0 == ((ui16_2 ^ (ui16_1>>8)) & 0xFF)) &&
-	      (0 == ((ui16_2 ^ (ui16_1<<8)) & 0xFF00)) ) {
-    devStatus |= DS_DEV_20K;
-  } else if (0 == ui8_2) {
+  if ((0 == ui8_2) && (ui16_2 != ui16_1)) {
     /* Serial # doesn't exist, load from addr 0 */
     for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
       ui8_2 = eeprom_read_byte(ui8_1);
@@ -832,22 +786,49 @@ menuInit()
     }
 
     MenuMode = MENU_MSUPER;
-  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 78"), 14);
-  LCD_refresh();
-  _delay_ms(1000);
     menuFactorySettings(MenuMode);
 
     ui8_2 = 1;
     goto menuInitIdentifyDevice;
+  } else if (ui16_2 == ui16_1) {
+    ui8_1 = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-4);
+    devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
+      ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
-  LCD_WR_LINE_NP(ui8_2, 0, PSTR("Device Init 79"), 14);
-  LCD_refresh();
-  _delay_ms(1000);
     devStatus |= DS_DEV_INVALID;
   }
-  LCD_WR_LINE_NP(0, 0, PSTR("Device Init 790"), 15);
-  LCD_refresh();
-  _delay_ms(1000);
+
+#if FF_ENABLE
+  if (0 == (devStatus & DS_DEV_INVALID)) {
+    /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
+    UINT ret_val;
+    memset(&FS, 0, sizeof(FS));
+    memset(&Fil, 0, sizeof(Fil));
+    //  change_sd(0); /* FIXME: */
+    PSTR2STR(BillFileName, bufSS, ui8_1, ui8_2);
+    if ( (FR_OK == f_mount(&FS, ".", 1)) &&
+	 (f_open(&Fil, bufSS, FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) ) {
+      if (f_size(&Fil) > 0) { /* check version */
+	f_read(&Fil, bufSS, 2, &ret_val);
+	assert(2 == ret_val);
+	ui16_1 = bufSS[0]; ui16_1 <<= 8; ui16_1 |= bufSS[1];
+	if (GIT_HASH_CRC != ui16_1) {
+	  LCD_ALERT(PSTR("Moved old data"));
+	  for (ui8_1=1; ui8_1; ui8_1++) {
+	    sprintf(bufSS+LCD_MAX_COL, "%s.%d", bufSS, ui8_1);
+	    if (FR_OK != FR_OK/*FIXME: f_stat(bufSS+LCD_MAX_COL, NULL)*/)
+	      break;
+	  }
+	  /*FIXME: f_rename(bufSS, bufSS+LCD_MAX_COL);*/
+	}
+      }
+    } else { /* SD not found */
+      LCD_ALERT(PSTR("No SD Found"));
+      devStatus |= DS_NO_SD;
+    }
+    f_mount(NULL, "", 0);
+  }
+#endif
 
 #if !MENU_USER_ENABLE
   LoginUserId = 1;
