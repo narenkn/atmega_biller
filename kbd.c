@@ -202,14 +202,13 @@ ISR(INT2_vect)
    clock is at 8MHz, timer1 clock is prescaled by 1024
    (F_CPU/2*1024)
  */
+static uint8_t timer1_iter = 0;
 ISR(TIMER1_OVF_vect)
 {
-  static uint8_t iter = 0;
-
   /* key hit */
   if ((keyHitData.count) && KBD_NOT_HIT) {
     keyHitData.KbdData = 0;
-    if (LCD_WAS_ON && (keyHitData.count < (KCHAR_ROWS<<1))) {
+    if ( LCD_WAS_ON && (keyHitData.count < (KCHAR_ROWS<<1)) ) {
       keyHitData.count--;
       keyHitData.count %= KCHAR_COLS;
       keyHitData._kbdData--;
@@ -222,22 +221,22 @@ ISR(TIMER1_OVF_vect)
     }
     keyHitData._kbdData = 0;
     keyHitData.count = 0;
-    iter = 0;
+    timer1_iter = 0;
   } else if (3 == keyHitData.KbdDataAvail) {
-    iter = 0;
+    timer1_iter = 0;
   }
 
   /* Wait for 5 secs to disable timer permanently
      assume we need to get call next */
-  iter++;
+  timer1_iter++;
   TCNT1 = 0xFFFF - (F_CPU>>11);
   LCD_bl_on;
 //  LCD_cmd(LCD_CMD_CUR_10 + 14);
-//  LCD_uint8x(iter);
-  if (iter > 10) {
+//  LCD_uint8x(timer1_iter);
+  if (timer1_iter > 10) {
     TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
     LCD_bl_off;
-    iter = 0;
+    timer1_iter = 0;
   }
 }
 
@@ -307,13 +306,11 @@ ISR(INT0_vect)
       kbdTransL = 3;    /* E0 F0 XX */
       if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
 	kbdTransL = 6;
-      } else if (!LCD_WAS_ON) {
-	  drC = 3; /* make sure == kbdTransL */
       } else {
 	KeyData = (kbdStatus & ps2ShiftHit) ?
 	  pgm_read_byte(&(ps2code2asciiE0[kbdDr[2]])) :
 	  pgm_read_byte(&(ps2code2ascii[kbdDr[2]]));
-	if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT) {
+	if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
 	  keyHitData.KbdData = KeyData;
 	  keyHitData.KbdDataAvail = 1;
 	  drC = 3; /* make sure == kbdTransL */
@@ -335,10 +332,9 @@ ISR(INT0_vect)
 	  pgm_read_byte(&(ps2code2ascii[kbdDr[1]]));
 	if (ASCII_NUMLK == KeyData) {
 	  /* FIXME: Switch TOGGLE the light */
-	} else if (!LCD_WAS_ON) {
-	} else if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT) {
+	} else if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
 	  keyHitData.KbdData = KeyData;
-	  keyHitData.KbdDataAvail = 3;
+	  keyHitData.KbdDataAvail = 1;
 	}
       }
     }
@@ -358,12 +354,16 @@ ISR(INT0_vect)
 
   /* Get ready for new trans */
   if (drC == kbdTransL) {
+    if ( ((2 == kbdTransL) && (0xF0 == kbdDr[0])) || /* skip make codes */
+	 ((3 == kbdTransL) && (0xF0 == kbdDr[1]) && (0xE0 == (kbdDr[0]&0xF0))) ) {
+      kbdTransL = 1;
+      TCNT1 = 0xFFFF - (F_CPU>>11);
+      TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
+      timer1_iter = 0;
+    }
     for (drC=0; drC<LENOF_DR; drC++)
       kbdDr[drC] = 0;
     drC = 0;
-    kbdTransL = 1;
-    TCNT1 = 0xFFFF - (F_CPU>>11);
-    TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
   }
 }
 

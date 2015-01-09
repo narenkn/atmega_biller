@@ -56,13 +56,23 @@ main()
       LCD_WR_LINE_NP(0, 11, PSTR("UNKN"), 4);
     }
     LCD_POS(1, 0);
-    LCD_PUT_UINT8X(ui8_2);
-    LCD_PUTCH(' ');
-    LCD_PUT_UINT8X(keyHitData.KbdData);
-    LCD_PUTCH(':');
-    LCD_PUT_UINT8X(keyHitData.count);
-    LCD_PUTCH(':');
-    LCD_PUT_UINT8X(keyHitData._kbdData);
+//    LCD_PUT_UINT8X(ui8_2);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(keyHitData.KbdData);
+//    LCD_PUTCH(':');
+//    LCD_PUT_UINT8X(keyHitData.count);
+//    LCD_PUTCH(':');
+//    LCD_PUT_UINT8X(keyHitData._kbdData);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(bitC);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(drC);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(kbdDr[0]);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(kbdDr[1]);
+//    LCD_PUTCH(' ');
+//    LCD_PUT_UINT8X(kbdDr[2]);
     KBD_RESET_KEY;
     LCD_refresh();
   }

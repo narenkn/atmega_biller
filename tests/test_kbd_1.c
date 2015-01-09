@@ -18,12 +18,7 @@
   LCD_wrchar(ui2_a);				\
 }
 
-volatile struct { 
-  uint8_t KbdData;
-  uint8_t _kbdData;
-  uint8_t count;
-  uint8_t KbdDataAvail;
-} keyHitData;
+keyHitData_t keyHitData;
 
 const uint8_t
 keyChars[] = {
@@ -198,6 +193,23 @@ ISR(TIMER1_OVF_vect)
   }						\
   LCD_bl_on
 
+/* setup timer 2 : need to get 5 sec pulse
+   # cycles to skip : (5*F_CPU)
+   # clock div is 1024, so we need to skip : (5*F_CPU)>>10
+*/
+ISR(TIMER2_OVF_vect)
+{
+  static uint16_t timer2_beats=0;
+
+  timer2_beats++;
+  if (timer2_beats < ((5*F_CPU)>>10))
+    return;
+  timer2_beats = 0;
+
+  LCD_init();
+  LCD_refresh();
+}
+
 
 int
 main()
@@ -239,6 +251,15 @@ main()
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   GICR |= (1<<INT2);
+
+  /* setup timer 2 : need to get 5 sec pulse
+     # cycles to skip : (5*F_CPU)
+     # clock div is 1024, so we need to skip : (5*F_CPU)>>10
+   */
+  TCCR2 |= (0x7 << CS20);
+  TCNT2 = 0;
+  TIMSK |= (1 << TOIE2);
+
   sei();
 
   /* alert */

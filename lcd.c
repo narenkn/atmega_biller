@@ -79,8 +79,6 @@ LCD_refresh(void)
   }
   lcd_buf_prop &= ~LCD_PROP_DIRTY;
 
-  cli(); /* stop interrupts */
-
   /**************************************************/
   /*****************   LCD   ************************/
   /**************************************************/
@@ -101,8 +99,6 @@ LCD_refresh(void)
     }
     ui3_p++;
   }
-
-  sei(); /* interrupts */
 }
 
 #if LCD_USE_FUNCTIONS

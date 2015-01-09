@@ -55,9 +55,9 @@ main_init(void)
      # cycles to skip : (5*F_CPU)
      # clock div is 1024, so we need to skip : (5*F_CPU)>>10
    */
-  TCCR2 |= (0x7 << CS20);
-  TCNT2 = 0;
-  TIMSK |= (1 << TOIE2);
+//  TCCR2 |= (0x7 << CS20);
+//  TCNT2 = 0;
+//  TIMSK |= (1 << TOIE2);
 
   /* */
   eeprom_setting2ram();
