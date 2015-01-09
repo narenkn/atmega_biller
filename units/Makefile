@@ -11,9 +11,9 @@ VPATH = .:..
 SOURCES = $(wildcard *.c)
 TARGETS = $(subst .c, , $(SOURCES))
 
-include ../make.proj
-
 $(TARGETS):
+
+include ../make.proj
 
 headers : ../ep_ds.h ../version.h
 

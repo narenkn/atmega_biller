@@ -226,13 +226,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 
   /* Get a string */
   do {
-    /* added cursor functionality */
-    if (opt & MENU_ITEM_PASSWD)
-      ;
-    else if (MENU_ITEM_STR == item_type)
-      lp[col_id] = '_';
-    else if (col_id < (LCD_MAX_COL-1))
-      lp[col_id] = '_';
     LCD_refresh();
     KBD_RESET_KEY;
     KBD_GETCH;
@@ -251,10 +244,12 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 	  col_id--;
 	  ui16_1--;
 	  arg->value.str.sptr[ui16_1] = ' ';
+	  lp[col_id] = ' ';
 	}
       } else {
 	col_id--;
 	ui16_1--;
+	lp[col_id] = ' ';
       }
       break;
     case ASCII_LF:
@@ -273,7 +268,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
       break;
     default:
       lp[col_id] = keyHitData.KbdData;
-      if (MENU_ITEM_STR == item_type) {
+      if ( (MENU_ITEM_STR == item_type) && (ui16_1 < arg->value.str.len) ) {
 	arg->value.str.sptr[ui16_1] = keyHitData.KbdData;
 	ui16_1++;
 	col_id++;
@@ -287,8 +282,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 	}
       } else {
 	/* Don't overflow buffer */
-	if (col_id < LCD_MAX_COL)
-	  col_id++;
+	if (col_id < LCD_MAX_COL) col_id++;
       }
       //printf("ui16_1:%d col_id:%d\n", ui16_1, col_id);
     }
@@ -642,12 +636,12 @@ menuSetPasswd(uint8_t mode)
 //	  break;
 //      }
 //      if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
-      printf("sptr:%s ", arg1.value.str.sptr);
+      //printf("sptr:%s ", arg1.value.str.sptr);
       if (isgraph(ui8_2)) {
 	crc_old = _crc16_update(crc_old, ui8_2);
       }
     }
-    printf("\n");
+    //printf(" crc_computed:0x%x\n", crc_old);
 
     if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds[(LoginUserId-1)])) != crc_old) {
       LCD_ALERT(PSTR("Passwd Wrong!!"));
@@ -657,7 +651,7 @@ menuSetPasswd(uint8_t mode)
 
   /* update mine only */
   assert(MENU_ITEM_STR == arg2.valid);
-  for (ui8_4=0; ui8_4<LCD_MAX_COL; ui8_4++) {
+  for (ui8_4=0; ui8_4<arg2.value.str.len; ui8_4++) {
     ui8_2 = arg2.value.str.sptr[ui8_4];
     /* check isprintable? */
     for (ui8_3=0; (isgraph(ui8_2)) && (ui8_3<(KCHAR_COLS*KCHAR_ROWS)); ui8_3++) {
@@ -667,6 +661,7 @@ menuSetPasswd(uint8_t mode)
     if (ui8_3 < (KCHAR_ROWS*KCHAR_COLS))
       crc_new = _crc16_update(crc_new, ui8_2);
   }
+  //printf("updating crc:0x%x\n", crc_new);
 
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
   LCD_ALERT(PSTR("Passwd Updated"));
@@ -709,11 +704,12 @@ menuUserLogin(uint8_t mode)
       goto menuUserLogin_found;
   }
   LCD_ALERT(PSTR("No user"));
+  LoginUserId = 0;
   return;
 
  menuUserLogin_found:
   assert(ui2 < (EPS_MAX_USERS+1));
-  for (ui4=0; ui4<LCD_MAX_COL; ui4++) {
+  for (ui4=0; ui4<arg2.value.str.len; ui4++) {
     ui3 = arg2.value.str.sptr[ui4];
     /* check isprintable? */
     for (ui5=0; isgraph(ui3) && (ui5<(KCHAR_COLS*KCHAR_ROWS)); ui5++) {
@@ -726,6 +722,7 @@ menuUserLogin(uint8_t mode)
 
   if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
     LCD_ALERT(PSTR("Wrong Passwd"));
+    LoginUserId = 0;
     return;
   }
 
