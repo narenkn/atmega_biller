@@ -1803,8 +1803,10 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
     arg1.value.str.len = max_chars;
     menuGetOpt(quest, &arg1, MENU_ITEM_STR);
   } while (MENU_ITEM_STR != arg1.valid);
+#ifndef UNIT_TEST
   if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+#endif
 
   for (ui16_1=0; ui16_1<max_chars; ui16_1++) {
     //    if (!isgraph(arg1.value.str.sptr[ui16_1]))
@@ -1821,8 +1823,10 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
     arg1.valid = MENU_ITEM_NONE;
     menuGetOpt(quest, &arg1, MENU_ITEM_ID);
   } while (MENU_ITEM_ID != arg1.valid);
+#ifndef UNIT_TEST
   if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+#endif
 
   uint32_t val = arg1.value.integer.i32;
   eeprom_update_dword((void *)addr, val);
@@ -1835,8 +1839,10 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
   do {
     menuGetOpt(quest, &arg1, MENU_ITEM_ID);
   } while  (MENU_ITEM_ID != arg1.valid);
+#ifndef UNIT_TEST
   if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+#endif
 
   uint16_t val = arg1.value.integer.i16;
   eeprom_update_word((void *)addr, val);
@@ -1849,8 +1855,10 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
     arg1.valid = MENU_ITEM_NONE;
     menuGetOpt(quest, &arg1, MENU_ITEM_ID);
   } while (MENU_ITEM_ID != arg1.valid);
+#ifndef UNIT_TEST
   if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+#endif
 
   uint8_t val = arg1.value.integer.i16;
   eeprom_update_byte((void *)addr, val);
@@ -1865,8 +1873,10 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
     arg1.valid = MENU_ITEM_NONE;
     menuGetOpt(quest, &arg1, MENU_ITEM_ID);
   } while (MENU_ITEM_ID != arg1.valid);
+#ifndef UNIT_TEST
   if (menuGetYesNo(PSTR("Confirm?"), 8))
     return;
+#endif
 
   ui8_1 = eeprom_read_byte((void *)(addr));
   ui8_2 = (1<<size)-1;
