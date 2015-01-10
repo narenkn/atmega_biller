@@ -11,10 +11,13 @@
 
 #define TEST_KEY_ARR_SIZE 128
 
+#include "lcd.h"
+#include "i2c.h"
+
 #include "lcd.c"
 #include "kbd.c"
+#include "i2c.c"
 #include "ep_store.c"
-#include "menu.c"
 
 int
 main(void)

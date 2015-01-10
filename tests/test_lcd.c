@@ -7,6 +7,9 @@
 #include <avr/eeprom.h>
 #include <util/twi.h>
 
+#include "lcd.h"
+#include "i2c.h"
+
 #include "lcd.c"
 #include "i2c.c"
 
