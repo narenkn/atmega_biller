@@ -27,7 +27,6 @@ main()
   uint8_t dread[8];
   uint8_t ui1;
   ee24xx_write_bytes(0, data, 8);
-  _delay_ms(1000);
   ee24xx_read_bytes(0, dread, 8);
   for (ui1=0; ui1<8; ui1++) {
     LCD_POS(1, 0);
