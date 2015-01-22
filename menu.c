@@ -478,17 +478,24 @@ menuFactorySettings(uint8_t mode)
   /* confirm before proceeding */
   ui8_1 = menuGetYesNo(PSTR("Fact Reset"), 11);
   if (0 != ui8_1) return;
+  LCD_CLRSCR;
+  LCD_WR_LINE_NP(0, 0, PSTR("FactRst Progress"), 16);
+  LCD_refresh();
+  LCD_POS(1, 0);
 
   /* store & restore serial #
      Eraze all locations
   */
   for (ui16_1=0; ui16_1<SERIAL_NO_MAX; ui16_1++)
     bufSS[ui16_1] = eeprom_read_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui16_1);
+  LCD_PUTCH('.'); LCD_refresh();
   for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1++)
     eeprom_update_byte(ui16_1, 0);
+  LCD_PUTCH('.'); LCD_refresh();
   for (ui16_1=0; ui16_1<SERIAL_NO_MAX; ui16_1++)
     eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui16_1,
 		     bufSS[ui16_1]);
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* Mark all items as deleted : (0==id) */
   for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
@@ -498,6 +505,7 @@ menuFactorySettings(uint8_t mode)
     ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
 		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
   }
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, shop_name),
@@ -512,6 +520,7 @@ menuFactorySettings(uint8_t mode)
 			PSTR("A000"), EPS_WORD_LEN);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, caption),
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* user names & passwd needs to be reset */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users),
@@ -530,15 +539,18 @@ menuFactorySettings(uint8_t mode)
   for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
     eeprom_update_word(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_1), 0);
   }
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* All numerical data */
   eeprom_update_word(offsetof(struct ep_store_layout, RndOff), 50);
 
   /* */
   eeprom_update_byte(offsetof(struct ep_store_layout, idle_wait), 5);
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* At the end, log out the user */
   menuUserLogout(mode|MENU_NOCONFIRM);
+  LCD_PUTCH('.'); LCD_refresh();
 }
 
 void

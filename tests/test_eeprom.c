@@ -31,10 +31,12 @@ main()
   for (ui1=0; ui1<8; ui1++) {
     LCD_POS(1, 0);
     LCD_PUT_UINT8X(ui1);
-    LCD_POS(1, 4);
+    LCD_PUTCH(' ');
+    LCD_PUT_UINT8X(data[ui1]);
+    LCD_PUTCH(':');
     LCD_PUT_UINT8X(dread[ui1]);
-    _delay_ms(1000);
     LCD_refresh();
+    _delay_ms(1000);
   }
 
   //Infinite loop

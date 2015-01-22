@@ -50,6 +50,7 @@ main_init(void)
   /* For Buzzer */
   DDRD |= 0x80;
   BUZZER_OFF;
+  EEPROM_SETTING0_ON(BUZZER);
 
   /* setup timer 2 : need to get 5 sec pulse
      # cycles to skip : (5*F_CPU)

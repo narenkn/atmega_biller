@@ -160,7 +160,7 @@ uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
  * Larger EEPROM devices (from 24C32) have 16-bit address
  * Define or undefine according to the used device
  */
-#undef WORD_ADDRESS_16BIT
+#define WORD_ADDRESS_16BIT
 
 /*
  * Maximal number of iterations to wait for a device to respond for a
@@ -195,8 +195,8 @@ uint8_t twst;
  * Number of EEPROM devices connected in the system
  * Can be 4 or 2 or 1
  */
-#define EEPROM_MAX_DEVICES             4
-#define EEPROM_MAX_DEVICES_LOGN2       2
+#define EEPROM_MAX_DEVICES             1
+#define EEPROM_MAX_DEVICES_LOGN2       0
 
 /* */
 #define EEPROM_MAX_ADDRESS     ((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)

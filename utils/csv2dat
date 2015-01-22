@@ -16,6 +16,8 @@ TYPE_ARR     = 7
 TYPE_BIT     = 8
 TYPE_STRUCT  = 9
 
+
+
 class data_struct:
   error = 0
   def ds_print(self, cl):
@@ -242,8 +244,6 @@ class csv2dat:
 
 class item:
   consts = {
-    'ITEM_MAX':1024,
-    'ITEM_MAX_ADDR':(1024*56),
     'ITEM_NAME_BYTEL':10,
     'ITEM_NAME_UNI_BYTEL':16,
     'ITEM_PROD_CODE_BYTEL':16,
@@ -401,6 +401,8 @@ if "__main__" == __name__:
                   help="Ending date to analyze upto");
   parser.add_option("-o", "--out_file", dest="out_file", default="settings.dat",
                   help="Output file");
+  parser.add_option("", "--device_id", dest="device_id", default=1024>>10,
+                  help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
 
   it = item('item')
@@ -410,11 +412,13 @@ if "__main__" == __name__:
     cd = csv2dat(None)
     print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
-    print "#ifndef EP_DS_H\n#define EP_DS_H\n"
+    print "#ifndef EP_DS_H\n#define EP_DS_H\n\n"
+    print "#define ITEM_MAX %d\n" % (options.device_id<<10)
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)
     ds.menu_var_table(ep)
+    print "#define ITEM_MAX_ADDR (ITEM_MAX * ITEM_SIZEOF)\n"
     print "\n\n#endif"
     error += ds.error
   elif options.to_dat:

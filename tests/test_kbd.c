@@ -24,17 +24,16 @@ main()
   KbdInit();
 
   /* sets the direction register of the PORTD */ 
-  DDRD |= 0x60;
+  DDRD |= 0x80;
+  BUZZER_OFF;
+  EEPROM_SETTING0_ON(BUZZER);
 
   sei();
 
-  /* alert */
-  PORTD |= 0x40;
-  _delay_ms(30);
-  PORTD &= ~0x40;
-
+  /* */
   ui8_1=0;
   for (ui8_2=0; ; ui8_2++) {
+    KBD_RESET_KEY;
     KBD_GETCH;
     LCD_WR_LINE(0, 0, "Kbd Testing");
     LCD_POS(0, 12);
@@ -56,24 +55,6 @@ main()
       LCD_WR_LINE_NP(0, 11, PSTR("UNKN"), 4);
     }
     LCD_POS(1, 0);
-//    LCD_PUT_UINT8X(ui8_2);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(keyHitData.KbdData);
-//    LCD_PUTCH(':');
-//    LCD_PUT_UINT8X(keyHitData.count);
-//    LCD_PUTCH(':');
-//    LCD_PUT_UINT8X(keyHitData._kbdData);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(bitC);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(drC);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(kbdDr[0]);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(kbdDr[1]);
-//    LCD_PUTCH(' ');
-//    LCD_PUT_UINT8X(kbdDr[2]);
-    KBD_RESET_KEY;
     LCD_refresh();
   }
 
