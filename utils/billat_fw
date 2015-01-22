@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from ctypes import windll
+from ctypes import CDLL
 from optparse import SUPPRESS_HELP
 import time
 import re
@@ -15,7 +15,7 @@ import re
 
 class Atmega32:
 
-  p = windll.inpout32;
+  p = CDLL("inpout32");
   def_val = 0x0;
   ## 32K with each page 64 words
   PAGE_SIZE = 128;
