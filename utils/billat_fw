@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from ctypes import CDLL
+from ctypes import *
 from optparse import SUPPRESS_HELP
 import time
 import re
@@ -15,7 +15,7 @@ import re
 
 class Atmega32:
 
-  p = CDLL("inpout32");
+  p = WinDLL("io");
   def_val = 0x0;
   ## 32K with each page 64 words
   PAGE_SIZE = 128;
@@ -25,14 +25,14 @@ class Atmega32:
     in_val = 0;
     for i in range(8):
       in_val <<= 1;
-      self.p.Out32(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20));
-      self.p.Out32(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20)|0x10);
-      in_val |= (self.p.Inp32(self.sta_reg)>>6) & 0x1;
-      self.p.Out32(self.dat_reg, self.def_val);
+      self.p.PortOut(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20));
+      self.p.PortOut(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20)|0x10);
+      in_val |= (self.p.PortIn(self.sta_reg)>>6) & 0x1;
+      self.p.PortOut(self.dat_reg, self.def_val);
     return (in_val & 0xFF);
 
   def RawOut(self, byte):
-    self.p.Out32(self.dat_reg, self.def_val|byte);
+    self.p.PortOut(self.dat_reg, self.def_val|byte);
     return 0;
 
   def Reset(self):
@@ -51,7 +51,7 @@ class Atmega32:
     self.RawOut(0x0);
     self.def_val = 0xFF;
     self.RawOut(0xFF);
-    self.p.Out32(self.cnt_reg, 0x0);
+    self.p.PortOut(self.cnt_reg, 0x0);
 
   def __init__(self, dr):
     self.error = 0;
