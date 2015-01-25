@@ -536,8 +536,6 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
     len -= rv;
     buf += rv;
     total += rv;
-    LCD_POS(1, 12);
-    LCD_PUT_UINT16X(len);
   } while (len > 0);
 
   return total;

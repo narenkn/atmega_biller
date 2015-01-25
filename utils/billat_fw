@@ -3,6 +3,7 @@ from ctypes import *
 from optparse import SUPPRESS_HELP
 import time
 import re
+from sys import exit
 
 ## Pin assignments
 ##   LPT has pins 1-25
@@ -267,8 +268,8 @@ if "__main__" == __name__:
                   help="Test the cable for connection with compatible target");
   parser.add_option("-f", "--file", dest="ihex", default="main.hex",
                   help="Default program file");
-  parser.add_option("-p", "--lpt_addr", dest="lpt_addr", default=0x3BC,
-                  help="Parallel port address on the device (def:0x3BC)");
+  parser.add_option("-p", "--lpt_addr", dest="lpt_addr", default=0x378,
+                  help="Parallel port address on the device (def:0x378)");
   parser.add_option("", "--flb", dest="flb", default=0xE4, type="int",
                   help="Fuse low byte value");
   parser.add_option("", "--fhb", dest="fhb", default=0xC9, type="int",

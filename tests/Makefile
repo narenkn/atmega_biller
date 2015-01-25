@@ -56,8 +56,8 @@ headers: ../ep_ds.h ../version.h
 
 ## Compile
 VPATH := ..
-%: %.c headers
-	$(CC) $(INCLUDES) $(CFLAGS)  $<
+%.o: %.c headers
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 ##Link
 $(TARGET).elf: $(OBJECTS)

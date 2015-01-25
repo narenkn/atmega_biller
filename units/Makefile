@@ -8,8 +8,8 @@ LDFLAGS := -L$(NCURSES)/lib -lncurses
 CC = gcc
 VPATH = .:..
 
-SOURCES = $(wildcard *.c)
-TARGETS = $(subst .c, , $(SOURCES))
+SOURCE = $(wildcard *.c)
+TARGETS = $(subst .c, , $(SOURCE))
 
 $(TARGETS):
 

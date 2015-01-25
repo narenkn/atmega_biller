@@ -176,13 +176,6 @@ extern uint8_t devStatus;
     if (0 == ui_1) break;			\
   }
 
-#define PSTR2STRN(pstr, str, ui_1, ui_2, N)	\
-  for (ui_2=0; ui_2<N;ui_2++) {			\
-    ui_1 = pgm_read_byte(pstr+ui_2);		\
-    str[ui_2] = ui_1;				\
-    if (0 == ui_1) break;			\
-  }
-
 /* Helper routines */
 void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
