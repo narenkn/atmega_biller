@@ -34,7 +34,7 @@
 # define LCD_idle_drive
 # define LCD_wrchar            assert(0)
 
-#define LCD_refresh()
+#define LCD_refresh()          // FIXME: put debug info
 
 #else
 
@@ -116,7 +116,7 @@
 
 #endif // #if LCD_DPORT_SIZE
 
-#define LCD_refresh()
+#define LCD_refresh()        // Nothing
 
 #endif // #ifdef UNIT_TEST
 

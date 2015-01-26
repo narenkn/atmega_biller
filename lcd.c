@@ -114,7 +114,7 @@ LCD_WR_N(char *str, uint8_t len)
 }
 
 void
-LCD_WR_P(uint16_t str)
+LCD_WR_P(const uint8_t *str)
 {
   uint8_t ui1_t, ui2_t;
   for (ui1_t=0; str; ui1_t++) {
@@ -125,7 +125,7 @@ LCD_WR_P(uint16_t str)
 }
 
 void
-LCD_WR_NP(char *str, uint8_t len)
+LCD_WR_NP(const uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t, ui2_t;
   len %= (LCD_MAX_COL+1);

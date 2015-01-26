@@ -197,35 +197,40 @@ uint16_t diagStatus;
 void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
 {
-  uint8_t col_id;
   uint8_t item_type = (opt & MENU_ITEM_TYPE_MASK);
-  uint8_t lbp[LCD_MAX_COL], *lp;
   uint32_t val = 0;
-  uint16_t ui16_1;
-  uint8_t ui8_1;
+  uint8_t ui8_1, ui8_2;
+  uint8_t sbuf[LCD_MAX_COL], *buf, buf_idx;
 
   if (MENU_ITEM_NONE == opt) return;
 
   /* init */
   if (MENU_ITEM_STR == item_type) {
-    for (ui16_1=0; ui16_1<arg->value.str.len; ui16_1++)
-      arg->value.str.sptr[ui16_1] = ' ';
+    for (ui8_1=0; ui8_1<arg->value.str.len; ui8_1++)
+      arg->value.str.sptr[ui8_1] = ' ';
+    buf = arg->value.str.sptr;
+  } else {
+    for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++)
+      sbuf[ui8_1] = ' ';
+    buf = sbuf;
   }
-
-  /* Ask a question */
-  LCD_CLRLINE(1);
-  LCD_WR_NP((const uint8_t *)prompt, MENU_PROMPT_LEN);
-  LCD_PUTCH('?');
-  LCD_refresh();
-
-  /* Set the prompt */
-  col_id = 0;
-  ui16_1 = 0;
-  lp = lbp+MENU_PROMPT_LEN+1;
+  buf_idx = 0;
 
   /* Get a string */
   do {
+    /* Ask a question */
+    LCD_CLRLINE(LCD_MAX_ROW-1);
+    LCD_WR_NP((const uint8_t *)prompt, MENU_PROMPT_LEN);
+    LCD_PUTCH('?');
+    for (ui8_1=MENU_PROMPT_LEN+1,
+	   ui8_2=((LCD_MAX_COL-MENU_PROMPT_LEN-1)<=buf_idx) ? 0 : buf_idx-MENU_PROMPT_LEN-2;
+	 (ui8_1<LCD_MAX_COL) && (ui8_2<buf_idx); ui8_1++) {
+      ui8_2++;
+      LCD_PUTCH(buf[ui8_2]);
+    }
     LCD_refresh();
+
+    /* input */
     KBD_RESET_KEY;
     KBD_GETCH;
 
@@ -233,29 +238,14 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     case ASCII_BACKSPACE:
     case ASCII_LEFT:
     case ASCII_UP:
-      if (MENU_ITEM_STR == item_type) {
-	if (col_id == (LCD_MAX_COL-1)) {
-	  ui16_1--;
-	  for (ui8_1=1; ui8_1<LCD_MAX_COL; ui8_1++) {
-	    lp[LCD_MAX_COL-ui8_1-1] = (ui16_1 >= ui8_1) ? arg->value.str.sptr[ui16_1-ui8_1] : ' ';
-	  }
-	} else {
-	  col_id--;
-	  ui16_1--;
-	  arg->value.str.sptr[ui16_1] = ' ';
-	  lp[col_id] = ' ';
-	}
-      } else {
-	col_id--;
-	ui16_1--;
-	lp[col_id] = ' ';
+      if (buf_idx) {
+	buf_idx--;
+	buf[buf_idx] = ' ';
+	LCD_cmd(LCD_CMD_DEC_CUR);
       }
       break;
     case ASCII_LF:
     case ASCII_ENTER:
-      if (col_id < (LCD_MAX_COL-1)) {
-	lp[col_id] = ' ';
-      }
       break;
     case ASCII_RIGHT:
     case ASCII_DOWN:
@@ -266,38 +256,30 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     case ASCII_F2:
       break;
     default:
-      lp[col_id] = keyHitData.KbdData;
-      if ( (MENU_ITEM_STR == item_type) && (ui16_1 < arg->value.str.len) ) {
-	arg->value.str.sptr[ui16_1] = keyHitData.KbdData;
-	ui16_1++;
-	col_id++;
-	if (col_id == LCD_MAX_COL) {
-	  col_id--;
-	  assert(ui16_1>=(LCD_MAX_COL-1));
-	  //if (ui16_1<(LCD_MAX_COL-1)) printf("ui16_1:%d\n", ui16_1);
-	  for (ui8_1=1; ui8_1<LCD_MAX_COL; ui8_1++) {
-	    lp[LCD_MAX_COL-ui8_1-1] = arg->value.str.sptr[ui16_1-ui8_1];
-	  }
+      buf[buf_idx] = keyHitData.KbdData;
+      /* Don't overflow buffer */
+      if (MENU_ITEM_STR == item_type) {
+	if (buf_idx < arg->value.str.len) {
+	  buf_idx++;
 	}
       } else {
-	/* Don't overflow buffer */
-	if (col_id < LCD_MAX_COL) col_id++;
+	if (buf_idx < (LCD_MAX_COL-1)) {
+	  buf_idx++;
+	}
       }
-      //printf("ui16_1:%d col_id:%d\n", ui16_1, col_id);
     }
   } while (keyHitData.KbdData != ASCII_ENTER);
 
   menu_error = 1;
   if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
-    for (ui16_1=0; ui16_1<col_id; ui16_1++) {
-      if ((lbp[0] >= '0') && (lbp[0] <= '9')) {
+    for (ui8_1=0; ui8_1<buf_idx; ui8_1++) {
+      if ((buf[ui8_1] >= '0') && (buf[ui8_1] <= '9')) {
 	val *= 10;
-	val += lbp[0] - '0';
+	val += buf[ui8_1] - '0';
 	menu_error = 0;
       } else {
 	break;
       }
-      lbp++;
     }
     arg->value.integer.i8  = val&0xFF;
     arg->value.integer.i16 = val;
@@ -305,36 +287,36 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   } else if ((MENU_ITEM_DATE == item_type) || (MENU_ITEM_MONTH == item_type)) {
     /* format DDMMYYYY || format MMYYYY */
     menu_error = 0;
-    for (ui16_1=0; ui16_1<(item_type+2); ui16_1++) {
-      if ((lbp[ui16_1] < '0') || (lbp[ui16_1] > '9'))
+    for (ui8_1=0; ui8_1<(item_type+2); ui8_1++) {
+      if ((buf[ui8_1] < '0') || (buf[ui8_1] > '9'))
 	menu_error++;
     }
     if (0 == menu_error) {
       /* Date */
       if (MENU_ITEM_DATE == item_type) {
-	for (ui16_1=0; ui16_1<2; ui16_1++) {
+	for (ui8_1=0; ui8_1<2; ui8_1++) {
 	  val *= 10;
-	  val += lbp[0] - '0';
-	  lbp++;
+	  val += buf[0] - '0';
+	  buf++;
 	}
 	if ((0 == val) || (val > 31)) menu_error++;
 	arg->value.date.day = val;
       }
       /* Month */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
+      for (ui8_1=0; ui8_1<2; ui8_1++) {
 	val *= 10;
-	val += lbp[0] - '0';
-	lbp++;
+	val += buf[0] - '0';
+	buf++;
       }
       if ((0 == val) || (val > 12)) menu_error++;
       arg->value.date.month = val;
       /* Year */
       val = 0;
-      for (ui16_1=0; ui16_1<4; ui16_1++) {
+      for (ui8_1=0; ui8_1<4; ui8_1++) {
 	val *= 10;
-	val += lbp[0] - '0';
-	lbp++;
+	val += buf[0] - '0';
+	buf++;
       }
       if (val < 2014) menu_error++;
       arg->value.date.year = val-1980;
@@ -343,15 +325,15 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     /* format HHMM */
     menu_error = 0;
     for (ui8_1=0; ui8_1<4; ui8_1++) {
-      if ((lbp[ui8_1] < '0') || (lbp[ui8_1] > '9'))
+      if ((buf[ui8_1] < '0') || (buf[ui8_1] > '9'))
 	menu_error++;
     }
     if (0 == menu_error) {
       /* Hour */
       for (ui8_1=0; ui8_1<2; ui8_1++) {
 	val *= 10;
-	val += lbp[0] - '0';
-	lbp++;
+	val += buf[0] - '0';
+	buf++;
       }
       if (val>23) menu_error++;
       arg->value.time.hour = val;
@@ -359,8 +341,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
       val = 0;
       for (ui8_1=0; ui8_1<2; ui8_1++) {
 	val *= 10;
-	val += lbp[0] - '0';
-	lbp++;
+	val += buf[0] - '0';
+	buf++;
       }
       if (val > 59) menu_error++;
       arg->value.time.min = val;
@@ -377,8 +359,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   } else {
     arg->valid = MENU_ITEM_NONE;
   }
-
-  lcd_buf_prop = 0;
 }
 
 const uint8_t menu_str2[] PROGMEM = "Yes\0No ";
@@ -427,7 +407,6 @@ menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_
     ui8_1 = LCD_MAX_COL-choice_len-1;
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)quest, ui8_1);
-    LCD_POS(LCD_MAX_ROW-1, ui8_1);
     LCD_WR_P((const uint8_t *)PSTR(":"));
     LCD_WR_N((char *)(opt_arr+(ret*choice_len)), choice_len);
     LCD_refresh();
@@ -480,7 +459,7 @@ menuFactorySettings(uint8_t mode)
   LCD_CLRLINE(0);
   LCD_WR_NP((const uint8_t *)PSTR("FactRst Progress"), 16);
   LCD_refresh();
-  LCD_POS(1, 0);
+  LCD_CLRLINE(LCD_MAX_ROW-1);
 
   /* store & restore serial #
      Eraze all locations
@@ -789,7 +768,7 @@ menuInit()
   if ((0 == ui8_2) && (ui16_2 != ui16_1)) {
     /* Serial # doesn't exist, load from addr 0 */
     for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
-      ui8_2 = eeprom_read_byte((uint8_t *)ui8_1);
+      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
       eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
 			 ui8_2);
     }
@@ -1218,7 +1197,7 @@ menuAddItem(uint8_t mode)
   if (0 == (mode & MENU_MODITEM)) {
     assert (MENU_ITEM_STR == arg1.valid);
     for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
-      it->name[ui8_1] = isgraph(lcd_buf[LCD_MAX_ROW-1][ui8_1]) ? toupper(lcd_buf[LCD_MAX_ROW-1][ui8_1]) : ' ';
+      it->name[ui8_1] = isgraph(arg1.value.str.sptr[ui8_1]) ? toupper(arg1.value.str.sptr[ui8_1]) : ' ';
     }
   }
 
@@ -2060,7 +2039,7 @@ menuRunDiag(uint8_t mode)
   }
   LCD_refresh();
   _delay_ms(2000);
-  LCD_POS(0, 0);
+  LCD_CLRLINE(0);
   for (ui8_1=0; ui8_1<(LCD_MAX_ROW*LCD_MAX_COL); ui8_1++) {
     LCD_PUTCH(('a' + ui8_1));
   }
@@ -2161,7 +2140,7 @@ menuRunDiag(uint8_t mode)
     uint8_t buf3[3];
     for (ui8_1=0; ui8_1<10; ui8_1++) {
       timerDateGet(buf3);
-      LCD_POS(1, 0);
+      LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_PUTCH(('0'+((buf3[0]>>4)&0xF)));
       LCD_PUTCH(('0'+(buf3[0]&0xF)));
       LCD_PUTCH(('/'));
@@ -2411,14 +2390,14 @@ menuMainStart:
   if (0 == menu_selhier) {
     /* Display shop name */
     LCD_WR_N((char *)bufSS, LCD_MAX_COL);
-    LCD_CLRLINE(1);
+    LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)(menu_hier_names+(menu_selected*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
   } else {
     /* Shop name (8 chars) */
     LCD_WR_N((char *)bufSS, ((SHOP_NAME_SZ_MAX<LCD_MAX_COL)?SHOP_NAME_SZ_MAX:LCD_MAX_COL));
     LCD_PUTCH('>');
     LCD_WR_NP((const uint8_t *)(menu_hier_names+((menu_selhier-1)*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
-    LCD_CLRLINE(1);
+    LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)(menu_names+(menu_selected*MENU_NAMES_LEN)), MENU_NAMES_LEN);
   }
   LCD_refresh();

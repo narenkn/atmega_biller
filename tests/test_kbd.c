@@ -15,11 +15,11 @@ volatile uint8_t eeprom_setting0=0;
 int
 main()
 {
-  uint8_t ui8_1, ui8_2, ui8_3;
+  uint8_t ui8_1, ui8_2;
 
   LCD_init();
   LCD_bl_on;
-  LCD_WR_LINE(0, 0, "Kbd Testing");
+  LCD_WR_P((const uint8_t *)PSTR("Kbd Testing"));
   LCD_refresh();
   KbdInit();
 
@@ -35,26 +35,24 @@ main()
   for (ui8_2=0; ; ui8_2++) {
     KBD_RESET_KEY;
     KBD_GETCH;
-    LCD_WR_LINE(0, 0, "Kbd Testing");
-    LCD_POS(0, 12);
+    LCD_WR_P((const uint8_t *)PSTR("Kbd Testing:"));
     if (keyHitData.KbdData <= '~') {
       LCD_PUTCH(keyHitData.KbdData);
     } else if (ASCII_LEFT == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("LEFT"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("LEFT"), 4);
     } else if (ASCII_RIGHT == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("RIGT"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("RIGT"), 4);
     } else if (ASCII_UP == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("UP  "), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("UP  "), 4);
     } else if (ASCII_DOWN == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("DOWN"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("DOWN"), 4);
     } else if (ASCII_PRNSCRN == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("PRSC"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("PRSC"), 4);
     } else if (ASCII_ENTER == keyHitData.KbdData) {
-      LCD_WR_LINE_NP(0, 11, PSTR("ENTR"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("ENTR"), 4);
     } else {
-      LCD_WR_LINE_NP(0, 11, PSTR("UNKN"), 4);
+      LCD_WR_NP((const uint8_t *)PSTR("UNKN"), 4);
     }
-    LCD_POS(1, 0);
     LCD_refresh();
   }
 
