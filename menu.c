@@ -2445,7 +2445,7 @@ menuMainStart:
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
 	//printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
-	((menu_func_t)pgm_read_dword((uint16_t)(menu_handlers+menu_selected)))(menu_mode[menu_selected]);
+	((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(menu_mode[menu_selected]);
       }
 #endif
     }
