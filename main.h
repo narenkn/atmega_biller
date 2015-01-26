@@ -25,7 +25,7 @@ extern volatile uint8_t timer2_msb;
 uint8_t  validDate(uint8_t day, uint8_t month, uint8_t year);
 extern volatile uint16_t timer2_sleep_delay;
 
-void eeprom_setting2ram();
+void eeprom_setting2ram(void);
 
 extern volatile uint8_t eeprom_setting0, eeprom_setting1;
 #define EEPROM_SETTING_BUZZER      (1<<0)

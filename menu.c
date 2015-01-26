@@ -1012,7 +1012,7 @@ menuBilling(uint8_t mode)
   }
 
   /* Calculate bill, confirm */
-  uint32_t ui32_1, ui32_2;
+  uint32_t ui32_1=0, ui32_2;
   sl->t_stax = 0, sl->t_vat = 0, sl->t_discount = 0, sl->total = 0;
   ui32_2 = 0;
   for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
@@ -2445,7 +2445,7 @@ menuMainStart:
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
 	//printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
-	((menu_func_t)pgm_read_dword((uint16_t)(menu_handlers+menu_selected)))(menu_mode+menu_selected);
+	((menu_func_t)pgm_read_dword((uint16_t)(menu_handlers+menu_selected)))(menu_mode[menu_selected]);
       }
 #endif
     }

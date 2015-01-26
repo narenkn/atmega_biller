@@ -466,7 +466,8 @@ DRESULT disk_ioctl (
 {
 	DRESULT res;
 	BYTE n, csd[16], *ptr = buff;
-	DWORD *dp, st, ed, csize;
+//	DWORD *dp, st, ed;
+	DWORD csize;
 
 	if (pdrv) return RES_PARERR;
 

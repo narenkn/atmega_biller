@@ -24,7 +24,7 @@ main(void)
   KbdInit();
 
   /* test menuGetOpt::MENU_ITEM_STR */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<1; loop++) {
     size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;
     for (ui1=0; ui1<size; ui1++) {
       if (0 == (rand() % 3))
@@ -60,9 +60,9 @@ main(void)
 	printf("\n");
       }
     } else {
-      assert('_' == lcd_buf[LCD_MAX_ROW-1][LCD_MAX_COL-1]);
-      assert(0 == strncmp(inp+size-LCD_MAX_COL+1, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL-1));
+      assert(0 == strncmp(inp+size-LCD_MAX_COL, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL-1));
       assert(0 == strncmp(inp, arg1.value.str.sptr, size));
+      printf("lcd_buf:%s\n", lcd_buf);
     }
   }
 

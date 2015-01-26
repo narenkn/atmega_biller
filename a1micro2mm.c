@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "a1micro2mm.h"
+#include "uart.h"
 
 void
 printerInit(void)

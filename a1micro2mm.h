@@ -93,10 +93,10 @@
   uartTransmitByte(N)
 
 #define PRINTER_SPRINTF(STR, FMT, ...)	do {	\
-  uint8_t ui8_1, ui8_2;				\
-  ui8_2 = sprintf((char *)STR, FMT, __VA_ARGS__);	\
-  for (ui8_1=0; ui8_1<ui8_2; ui8_1++) {		\
-    PRINTER_PRINT(STR[ui8_1]);			\
+  uint8_t ui8_1t, ui8_2t;				\
+  ui8_2t = sprintf((char *)STR, FMT, __VA_ARGS__);	\
+  for (ui8_1t=0; ui8_1t<ui8_2t; ui8_1t++) {		\
+    PRINTER_PRINT(STR[ui8_1t]);			\
   }						\
 } while (0)
 

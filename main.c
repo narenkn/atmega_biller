@@ -35,7 +35,7 @@ eeprom_setting2ram()
   /* init */
   eeprom_setting0 = eeprom_setting1 = 0;
 
-  ui8_1 = eeprom_read_byte(offsetof(struct ep_store_layout, key_buzz_off));
+  ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
   if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
   else EEPROM_SETTING0_ON(BUZZER);
 }
@@ -96,8 +96,10 @@ main(void)
 
   /* Welcome screen */
   LCD_bl_on;
-  LCD_WR_LINE_NP(0, 0, PSTR("Welcome..."), 10);
-  LCD_WR_LINE_NP(1, 0, PSTR("  Initializing.."), 1);
+  LCD_CLRSCR;
+  LCD_WR_NP((const uint8_t *)PSTR("Welcome..."), 10);
+  LCD_cmd(LCD_CMD_CUR_20);
+  LCD_WR_NP((const uint8_t *)PSTR("  Initializing.."), 1);
   LCD_refresh();
   _delay_ms(500);
 
@@ -113,12 +115,14 @@ main(void)
   /* Check if all devices are ready to go, else give
      error and exit */
   if (0 == (devStatus&DS_DEV_ERROR)) {
-    LCD_WR_LINE_NP(1, 0, PSTR("   Initialized!"), 15);
+    LCD_cmd(LCD_CMD_CUR_20);
+    LCD_WR_NP((const uint8_t *)PSTR("   Initialized!"), 15);
     LCD_refresh();
     _delay_ms(1000);
     menuMain();
   } else if (devStatus & DS_DEV_INVALID) {
-    LCD_WR_LINE_NP(0, 0, PSTR("Invalid Prod Key"), 15);
+    LCD_CLRLINE(0);
+    LCD_WR_NP((const uint8_t *)PSTR("Invalid Prod Key"), 15);
     LCD_refresh();
     _delay_ms(5000);
   } else {
@@ -128,7 +132,7 @@ main(void)
 
   /* reach here and you could never get out */
   LCD_CLRSCR;
-  LCD_WR_LINE_NP(0, 0, PSTR("Power Off Now"), 13);
+  LCD_WR_NP((const uint8_t *)PSTR("Power Off Now"), 13);
   LCD_refresh();
   while (1) {
     KBD_GETCH;
