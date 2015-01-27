@@ -126,11 +126,11 @@ common_init()
     ui8_2 = '0' + (rand() % 70);
     assert(isgraph(ui8_2));
     crc = _crc16_update(crc, ui8_2);
-    eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
+    eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
   }
   ui8_2 = crc>>8;
-  eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
+  eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
   ui8_1++;
   ui8_2 = crc;
-  eeprom_update_byte(offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
+  eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
 }
