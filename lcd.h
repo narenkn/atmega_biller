@@ -21,7 +21,7 @@
 #ifdef  UNIT_TEST
 
 # define LCD_CMD_DISON_CURON_BLINKON assert(0)
-# define LCD_CMD_CLRSCR        LCD_CLRSCR
+# define LCD_CMD_CLRSCR        lcd_clrscr()
 # define LCD_CMD_HOME          lcd_buf_p = (uint8_t *)lcd_buf
 # define LCD_CMD_DEC_CUR       assert(0)
 # define LCD_CMD_INC_CUR       assert(0)
@@ -32,7 +32,6 @@
 # define LCD_ACT_LINE2         assert(0)
 # define LCD_cmd(CMD)          CMD
 # define LCD_idle_drive
-# define LCD_wrchar            assert(0)
 
 #define LCD_refresh()          // FIXME: put debug info
 
