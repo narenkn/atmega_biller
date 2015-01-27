@@ -10,12 +10,12 @@ void
 test_init()
 {
   uint16_t ui16_1, ui16_2;
-  eeprom_update_block("abcdefghijklmn", 0, 14);
+  eeprom_update_block("abcdefghijklmn", (uint8_t *)0, 14);
   ui16_1 = 0;
   for (ui16_2=0; ui16_2<14; ui16_2++)
     ui16_1 = _crc16_update(ui16_1, 'a'+ui16_2);
-  eeprom_update_byte(14, (ui16_1>>8)&0xFF);
-  eeprom_update_byte(15, (ui16_1>>0)&0xFF);
+  eeprom_update_byte((uint8_t *)14, (ui16_1>>8)&0xFF);
+  eeprom_update_byte((uint8_t *)15, (ui16_1>>0)&0xFF);
 }
 
 int
