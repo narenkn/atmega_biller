@@ -204,25 +204,25 @@ KbdScan(void)
 }
 
 #undef KBD_GETCH
-#define KBD_GETCH	do {			\
-  uint16_t  t_data;				\
-  keyHitData.KbdDataAvail = 0;				\
-  t_data = getch();				\
-  assert(t_data < sizeof(cursesKbdFixes));	\
-  /*move(1, 0);*/						\
-  /*printw("kbd raw1:0x%x    ", t_data);*/			\
-  if (ASCII_UNDEF == cursesKbdFixes[t_data]) {			\
-  } else if (ASCII_DEFINED == cursesKbdFixes[t_data]) {	\
-    keyHitData.KbdData = t_data;						\
-    assert(keyHitData.KbdData == t_data); /* check data size */		\
-    keyHitData.KbdDataAvail = 1;				\
-  } else {					\
-    keyHitData.KbdData = cursesKbdFixes[t_data];		\
-    keyHitData.KbdDataAvail = 1;				\
-  }						\
-  /*move(2, 0);*/						\
-  /*printw("kbd raw2:0x%x    ", keyHitData.KbdData);*/			\
-} while (0 == keyHitData.KbdDataAvail)
+#define KBD_GETCH	do {						\
+    uint16_t  t_data;							\
+    keyHitData.KbdDataAvail = 0;					\
+    t_data = getch();							\
+    assert(t_data < sizeof(cursesKbdFixes));				\
+    /*move(1, 0);*/							\
+    /*printw("kbd raw1:0x%x    ", t_data);*/				\
+    if (ASCII_UNDEF == cursesKbdFixes[t_data]) {			\
+    } else if (ASCII_DEFINED == cursesKbdFixes[t_data]) {		\
+      keyHitData.KbdData = t_data;					\
+      assert(keyHitData.KbdData == t_data); /* check data size */	\
+      keyHitData.KbdDataAvail = 1;					\
+    } else {								\
+      keyHitData.KbdData = cursesKbdFixes[t_data];			\
+      keyHitData.KbdDataAvail = 1;					\
+    }									\
+    /*move(2, 0);*/							\
+    /*printw("kbd raw2:0x%x    ", keyHitData.KbdData);*/		\
+  } while (0 == keyHitData.KbdDataAvail)
 
 uint8_t
 KbdIsShiftPressed(void)

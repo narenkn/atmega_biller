@@ -21,7 +21,8 @@ main(void)
   printw("Press F1 to exit");
   LCD_WR("0123456789012345");
   LCD_CLRLINE(1);
-  LCD_WR("1234567890123456");
+  LCD_WR_N("12345678", 8);
+  LCD_WR_N("90123456", 8);
   LCD_refresh();
   getch();
   LCD_end();
