@@ -98,7 +98,7 @@ main(void)
   LCD_bl_on;
   LCD_CLRSCR;
   LCD_WR_NP((const uint8_t *)PSTR("Welcome..."), 10);
-  LCD_cmd(LCD_CMD_CUR_20);
+  LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const uint8_t *)PSTR("  Initializing.."), 1);
   LCD_refresh();
   _delay_ms(500);

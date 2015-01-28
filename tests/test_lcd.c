@@ -16,6 +16,7 @@ main()
 
   DDRD |= 0x10 ; LCD_bl_on;
 
+  LCD_CLRSCR;
   LCD_WR_NP(PSTR("Hello World 7"), 13);
   _delay_ms(1000);
   LCD_CLRLINE(1);

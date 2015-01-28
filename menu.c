@@ -226,7 +226,11 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
     for (ui8_1=MENU_PROMPT_LEN+1,
 	   ui8_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
 	 (ui8_1<LCD_MAX_COL) && (ui8_2<buf_idx); ui8_1++, ui8_2++) {
-      LCD_PUTCH(buf[ui8_2]);
+      if (opt&MENU_ITEM_PASSWD) {
+	LCD_PUTCH('*');
+      } else {
+	LCD_PUTCH(buf[ui8_2]);
+      }
     }
     LCD_refresh();
 
@@ -456,7 +460,6 @@ menuFactorySettings(uint8_t mode)
   ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
   if (0 != ui8_1) return;
   LCD_CLRSCR;
-  LCD_CLRLINE(0);
   LCD_WR_NP((const uint8_t *)PSTR("FactRst Progress"), 16);
   LCD_refresh();
   LCD_CLRLINE(LCD_MAX_ROW-1);
