@@ -51,6 +51,7 @@ LCD_CLRLINE(uint8_t line)
   uint8_t ui2;
   refresh();
 
+  assert(line < LCD_MAX_ROW);
   for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
     mvaddch(line+LCD_WIN_STARTX+1, ui2+LCD_WIN_STARTY+1, ' ');
   }

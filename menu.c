@@ -379,7 +379,7 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)quest, size);
     LCD_PUTCH(':');
-    LCD_WR_P((const uint8_t *)menu_str2+((ret)*3));
+    LCD_WR_P((const uint8_t *)menu_str2+((ret)*4));
     LCD_PUTCH('?');
     LCD_refresh();
 
@@ -459,10 +459,10 @@ menuFactorySettings(uint8_t mode)
   /* confirm before proceeding */
   ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
   if (0 != ui8_1) return;
-  LCD_CLRSCR;
+  LCD_CLRLINE(0);
   LCD_WR_NP((const uint8_t *)PSTR("FactRst Progress"), 16);
-  LCD_refresh();
   LCD_CLRLINE(LCD_MAX_ROW-1);
+  LCD_refresh();
 
   /* store & restore serial #
      Eraze all locations
@@ -505,7 +505,7 @@ menuFactorySettings(uint8_t mode)
 
   /* user names & passwd needs to be reset */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users),
-			(const uint8_t *)PSTR("admin"), EPS_MAX_UNAME);
+			(const uint8_t *)PSTR("admin   "), EPS_MAX_UNAME);
   for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
     eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1),
 			  (const uint8_t *)0, EPS_MAX_UNAME);
@@ -516,6 +516,8 @@ menuFactorySettings(uint8_t mode)
   ui16_1 = _crc16_update(ui16_1, 'm');
   ui16_1 = _crc16_update(ui16_1, 'i');
   ui16_1 = _crc16_update(ui16_1, 'n');
+  for (ui8_1=0; ui8_1<(EPS_MAX_UNAME-5); ui8_1++)
+    ui16_1 = _crc16_update(ui16_1, ' ');
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds), ui16_1);
   for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
     eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_1), 0);
@@ -703,18 +705,19 @@ menuUserLogin(uint8_t mode)
 
  menuUserLogin_found:
   assert(ui2 < (EPS_MAX_USERS+1));
-  for (ui4=0; ui4<arg2.value.str.len; ui4++) {
+  move(1, 0);
+  for (ui4=0; ui4<EPS_MAX_UNAME; ui4++) {
     ui3 = arg2.value.str.sptr[ui4];
     /* check isprintable? */
-    for (ui5=0; isgraph(ui3) && (ui5<(KCHAR_COLS*KCHAR_ROWS)); ui5++) {
-      if (ui3 == keyChars[ui5])
-	break;
-    }
-    if (ui5 < (KCHAR_ROWS*KCHAR_COLS))
+    if (isprint(ui3)) {
       crc = _crc16_update(crc, ui3);
+      printw("'%c'", ui3);
+    }
   }
+  KBD_GETCH;
 
   if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
+    move(1, 0); printw("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
     LCD_ALERT(PSTR("Wrong Passwd"));
     LoginUserId = 0;
     return;
@@ -768,7 +771,7 @@ menuInit()
   ui16_2 <<= 8;
   ui16_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
   /* the CRC needs to be in the printable char set */
-  if ((0 == ui8_2) && (ui16_2 != ui16_1)) {
+  if ( ((0 == ui8_2) && (ui16_2 != ui16_1)) || (0 == ui16_1) ) {
     /* Serial # doesn't exist, load from addr 0 */
     for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
       ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
@@ -782,7 +785,7 @@ menuInit()
     ui8_2 = 1;
     goto menuInitIdentifyDevice;
   } else if (ui16_2 == ui16_1) {
-    ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-4);
+    ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
     devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
       ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
@@ -2449,7 +2452,11 @@ menuMainStart:
 #else
       if (0 == (devStatus & DS_DEV_INVALID)) {
 	//printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
+#ifdef UNIT_TEST
+	(menu_handlers[menu_selected])(menu_mode[menu_selected]);
+#else
 	((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(menu_mode[menu_selected]);
+#endif
       }
 #endif
     }

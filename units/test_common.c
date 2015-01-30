@@ -61,10 +61,11 @@ uint8_t TIMSK, TCCR2, TCNT2;
 
 #ifndef  __UNITS_KBD_C
 #define LCD_ALERT(str)				\
-  LCD_WR_LINE(0, 0, str)
+  LCD_CLRLINE(0); LCD_WR(str)
 
 #define LCD_ALERT_16N(str, n)			\
-  LCD_WR_LINE(0, 0, str);			\
+  LCD_CLRLINE(0);				\
+  LCD_WR(str);					\
   LCD_PUT_UINT16X(n);				\
   KBD_RESET_KEY; KBD_GETCH
 #endif
