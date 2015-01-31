@@ -621,6 +621,7 @@ menuSetPasswd(uint8_t mode)
 
   /* */
   assert(0 != LoginUserId);
+  assert(LoginUserId <= (EPS_MAX_USERS/*+1*/));
   assert(MENU_MRESET != MenuMode);
 
   /* Compute CRC on old password, check */
@@ -715,10 +716,11 @@ menuUserLogin(uint8_t mode)
       crc = _crc16_update(crc, ui3);
     }
   }
-  KBD_GETCH;
 
   if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
+#if 0
     move(1, 0); printw("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
+#endif
     LCD_ALERT(PSTR("Wrong Passwd"));
     LoginUserId = 0;
     return;
@@ -2381,7 +2383,7 @@ const uint8_t menu_hier_names[] PROGMEM = MENU_HIER_NAMES;
 void
 menuMain(void)
 {
-  uint8_t menu_selected, menu_selhier, ui8_1, ui8_2;
+  uint8_t menu_selected, menu_selhier, ui8_1;
 
   /* initialize
      0==menu_selhier : hier not selected
@@ -2431,6 +2433,7 @@ menuMainStart:
       menu_selhier = 0; /* menu_selected remains the same */
     }
   } else if ((ASCII_ENTER == keyHitData.KbdData) && (0 != menu_selhier)) {
+  menuMainRedoMenu:
     /* */
     LCD_CLRSCR;
     LCD_WR_NP((const uint8_t *)(menu_hier_names+((menu_selhier-1)*MENU_HIER_NAME_SIZE)), MENU_HIER_NAME_SIZE);
@@ -2458,19 +2461,36 @@ menuMainStart:
       if (0 == (devStatus & DS_DEV_INVALID)) {
 	//printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
 #ifdef UNIT_TEST
-	(menu_handlers[menu_selected])(menu_mode[menu_selected]);
+	(menu_handlers[menu_selected])(pgm_read_byte(menu_mode+menu_selected));
 #else
-	((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(menu_mode[menu_selected]);
+	((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
 #endif
       }
 #endif
+    }
+    /* Choose the next best if mode had changed */
+    if (0 == (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) {
+      for (ui8_1=0; (ui8_1<pgm_read_byte(&MENU_MAX)) && menu_selected; ui8_1++, menu_selected--) {
+	if ( ((pgm_read_byte(menu_hier+menu_selected)) == menu_selhier) /* menu appropriate */ &&
+	     (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
+	     ) {
+	  break;
+	}
+      }
+      /* No valid menu items, go back */
+      if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
+	  menu_selhier = menu_selected = 0;
+      }
+    } else if ( (pgm_read_byte(menu_mode+menu_selected) & MENU_MREDOCALL) &&
+		(arg1.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)))) &&
+		(arg2.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)+1))) ) {
+      goto menuMainRedoMenu; /* redo, as mode remained constant */
     }
   } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
     if (0 == menu_selhier) {
       /* selection of menu */
       menu_selected = (0 == menu_selected) ? MENU_HIER_MAX-1 : menu_selected-1;
     } else { /* (0 != menu_selhier) && (0 != menu_selected) */
-      ui8_2 = menu_selected;
       for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
 	menu_selected--;
 	if ( ((pgm_read_byte(menu_hier+menu_selected)) == menu_selhier) /* menu appropriate */ &&
@@ -2481,21 +2501,15 @@ menuMainStart:
       }
       /* No valid menu items, go back */
       if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
-	if ((ASCII_LEFT == keyHitData.KbdData) ||
-	  (ASCII_UP == keyHitData.KbdData)) {
-	  menu_selhier = menu_selected = 0;
-	} else {
-	  menu_selected = ui8_2;
-	}
+	menu_selhier = menu_selected = 0;
       }
     }
   } else if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
     if (0 == menu_selhier) {
-      menu_selected = (menu_selected >= (MENU_HIER_MAX-1)) ? 0 : menu_selected+1;
+      menu_selected = ((menu_selected+1) >= MENU_HIER_MAX) ? 0 : menu_selected+1;
     } else {
-      ui8_2 = menu_selected;
       for (ui8_1=0; ui8_1<pgm_read_byte(&MENU_MAX); ui8_1++) {
-	menu_selected = (pgm_read_byte(&MENU_MAX) < (1+menu_selected)) ? menu_selected+1 : 0;
+	menu_selected = ((1+menu_selected) < pgm_read_byte(&MENU_MAX)) ? menu_selected+1 : 0;
 	if ( ((pgm_read_byte(menu_hier+menu_selected)) == menu_selhier) /* menu appropriate */ &&
 	     (0 != (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) /* mode appropriate */
 	     ) {
@@ -2503,20 +2517,16 @@ menuMainStart:
 	}
       }
       /* No valid menu items, go back */
-      if (pgm_read_byte(&MENU_MAX) <= ui8_1) {
-	if (ASCII_DOWN == keyHitData.KbdData) {
-	  menu_selhier = menu_selected = 0;
-	} else {
-	  menu_selected = ui8_2;
-	}
+      if (ui8_1 >= pgm_read_byte(&MENU_MAX)) {
+	menu_selhier = menu_selected = 0;
       }
     }
   }
 
   LCD_refresh();
 #ifdef UNIT_TEST
-  move(0, 0);
-  printw("menu_selhier:%d  menu_selected:%d", menu_selhier, menu_selected);
+  //move(0, 0);
+  //printw("menu_selhier:%d  menu_selected:%d LoginUserId:%d MenuMode:0x%x", menu_selhier, menu_selected, LoginUserId, MenuMode);
 
   /* Provide means to excape the infinite hold */
   if (ASCII_F2 == keyHitData.KbdData) {

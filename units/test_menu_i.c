@@ -36,7 +36,7 @@ main(void)
   KbdInit();
   test_init1();
   menuInit();
-  //  test_init2();
+  test_init2();
   printerInit();
 
   move(0, 0);
