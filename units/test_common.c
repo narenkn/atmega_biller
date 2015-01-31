@@ -9,21 +9,8 @@
 
 #include "device.h"
 
-#ifndef  SPM_PAGESIZE
-#if      ATMega32
-# define SPM_PAGESIZE     128
-#elif    ATxMega64
-# define SPM_PAGESIZE     128
-#elif  ATxMega128
-# define SPM_PAGESIZE     256
-#elif  ATxMega256
-# define SPM_PAGESIZE     256
-#else
-# error "Not a known device"
-#endif
-#endif
-
 #include <avr/pgmspace.h>
+#include <avr/io.h>
 #include <avr/boot.h>
 #include <avr/eeprom.h>
 #include <util/crc16.h>
