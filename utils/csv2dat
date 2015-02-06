@@ -118,7 +118,7 @@ class csv2dat:
     csv_lines = 0
     data = {}
     if csvfile:
-      reader = csv.reader(csvfile, delimiter='|', quotechar="'")
+      reader = csv.reader(csvfile, delimiter=',', quotechar="'")
       re_int = re.compile(r'\d+')
       headers = reader.next()
       comment_line = reader.next()
@@ -399,7 +399,7 @@ if "__main__" == __name__:
                   help="Starting date to analyze from");
   parser.add_option("", "--to_date", dest="to_date", default=None,
                   help="Ending date to analyze upto");
-  parser.add_option("-o", "--out_file", dest="out_file", default="settings.dat",
+  parser.add_option("-o", "--out_file", dest="out_file", default=None,
                   help="Output file");
   parser.add_option("", "--device_id", dest="device_id", default=1024>>10,
                   help=SUPPRESS_HELP);
@@ -423,6 +423,9 @@ if "__main__" == __name__:
     error += ds.error
   elif options.to_dat:
     cd = csv2dat(options)
+    if not options.out_file:
+      (options.out_file, ext) = os.path.splitext(options.in_file)
+      options.out_file += '.dat'
     if options.items: cd.make_dat(it)
     elif options.settings: cd.make_dat(ep)
     else: assert(0), "either --items or --settings needs to be provided"

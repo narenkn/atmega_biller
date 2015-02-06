@@ -22,6 +22,11 @@
 #define MENU_ITEM_DONTCARE_ON_PREV (1<<6)
 #define MENU_ITEM_PASSWD           (1<<5)
 
+/* Type of Menu Error */
+#define MENU_RET_NOERROR               0
+#define MENU_RET_NOTAGAIN          (1<<0)
+#define MENU_RET_CALLED            (1<<2)
+
 /* Prompt for Menu argument */
 #define MENU_PROMPT_LEN 8
 #define MENU_PROMPTS	\
@@ -36,16 +41,16 @@
   "To Date " /* 8 */    \
   "Decimal " /* 9 */
 
-#define MENU_PR_NONE   0
-#define MENU_PR_ID     1
-#define MENU_PR_NAME   2
-#define MENU_PR_OLDPASS   3
-#define MENU_PR_PASS   4
-#define MENU_PR_MONTH  5
-#define MENU_PR_TIME   6
-#define MENU_PR_FROM_DATE   7
-#define MENU_PR_TO_DATE   8
-#define MENU_PR_FLOAT  9
+#define MENU_PR_NONE         0
+#define MENU_PR_ID           1
+#define MENU_PR_NAME         2
+#define MENU_PR_OLDPASS      3
+#define MENU_PR_PASS         4
+#define MENU_PR_MONTH        5
+#define MENU_PR_TIME         6
+#define MENU_PR_FROM_DATE    7
+#define MENU_PR_TO_DATE      8
+#define MENU_PR_FLOAT        9
 
 typedef struct {
   union {
@@ -123,8 +128,6 @@ struct menu_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER)  MENU_NAME("Chg Usr,Pass") COL_JOIN MENU_FUNC(menuSetUserPasswd) COL_JOIN \
-    ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("User  Logout") COL_JOIN MENU_FUNC(menuUserLogout) COL_JOIN \
     ARG1(MENU_PR_ID,  MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID,  MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Show Bills  ") COL_JOIN MENU_FUNC(menuShowBill) COL_JOIN \
@@ -141,6 +144,8 @@ struct menu_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MVALIDATE) MENU_NAME("Change Passw") COL_JOIN MENU_FUNC(menuSetPasswd) COL_JOIN \
     ARG1(MENU_PR_OLDPASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) COL_JOIN ARG2(MENU_PR_PASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER)  MENU_NAME("Chg Usr,Pass") COL_JOIN MENU_FUNC(menuSetUserPasswd) COL_JOIN \
+    ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Set DateTime") COL_JOIN MENU_FUNC(menuSetDateTime) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_TIME) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL) MENU_NAME("RunDiagnostc") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
@@ -177,56 +182,57 @@ extern uint8_t devStatus;
   }
 
 /* Helper routines */
+typedef uint8_t (*menuGetOptHelper)(uint8_t *str, uint8_t strlen);
 void menuInit(void);
-void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt);
+void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
-void menuPrnBill(struct sale *sl);
+void menuPrnBill(struct sale *sl); // Unverified
 
 /* User routines*/
-void menuSetPasswd(uint8_t mode);
-void menuSetUserPasswd(uint8_t mode);
-void menuUserLogout(uint8_t mode);
-void menuUserLogin(uint8_t mode);
+uint8_t menuSetPasswd(uint8_t mode);
+uint8_t menuSetUserPasswd(uint8_t mode);
+uint8_t menuUserLogout(uint8_t mode);
+uint8_t menuUserLogin(uint8_t mode);
 
 /* Item routines */
-void menuAddItem(uint8_t mode);
-void menuDelItem(uint8_t mode);
+uint8_t menuAddItem(uint8_t mode);  // Unverified
+uint8_t menuDelItem(uint8_t mode); // Unverified
 #define menuItemAddr(id) (id*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
 #define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
-void menuIndexItem(struct item *it);
-uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
+void menuIndexItem(struct item *it); // Unverified
+uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx); // Unverified
 
 /* billing routines */
-void menuBilling(uint8_t mode);
-void menuShowBill(uint8_t mode);
-void menuPrnBill(struct sale *sl);
+uint8_t menuBilling(uint8_t mode);  // Unverified
+uint8_t menuShowBill(uint8_t mode); // Unverified
+void menuPrnBill(struct sale *sl); // Unverified
 
 /* User option routines */
 #if MENU_SETTING_ENABLE
-void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars);
-void menuSettingUint32(uint16_t addr, const uint8_t *quest);
-void menuSettingUint16(uint16_t addr, const uint8_t *quest);
-void menuSettingUint8(uint16_t addr, const uint8_t *quest);
-void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
+void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars); // Unverified
+void menuSettingUint32(uint16_t addr, const uint8_t *quest); // Unverified
+void menuSettingUint16(uint16_t addr, const uint8_t *quest); // Unverified
+void menuSettingUint8(uint16_t addr, const uint8_t *quest); // Unverified
+void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset); // Unverified
 #endif
-void menuSetDateTime(uint8_t mode);
-void menuSettingSet(uint8_t mode);
+uint8_t menuSetDateTime(uint8_t mode); // Unverified
+uint8_t menuSettingSet(uint8_t mode); // Unverified
+uint8_t menuSettingPrint(uint8_t mode); // Unverified
 
 /* Report routines */
-void menuBillReports(uint8_t mode);
-void menuDelAllBill(uint8_t mode);
+uint8_t menuBillReports(uint8_t mode); // Unverified
+uint8_t menuDelAllBill(uint8_t mode); // Unverified
 
 /* SD routines */
-void menuSDLoadItem(uint8_t mode);
-void menuSDLoadSettings(uint8_t mode);
-void menuSDSaveItem(uint8_t mode);
-void menuSDSaveSettings(uint8_t mode);
+uint8_t menuSDLoadItem(uint8_t mode); // Unverified
+uint8_t menuSDLoadSettings(uint8_t mode); // Unverified
+uint8_t menuSDSaveItem(uint8_t mode); // Unverified
+uint8_t menuSDSaveSettings(uint8_t mode); // Unverified
 
 /* Other routines */
-void menuFactorySettings(uint8_t mode);
-void menuUnimplemented(uint32_t line);
-void menuRunDiag(uint8_t mode);
+uint8_t menuFactorySettings(uint8_t mode);
+uint8_t menuRunDiag(uint8_t mode); // Unverified
 void menuMain(void);
 
 extern  uint16_t         diagStatus;

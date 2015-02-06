@@ -199,7 +199,7 @@ uint8_t twst;
 #define EEPROM_MAX_DEVICES_LOGN2       0
 
 /* */
-#define EEPROM_MAX_ADDRESS     ((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)
+#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
 
 uint32_t get_fattime(void);
 
