@@ -45,10 +45,21 @@ eeprom_update_word (uint16_t *addr, uint16_t value)
   _avr_eeprom[a] = value;
 }
 
-uint16_t
+uint32_t
 eeprom_read_dword (const uint32_t *addr)
 {
-  assert(0);
+  uint32_t value;
+  uint16_t a = (uint16_t) addr;
+  assert((a+3) < AVR_EEPROM_SIZE);
+  value = _avr_eeprom[a];
+  value <<= 8;
+  value |= _avr_eeprom[a+1];
+  value <<= 8;
+  value |= _avr_eeprom[a+2];
+  value <<= 8;
+  value |= _avr_eeprom[a+3];
+
+  return value;
 }
 
 void

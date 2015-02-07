@@ -37,9 +37,10 @@
   "Password" /* 4 */    \
   "Month   " /* 5 */    \
   "Time    " /* 6 */    \
-  "FromDate" /* 7 */    \
-  "To Date " /* 8 */    \
-  "Decimal " /* 9 */
+  "Date    " /* 7 */    \
+  "FromDate" /* 8 */    \
+  "To Date " /* 9 */    \
+  "Decimal " /*10 */
 
 #define MENU_PR_NONE         0
 #define MENU_PR_ID           1
@@ -48,9 +49,10 @@
 #define MENU_PR_PASS         4
 #define MENU_PR_MONTH        5
 #define MENU_PR_TIME         6
-#define MENU_PR_FROM_DATE    7
-#define MENU_PR_TO_DATE      8
-#define MENU_PR_FLOAT        9
+#define MENU_PR_DATE         7
+#define MENU_PR_FROM_DATE    8
+#define MENU_PR_TO_DATE      9
+#define MENU_PR_FLOAT       10
 
 typedef struct {
   union {
@@ -147,10 +149,10 @@ struct menu_vars {
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER)  MENU_NAME("Chg Usr,Pass") COL_JOIN MENU_FUNC(menuSetUserPasswd) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Set DateTime") COL_JOIN MENU_FUNC(menuSetDateTime) COL_JOIN \
-    ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_TIME) ROW_JOIN \
+    ARG1(MENU_PR_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_TIME) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL) MENU_NAME("RunDiagnostc") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("ResetSetting") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Reset2Factry") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Items  ") COL_JOIN MENU_FUNC(menuSDLoadItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
@@ -210,15 +212,14 @@ void menuPrnBill(struct sale *sl); // Unverified
 
 /* User option routines */
 #if MENU_SETTING_ENABLE
-void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars); // Unverified
-void menuSettingUint32(uint16_t addr, const uint8_t *quest); // Unverified
-void menuSettingUint16(uint16_t addr, const uint8_t *quest); // Unverified
-void menuSettingUint8(uint16_t addr, const uint8_t *quest); // Unverified
-void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset); // Unverified
+void menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars);
+void menuSettingUint32(uint16_t addr, const uint8_t *quest);
+void menuSettingUint16(uint16_t addr, const uint8_t *quest);
+void menuSettingUint8(uint16_t addr, const uint8_t *quest);
+void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
 #endif
 uint8_t menuSetDateTime(uint8_t mode); // Unverified
-uint8_t menuSettingSet(uint8_t mode); // Unverified
-uint8_t menuSettingPrint(uint8_t mode); // Unverified
+uint8_t menuSettingSet(uint8_t mode);
 
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
