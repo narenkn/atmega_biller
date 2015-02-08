@@ -36,10 +36,10 @@
   "OldPaswd" /* 3 */    \
   "Password" /* 4 */    \
   "Month   " /* 5 */    \
-  "Time    " /* 6 */    \
-  "Date    " /* 7 */    \
-  "FromDate" /* 8 */    \
-  "To Date " /* 9 */    \
+  "TimeHHMM" /* 6 */    \
+  "DDMMYYYY" /* 7 */    \
+  "FrDDMMYY" /* 8 */    \
+  "ToDDMMYY" /* 9 */    \
   "Decimal " /*10 */
 
 #define MENU_PR_NONE         0
@@ -149,7 +149,7 @@ struct menu_vars {
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER)  MENU_NAME("Chg Usr,Pass") COL_JOIN MENU_FUNC(menuSetUserPasswd) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Set DateTime") COL_JOIN MENU_FUNC(menuSetDateTime) COL_JOIN \
-    ARG1(MENU_PR_DATE, MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_TIME) ROW_JOIN \
+    ARG1(MENU_PR_DATE, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_TIME, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL) MENU_NAME("RunDiagnostc") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Reset2Factry") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
@@ -218,7 +218,7 @@ void menuSettingUint16(uint16_t addr, const uint8_t *quest);
 void menuSettingUint8(uint16_t addr, const uint8_t *quest);
 void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
 #endif
-uint8_t menuSetDateTime(uint8_t mode); // Unverified
+uint8_t menuSetDateTime(uint8_t mode);
 uint8_t menuSettingSet(uint8_t mode);
 
 /* Report routines */

@@ -1,6 +1,6 @@
 #include "i2c.h"
 
-uint8_t i2c_ymd[3], i2c_hm[2];
+uint8_t i2c_ymd[3], i2c_hm[3];
 
 #define NIBBLE_PACK(A, B) ((A<<4)|B)
 #define EEPROM_SIZE ((1<<16)<<2)
@@ -127,8 +127,8 @@ timerDateGet(uint8_t *ymd)
 void
 timerTimeSet(uint8_t hour, uint8_t min)
 {
-  i2c_hm[0] = min;
-  i2c_hm[1] = hour;
+  i2c_hm[1] = min;
+  i2c_hm[0] = hour;
 }
 
 void
@@ -136,4 +136,5 @@ timerTimeGet(uint8_t *hm)
 {
   hm[0] = i2c_hm[0];
   hm[1] = i2c_hm[1];
+  hm[2] = i2c_hm[2];
 }

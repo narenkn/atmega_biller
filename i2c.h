@@ -38,7 +38,7 @@
 #define timerDateGet(ymd)				\
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_DATE);			\
+  i2c_sendData(TIMER_ADDR_DATE); /* date, month, yr */	\
   i2c_repeatStart();					\
   i2c_sendAddress(TIMER_CTRL_READ);			\
   ymd[2] = i2c_receiveData_ACK();			\
@@ -61,7 +61,7 @@
 #define timerTimeGet(hms)				\
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_SEC);				\
+  i2c_sendData(TIMER_ADDR_SEC); /* sec, min, hr */	\
   i2c_repeatStart();					\
   i2c_sendAddress(TIMER_CTRL_READ);			\
   hms[2] = i2c_receiveData_ACK();			\

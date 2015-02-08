@@ -202,7 +202,7 @@ void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper)
 {
   uint8_t item_type = (opt & MENU_ITEM_TYPE_MASK);
-  uint32_t val = 0;
+  uint32_t val;
   uint8_t ui8_1, ui8_2;
   uint8_t sbuf[LCD_MAX_COL], *buf, buf_idx;
 
@@ -258,6 +258,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_LF:
     case ASCII_ENTER:
       break;
+    case ASCII_ESCAPE:
+      break;
     case ASCII_RIGHT:
     case ASCII_DOWN:
     case ASCII_PRNSCRN:
@@ -281,8 +283,12 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     }
   } while (keyHitData.KbdData != ASCII_ENTER);
 
+  if (ASCII_ESCAPE == keyHitData.KbdData)
+    return;
+
   menu_error = 1;
   if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
+    val = 0;
     for (ui8_1=0; ui8_1<buf_idx; ui8_1++) {
       if ((buf[ui8_1] >= '0') && (buf[ui8_1] <= '9')) {
 	val *= 10;
@@ -304,6 +310,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     }
     if (0 == menu_error) {
       /* Date */
+      val = 0;
       if (MENU_ITEM_DATE == item_type) {
 	for (ui8_1=0; ui8_1<2; ui8_1++) {
 	  val *= 10;
@@ -341,6 +348,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     }
     if (0 == menu_error) {
       /* Hour */
+      val = 0;
       for (ui8_1=0; ui8_1<2; ui8_1++) {
 	val *= 10;
 	val += buf[0] - '0';
@@ -467,6 +475,33 @@ menuFactorySettings(uint8_t mode)
   /* confirm before proceeding */
   ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
   if (0 != ui8_1) return 0;
+
+  /* date, time */
+#ifdef UNIT_TEST
+  ui8_1 = 1;
+#else
+  ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Set Date/Time?"), 11);
+#endif
+  if (0 == ui8_1) {
+    menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+    menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
+  } else {
+    arg1.value.date.year = 2015-1980;
+    arg1.value.date.month = 1;
+    arg1.value.date.day = 1;
+    arg1.valid = MENU_ITEM_DATE;
+    arg2.value.time.hour = 9;
+    arg2.value.time.min = 0;
+    arg2.valid = MENU_ITEM_TIME;
+  }
+  if (MENU_ITEM_DATE == arg1.valid) {
+    timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
+  }
+  if (MENU_ITEM_TIME == arg2.valid) {
+    timerTimeSet(arg1.value.time.hour, arg1.value.time.min);
+  }
+
+  /* Show progress */
   LCD_CLRLINE(0);
   LCD_WR_NP((const uint8_t *)PSTR("FactRst Progress"), 16);
   LCD_CLRLINE(LCD_MAX_ROW-1);
@@ -1608,13 +1643,13 @@ menuBillReports(uint8_t mode)
       arg1.valid = MENU_ITEM_DATE;
       arg1.value.date.day = ymd[0];
       arg1.value.date.month = ymd[1];
-      arg1.value.date.year = ymd[2];
+      arg1.value.date.year = ymd[2]-1980;
     }
     if (MENU_ITEM_DATE != arg2.valid) {
       arg2.valid = MENU_ITEM_DATE;
       arg2.value.date.day = ymd[0];
       arg2.value.date.month = ymd[1];
-      arg2.value.date.year = ymd[2];
+      arg2.value.date.year = ymd[2]-1980;
     }
   }
 
@@ -1924,10 +1959,25 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
 uint8_t
 menuSetDateTime(uint8_t mode)
 {
-  if (MENU_PR_FROM_DATE == arg1.valid) {
+  uint8_t ui8_a[3], buf[16];
+
+  timerDateGet(ui8_a);
+  LCD_CLRLINE(0);
+  sprintf(buf, "%02d%02d%04d", ui8_a[0], ui8_a[1], ui8_a[2]+1980);
+  LCD_WR_P(PSTR("Old:"));
+  LCD_WR(buf);
+  menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  if (MENU_ITEM_DATE == arg1.valid) {
     timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
   }
-  if (MENU_PR_TIME == arg2.valid) {
+
+  timerTimeGet(ui8_a);
+  LCD_CLRLINE(0);
+  sprintf(buf, "%02d%02d", ui8_a[0], ui8_a[1]);
+  LCD_WR_P(PSTR("Old:"));
+  LCD_WR(buf);
+  menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_PR_TIME, NULL);
+  if (MENU_ITEM_TIME == arg2.valid) {
     timerTimeSet(arg2.value.time.hour, arg2.value.time.min);
   }
 }
