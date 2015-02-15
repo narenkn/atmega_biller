@@ -16,8 +16,6 @@ TYPE_ARR     = 7
 TYPE_BIT     = 8
 TYPE_STRUCT  = 9
 
-
-
 class data_struct:
   error = 0
   def ds_print(self, cl):
@@ -57,7 +55,7 @@ class data_struct:
     print '#define TYPE_STRING  ', TYPE_STRING
     print '#define TYPE_BIT     ', TYPE_BIT
     print '#define TYPE_ARR  ', TYPE_ARR
-    print '#define MENU_VAR_TABLE \\'
+    print '#define SETTING_VAR_TABLE \\'
     goffset = 0
     num_vars = 0
     for t_var, tvars in sorted(cl.variables.items()):
@@ -84,7 +82,7 @@ class data_struct:
           goffset = int(goffset)
         goffset += s_var[1]
     print ''
-    print '#define MENU_VARS_SIZE ', num_vars
+    print '#define SETTING_VARS_SIZE ', num_vars
 
 class csv2dat:
   error = 0
@@ -120,14 +118,16 @@ class csv2dat:
     if csvfile:
       reader = csv.reader(csvfile, delimiter=',', quotechar="'")
       re_int = re.compile(r'\d+')
+      re_comment_line = re.compile(r'^#')
       headers = reader.next()
-      comment_line = reader.next()
       for h in headers:
         data[h] = []
       for row in reader:
         if not row: continue
+        if re_comment_line.match(row[0]): continue
         csv_lines += 1
 
+#	print "row is '%s'" % row
         for h, v in zip(headers, row):
           data[h].append(v.strip())
       ##
@@ -151,7 +151,7 @@ class csv2dat:
           vardict[var] = s_var
           vardict_keys.append(var)
           goffset += s_var[1]
-          ##print "var:%s goffset:%f" % (var, goffset)
+##          print "var:%s goffset:%f" % (var, goffset)
       ## Sanity check is complete, things should work from here
       outfile = open(self.options.out_file, 'wb')
       signature = 0
@@ -166,12 +166,12 @@ class csv2dat:
 #        pbytes.append((csv_lines >> (i*8)) & 0xFF);
 #      outfile.write(bytearray(pbytes))
 #      signature = self.crc16(bytearray(pbytes), signature)
-      re_graph = re.compile(r'[\x21-\x7E]')
+      re_graph = re.compile(r'[\x20-\x7E]')
       goffset += 0.9
       for li in range(csv_lines):
         pbytes = [0] * int(goffset)
         for var in vardict_keys:
-          offset = vardict[var][3]
+          offset = int(vardict[var][-1])
           if options.debug:
             print "%s (TYPE:%d), offset : %f" % (var, vardict[var][2], offset),
             if var in data: print data[var]
@@ -181,18 +181,22 @@ class csv2dat:
           elif (TYPE_UINT16 == vardict[var][2]) or (TYPE_UINT32 == vardict[var][2]):
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
-                pbytes[vardict[var][3]+i] = (int(data[var][li]) >> (i*8)) & 0xFF
+                pbytes[offset+i] = ((int(data[var][li]) >> (i*8)) & 0xFF)
           elif (TYPE_ARR == vardict[var][2]) and (TYPE_UINT8 == vardict[var][3]):
             i,j,k,l = 0,0,0,0
-            while ((i < vardict[var][1]) and (j < len(data[var][li]))): ## each bytes
-              c = data[var][li][j]
-              if re_graph.match(c):
-                k <<= 4
-                k |= int(c, 16)
-                if (1 == (l&1)): ## assign
-                  pbytes[vardict[var][3]+i] = k & 0xFF
-                  i += 1
-                l += 1
+            while (i < vardict[var][1]):
+              if (j < len(data[var][li])): ## each bytes
+                c = data[var][li][j]
+                if re_graph.match(c):
+                  k <<= 4
+                  k |= int(c, 16)
+              else:
+                k = 0x20 ## space
+              if (1 == (l&1)): ## assign
+                pbytes[offset+i] = k & 0xFF
+                i += 1
+#                print "0x%x" % (k&0xFF)
+              l += 1
               j += 1
           elif (TYPE_ARR == vardict[var][2]) and ((TYPE_UINT16 == vardict[var][3]) or (TYPE_UINT32 == vardict[var][3])):
             ## Expect a ';' seperated list of values
@@ -208,19 +212,15 @@ class csv2dat:
           elif TYPE_STRING == vardict[var][2]:
             for i in range(vardict[var][1]): ## each bytes
               if (i >= len(data[var][li])) or (not re_graph.match(data[var][li][i])):
-                pbytes[vardict[var][3]+i] = ' '
+                pbytes[offset+i] = ' '
               else:
-                pbytes[vardict[var][3]+i] = data[var][li][i]
+                pbytes[offset+i] = data[var][li][i]
           elif TYPE_BIT == vardict[var][2]:
             if '' != data[var][li]:
-#              print pbytes[int(vardict[var][3])], " ",
-              pbytes[int(vardict[var][3])] |= int(data[var][li]) << (int((vardict[var][3]*10)%10))
-#              print "TYPE_BIT ", var, ", ", int(vardict[var][3]), ", ", int(data[var][li]), ", ", (7 - int((vardict[var][3]*10)%10)),
-#              print pbytes[int(vardict[var][3])]
+              pbytes[offset] |= int(data[var][li]) << (int((vardict[var][-1]*10)%10))
           elif TYPE_UINT8 == vardict[var][2]:
             if '' != data[var][li]:
-              offset = int(vardict[var][3])
-              if (0 != (vardict[var][3]*10)%10): offset += 1
+              if (0 != (offset*10)%10): offset += 1
               pbytes[offset] = int(data[var][li])
           else: assert(0), "Field '%s' is not type matched ;%s;" % (var, data[var])
         if options.debug: print "pbytes:", pbytes
@@ -300,6 +300,7 @@ class ep_store_layout:
       'ServTax' : ['', 2, TYPE_UINT16],
       'ComnDis' : ['', 2, TYPE_UINT16],
       'RndOff' : ['', 2, TYPE_UINT16],
+      'unused_ItemLastUsed' : ['', 2, TYPE_UINT16],
       'unused_DiagStat' : ['', 2, TYPE_UINT16],
       'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       },

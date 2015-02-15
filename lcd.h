@@ -142,6 +142,7 @@ void LCD_WR_NP(const uint8_t *str, uint8_t len);
 
 void LCD_PUT_UINT8X(uint8_t ch);
 void LCD_PUT_UINT16X(uint16_t ch);
+void LCD_PUT_UINT(uint32_t val);
 
 #define LCD_PUTCH   LCD_wrchar
 
@@ -152,6 +153,7 @@ void LCD_PUT_UINT16X(uint16_t ch);
   KBD_GETCH
 
 #define LCD_ALERT_16N(str, n)			\
+  LCD_CLRLINE(0);				\
   LCD_WR_P((const uint8_t *)str);		\
   LCD_PUT_UINT16X(n);				\
   LCD_refresh();				\

@@ -1,5 +1,5 @@
 'id','name','prod_code','cost','discount','name_unicode','has_serv_tax','has_common_discount','has_vat','has_weighing_mc','vat_sel','name_in_unicode','is_disabled'
-2,10,16,2,2,24,'?','?','?','?','???','?','?'
-53,'Milk',0,16,,'0BB5 0BA3 0B95 0BCD 0B95 0BAE 0BCD',,,,1,,,
-22,'Rice',10,40,4,,,,,1,,,
-39,'Toor dall',20,65,,,,1,1,,,,
+#2,10,16,2,2,24,'?','?','?','?','???','?','?'
+#53,'Milk',0,16,,'0BB5 0BA3 0B95 0BCD 0B95 0BAE 0BCD',,,,1,,,
+22,'Rice',10,40,4,'5678BAAD',,,,1,,,
+#39,'Toor dall',20,65,,,,1,1,,,,

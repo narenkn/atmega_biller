@@ -104,12 +104,13 @@ FRESULT f_mount (
   if (NULL == fs) { /* unmount */
     _fs->mount_path[0] = 0;
     _fs->is_mounted = 0;
-    return;
+    return FR_OK;
   }
   /* mount */
   strncat(fs->mount_path, path, FF_STR_LEN);
   fs->is_mounted = 1;
   _fs = fs;
+  return FR_OK;
 }
 
 FRESULT f_open (

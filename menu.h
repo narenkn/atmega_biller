@@ -108,12 +108,12 @@ typedef struct {
                              "Reports" \
                              "SD Card"
 
-#define MENU_VAR_NAME_LEN    9
-struct menu_vars {
+#define SETTING_VAR_NAME_LEN    9
+struct setting_vars {
   uint8_t type;
   uint8_t size;
   uint8_t size2;
-  uint8_t name[MENU_VAR_NAME_LEN];
+  uint8_t name[SETTING_VAR_NAME_LEN];
   uint16_t ep_ptr;
 };
 
@@ -125,7 +125,7 @@ struct menu_vars {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MMODBILL)  MENU_NAME("Modify Bill ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Add Item    ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
-    ARG1(MENU_PR_NAME, MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
+    ARG1(MENU_PR_NAME, MENU_ITEM_STR|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete Item ") COL_JOIN MENU_FUNC(menuDelItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
@@ -198,10 +198,10 @@ uint8_t menuUserLogout(uint8_t mode);
 uint8_t menuUserLogin(uint8_t mode);
 
 /* Item routines */
-uint8_t menuAddItem(uint8_t mode);  // Unverified
-uint8_t menuDelItem(uint8_t mode); // Unverified
-#define menuItemAddr(id) (id*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
-#define menuItemIdxOff(id) (id*(uint16_t)ITEM_SUBIDX_NAME)
+uint8_t menuAddItem(uint8_t mode);
+uint8_t menuDelItem(uint8_t mode);
+#define menuItemAddr(id) ((id)*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
+#define menuItemIdxOff(id) ((id)*(uint16_t)ITEM_SUBIDX_NAME)
 void menuIndexItem(struct item *it); // Unverified
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx); // Unverified
 

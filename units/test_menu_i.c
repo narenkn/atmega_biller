@@ -24,8 +24,21 @@ test_init1()
 void
 test_init2()
 {
+  uint8_t ui8_1;
+  uint16_t ui16_1;
+
   eeprom_update_block((const void *)"Sri Ganapathy Stores",
 		      (void *)(offsetof(struct ep_store_layout, shop_name)) , SHOP_NAME_SZ_MAX);
+  for (ui8_1=0, ui16_1=700; ui8_1<EPS_MAX_VAT_CHOICE; ui8_1++, ui16_1 += 110) {
+    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*ui8_1)), ui16_1);
+  }
+}
+
+void
+test_init3()
+{
+  MenuMode = MENU_MSUPER;
+  LoginUserId = 1;
 }
 
 int
@@ -42,6 +55,7 @@ main(void)
   move(0, 0);
   printw("Press F2 to exit");
   menuSDLoadItem(0);
+  test_init3();
   menuMain();
   getch();
 

@@ -172,3 +172,18 @@ LCD_PUT_UINT16X(uint16_t ch)
   ui2_a = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;
   LCD_PUTCH(ui2_a);
 }
+
+void
+LCD_PUT_UINT(uint32_t val)
+{
+  uint8_t ui8_1;
+
+  ui8_1 = val % 10;
+  ui8_1 += '0';
+
+  val /= 10;
+  if (val)
+    LCD_PUT_UINT(val);
+
+  LCD_PUTCH(ui8_1);
+}
