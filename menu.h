@@ -189,7 +189,6 @@ void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
-void menuPrnBill(struct sale *sl); // Unverified
 
 /* User routines*/
 uint8_t menuSetPasswd(uint8_t mode);

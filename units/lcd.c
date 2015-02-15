@@ -2,6 +2,8 @@
 #include <ncurses/ncurses.h>
 
 static uint8_t lcd_x, lcd_y;
+static uint8_t lcd_buf[LCD_MAX_ROW][LCD_MAX_COL];
+static uint8_t *lcd_buf_p;
 WINDOW *win;
 
 #define LCD_WIN_STARTX 2
@@ -20,6 +22,13 @@ LCD_init(void)
 
   lcd_x = 0;
   lcd_y = 0;
+
+  /* */
+  uint8_t ui1;
+  for (ui1=1; ui1<LCD_MAX_ROW; ui1++) {
+    LCD_CLRLINE(ui1);
+  }
+  LCD_CLRLINE(0);
 }
 
 void
@@ -35,14 +44,20 @@ lcd_clrscr()
   uint8_t ui1, ui2;
   refresh();
 
-  for (ui1=0; ui1<LCD_MAX_ROW; ui1++)
+  for (ui1=0; ui1<LCD_MAX_ROW; ui1++) {
     for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
       mvaddch(ui1+LCD_WIN_STARTX+1, ui2+LCD_WIN_STARTY+1, ' ');
     }
+  }
   wrefresh(win);
 
   lcd_x = 0;
   lcd_y = 0;
+
+  for (ui1=1; ui1<LCD_MAX_ROW; ui1++) {
+    LCD_CLRLINE(ui1);
+  }
+  LCD_CLRLINE(0);
 }
 
 void
@@ -59,6 +74,11 @@ LCD_CLRLINE(uint8_t line)
 
   lcd_x = line;
   lcd_y = 0;
+
+  for (ui2=0; ui2<LCD_MAX_COL; ui2++) {
+    lcd_buf[line][ui2] = ' ';
+  }
+  lcd_buf_p = lcd_buf[line];
 }
 
 void
@@ -69,6 +89,7 @@ LCD_WR(char *str)
   refresh();
   for (ui1_t=0; 0 != str[ui1_t]; ui1_t++) {
     mvaddch(lcd_x+LCD_WIN_STARTX+1, ui1_t+lcd_y+LCD_WIN_STARTY+1, str[ui1_t]);
+    lcd_buf_p[0] = str[ui1_t]; lcd_buf_p++;
   }
   wrefresh(win);
   lcd_y += ui1_t;
@@ -85,6 +106,7 @@ LCD_WR_N(char *str, uint8_t len)
   for (ui1_t=0; ui1_t<len; ui1_t++) {
     if (0 == str[ui1_t]) break;
     mvaddch(lcd_x+LCD_WIN_STARTX+1, ui1_t+lcd_y+LCD_WIN_STARTY+1, str[ui1_t]);
+    lcd_buf_p[0] = str[ui1_t]; lcd_buf_p++;
   }
   wrefresh(win);
   lcd_y += ui1_t;
@@ -99,6 +121,7 @@ LCD_WR_P(const uint8_t *str)
 
   for (ui1_t=0; 0 != str[ui1_t]; ui1_t++) {
     mvaddch(lcd_x+LCD_WIN_STARTX+1, ui1_t+lcd_y+LCD_WIN_STARTY+1, str[ui1_t]);
+    lcd_buf_p[0] = str[ui1_t]; lcd_buf_p++;
   }
   wrefresh(win);
   lcd_y += ui1_t;
@@ -116,6 +139,7 @@ LCD_WR_NP(const uint8_t *str, uint8_t len)
   for (ui1_t=0; ui1_t<len; ui1_t++) {
     if (0 == str[ui1_t]) break;
     mvaddch(lcd_x+LCD_WIN_STARTX+1, ui1_t+lcd_y+LCD_WIN_STARTY+1, str[ui1_t]);
+    lcd_buf_p[0] = str[ui1_t]; lcd_buf_p++;
   }
   wrefresh(win);
   lcd_y += ui1_t;
@@ -133,11 +157,13 @@ LCD_PUT_UINT8X(uint8_t ch)
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   ui1_t = ch & 0xF;
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   wrefresh(win);
   assert(lcd_y <= LCD_MAX_COL);
@@ -153,21 +179,25 @@ LCD_PUT_UINT16X(uint16_t ch)
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   ui1_t = (ch>>8) & 0xF;
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   ui1_t = (ch>>4) & 0xF;
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   ui1_t = ch & 0xF;
   ui1_t = ((ui1_t>9) ? 'A'-10 : '0') + ui1_t;
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ui1_t);
   lcd_y ++;
+  lcd_buf_p[0] = ui1_t; lcd_buf_p++;
 
   wrefresh(win);
   assert(lcd_y <= LCD_MAX_COL);
@@ -180,6 +210,7 @@ LCD_wrchar(uint8_t ch)
   assert(isprint(ch));
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ch);
   lcd_y++;
+  lcd_buf_p[0] = ch; lcd_buf_p++;
 
   wrefresh(win);
   assert(lcd_y <= LCD_MAX_COL);
@@ -198,4 +229,5 @@ LCD_PUT_UINT(uint32_t val)
     LCD_PUT_UINT(val);
 
   LCD_PUTCH(ui8_1);
+  lcd_buf_p[0] = ui8_1; lcd_buf_p++;
 }

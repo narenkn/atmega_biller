@@ -95,7 +95,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   arg1.valid = MENU_ITEM_NONE;
   arg1.value.str.sptr = bufSS;
   //printf("test_key[0]:'%s'\n", test_key[0]);
-  menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, NULL);
   menuAddItem(MENU_MNORMAL);
   //printf("test_key_arr_idx:%d\n", test_key_arr_idx);
 
@@ -107,7 +107,7 @@ make_item(struct item *ri1, uint8_t rand_save)
 
   if (ui1 < ITEM_MAX) {
     struct item it;
-    ee24xx_read_bytes((uint8_t *)menuItemAddr(ui1), (void *)&it, ITEM_SIZEOF);
+    ee24xx_read_bytes(menuItemAddr(ui1), (void *)&it, ITEM_SIZEOF);
     ri1->id = save ? ui1+1 : 0;
     assert(ri1->id == it.id);
   }
@@ -217,6 +217,7 @@ main(int argc, char *argv[])
   srand(ui1);
 
   /* */
+  common_init();
   assert_init();
   menuInit();
   i2c_init();
@@ -229,7 +230,7 @@ main(int argc, char *argv[])
   for (ui1=0; ui1<EEPROM_MAX_ADDRESS; ui1++)
     EEPROM_DIRECT_ASSIGN(ui1, 0);
   for (ui1=0; ui1<ITEM_MAX; ui1++) {
-   all_items[ui1].id = 0;
+    all_items[ui1].id = 0;
   }
   KBD_RESET_KEY;
 
@@ -257,7 +258,7 @@ main(int argc, char *argv[])
     ui3 = 0;
     int2str(inp, ui1, &ui3);
     INIT_TEST_KEYS(inp);
-    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_ID);
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_ID, NULL);
     menuDelItem(MENU_MNORMAL);
     ee24xx_read_bytes(menuItemAddr((ui1-1)), (void *)&ri, ITEM_SIZEOF);
     assert(0 == ri.id);

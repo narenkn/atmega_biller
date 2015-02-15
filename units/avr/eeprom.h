@@ -2,7 +2,7 @@
 #define AVR_EEPROM_H
 
 #define EEMEM
-#define AVR_EEPROM_SIZE (1<<10)
+#define AVR_EEPROM_SIZE (EEPROM_MAX_ADDRESS+1)
 
 uint8_t _avr_eeprom[AVR_EEPROM_SIZE];
 

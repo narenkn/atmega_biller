@@ -12,7 +12,6 @@
 #include <avr/pgmspace.h>
 #include <avr/io.h>
 #include <avr/boot.h>
-#include <avr/eeprom.h>
 #include <util/crc16.h>
 
 uint8_t SREG, PD2, PD3, GICR, INT0, MCUCR, ISC01, ISC00;
@@ -35,6 +34,7 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #include "ep_store.h"
 #include "billing.h"
 #include "i2c.h"
+#include <avr/eeprom.h>
 #include "uart.h"
 #include "a1micro2mm.h"
 #include "menu.h"
@@ -47,14 +47,15 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #define SD_ITEM_FILE "test_data/items_1.dat"
 
 #ifndef  __UNITS_KBD_C
+#undef  LCD_ALERT
 #define LCD_ALERT(str)				\
-  LCD_CLRLINE(0); LCD_WR(str)
+  LCD_CLRLINE(0); LCD_WR_P(str)
 
+#undef  LCD_ALERT_16N
 #define LCD_ALERT_16N(str, n)			\
   LCD_CLRLINE(0);				\
-  LCD_WR(str);					\
-  LCD_PUT_UINT16X(n);				\
-  KBD_RESET_KEY; KBD_GETCH
+  LCD_WR_P(str);				\
+  LCD_PUT_UINT16X(n)
 #endif
 
 #define ISR(A) void A()
