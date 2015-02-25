@@ -45,8 +45,8 @@ main(void)
   }
 
   /* Test eeprom_*_block routines */
-  eeprom_update_block(b, 100, 45);
-  eeprom_read_block(c, 100, 45);
+  eeprom_update_block((const void *)b, (void *)100, 45);
+  eeprom_read_block((void *)c, (const void *)100, 45);
   assert(0 == strncmp(b, c, 44));
 
   return 0;

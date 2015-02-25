@@ -60,10 +60,10 @@ main(void)
 
   arg1.valid = MENU_ITEM_NONE;
   arg1.value.str.sptr = bufSS;
-  menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, NULL);
   arg2.valid = MENU_ITEM_NONE;
   arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
-  menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg2, MENU_ITEM_ID|MENU_ITEM_OPTIONAL);
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg2, MENU_ITEM_ID|MENU_ITEM_OPTIONAL, NULL);
   menuBilling(MENU_MSUPER);
 
   /* Prepare to exit */
