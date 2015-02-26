@@ -535,6 +535,9 @@ menuFactorySettings(uint8_t mode)
   }
   LCD_PUTCH('.'); LCD_refresh();
 
+  /* index to start searching for empty item */
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed), 0);
+
   /* */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, shop_name),
 			(const uint8_t *)PSTR("Sri Ganapathy Medicals"), SHOP_NAME_SZ_MAX);
@@ -1185,7 +1188,7 @@ menuAddItem(uint8_t mode)
 {
 #if MENU_ITEM_FUNC
   uint8_t ui8_1, ui8_2, ui8_3;
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, ui16_3;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   uint8_t *bufSS_ptr = (void *) it;
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
@@ -1209,17 +1212,19 @@ menuAddItem(uint8_t mode)
   /* Find space to place item */
   if ((0 == it->id) || (it->id > ITEM_MAX)) {
     ui16_2 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed));
-    ui16_1 = menuItemAddr(ui16_2);
-    for (; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-	 ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2), ui16_2++) {
+    ui16_2 = (ui16_2<(ITEM_MAX-1)) ? ui16_2 : 0; /* make it valid */
+    for (ui16_3=0; ui16_3<ITEM_MAX; ui16_3++) {
+      ui16_1 = menuItemAddr(ui16_2);
+      assert(ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2));
       ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
       if ( (0 == it->id) && (0 == it->is_disabled) ) {
-	//printf("Storing at id :%d @0x%x\n", ui16_2, ui16_1);
 	it->id = ui16_2+1;
+	//printf("Storing at id :%d @0x%x\n", it->id, ui16_1);
 	break;
       }
+      ui16_2 = (ui16_2<(ITEM_MAX-1)) ? ui16_2+1 : 0;
     }
-    if ( ui16_1 >= (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2) ) {  /* failed to find space */
+    if ( ui16_3 >= ITEM_MAX ) {
       LCD_ALERT(PSTR("Items full"));
       return 0;
     }
@@ -1227,6 +1232,7 @@ menuAddItem(uint8_t mode)
     eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed), ui16_2);
   } else {
     assert (0 != it->id);
+    assert (it->id <= ITEM_MAX);
     ui16_2 = it->id-1;
     ui16_1 = menuItemAddr(ui16_2);
     ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
@@ -1244,7 +1250,7 @@ menuAddItem(uint8_t mode)
   return 0;
 
  menuItemSaveArg:
-  if ((it->id != 0) && (it->id <ITEM_MAX)) {
+  if ((it->id != 0) && (it->id<=ITEM_MAX)) {
     LCD_CLRLINE(0);
     LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
     if (isgraph(it->name[0]))

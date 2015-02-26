@@ -13,6 +13,7 @@ uint8_t *test_key[NUM_TEST_KEY_ARR];
 
 #define RESET_TEST_KEYS KbdInit()
 #define INIT_TEST_KEYS(A) do { test_key[test_key_arr_idx] = A; assert(test_key_arr_idx < NUM_TEST_KEY_ARR); test_key_arr_idx++; } while (0)
+#define PRINT_TEST_KEYS(ui1) for (ui1=0; (ui1<NUM_TEST_KEY_ARR) && (0 != test_key[ui1]); ui1++) { printf("test_key[%d] = '%s', ", ui1, test_key[ui1]); } printf("\n")
 #define KBD_KEY_TIMES(N)   ((N-1)<<4)
 #define KBD_KEY(N)                  N
 
@@ -87,7 +88,7 @@ KbdGetCh(void)
     keyHitData.KbdData = test_key[0][test_key_idx];
     keyHitData.KbdDataAvail = 1;
     test_key_idx++;
-    //    printf("hack kbd.c sending:0x%x\n", keyHitData.KbdData);
+    //printf("hack kbd.c sending:0x%x\n", keyHitData.KbdData);
     return;
   }
 
@@ -101,12 +102,14 @@ KbdGetCh(void)
     keyHitData.KbdData = ASCII_LEFT;
     test_key_idx--;
     do_correct++;
-    //    printf("Added back key\n");
+    //printf("Added back key\n");
   } else if ((0 == do_correct) && (0 == (rand() % 2))) {
     keyHitData.KbdData = 'a' + (rand() % 26);
-    //    printf("Added random key: %c\n", keyHitData.KbdData);
+    //printf("Added random key: %c\n", keyHitData.KbdData);
     do_correct++;
     test_key_idx--;
+  } else {
+    //printf("Sending key: %c\n", test_key[0][test_key_idx]);
   }
   //  printf("do_correct:%d\n", do_correct);
 }
