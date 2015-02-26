@@ -16,8 +16,15 @@ main()
   uint16_t ui16_1, ui16_2, ui16_3;
   uint8_t quest[LCD_MAX_COL];
 
+  /* */
+  common_init();
   assert_init();
+  menuInit();
+  i2c_init();
+  ep_store_init();
   KbdInit();
+
+  LCD_CLRSCR;
 
   for (loop=0; loop<1000; loop++) {
     /* setup the question */
@@ -42,7 +49,7 @@ main()
     /* check question */
     for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
       quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[0], LCD_MAX_COL));
+    assert(0 == strncmp(quest, lcd_buf[1], LCD_MAX_COL));
     /* check stored value */
     assert(0 == strncmp(inp, _avr_eeprom+ui16_1, ui16_3));
   }

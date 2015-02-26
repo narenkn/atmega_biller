@@ -25,7 +25,7 @@ main(void)
   KbdInit();
 
   /* test menuGetOpt::MENU_ITEM_STR */
-  for (loop=0; loop<1; loop++) {
+  for (loop=0; loop<1000; loop++) {
     size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;
     for (ui1=0; ui1<size; ui1++) {
       if (0 == (rand() % 3))
@@ -37,9 +37,10 @@ main(void)
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     arg1.value.str.sptr = bufSS;
+    arg1.value.str.len = size;
     menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR, NULL);
-    assert(0 == strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL));
-    if (0 != strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
+    assert(0 == strncmp("Prompt 1?", &(lcd_buf[1][0]), 9));
+    if (0 != strncmp("Prompt 1?", &(lcd_buf[1][0]), 9)) {
 #ifdef DEBUG
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	putchar(lcd_buf[0][ui1]);
@@ -49,8 +50,9 @@ main(void)
       putchar('\n');
 #endif
     }
-    if (size < LCD_MAX_COL) {
-      assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1], size));
+    if (size <= (LCD_MAX_COL-9)) {
+      assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1]+9, size));
+#if 0
       if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], size)) {
 	printf("size:%d lcd_buf:", size);
 	for (ui1=0; ui1<LCD_MAX_COL; ui1++)
@@ -60,10 +62,11 @@ main(void)
 	  printf("%c ", inp[ui1]);
 	printf("\n");
       }
+#endif
     } else {
-      assert(0 == strncmp(inp+size-LCD_MAX_COL, lcd_buf[LCD_MAX_ROW-1], LCD_MAX_COL-1));
+      assert(0 == strncmp(inp+size-(LCD_MAX_COL-9), lcd_buf[LCD_MAX_ROW-1]+9, LCD_MAX_COL-9));
       assert(0 == strncmp(inp, arg1.value.str.sptr, size));
-      printf("lcd_buf:%s\n", lcd_buf);
+      //printf("lcd_buf:%s\n", lcd_buf);
     }
   }
 
@@ -145,7 +148,7 @@ main(void)
       printf("min:%d org:%d\n", arg1.value.time.min, min);
       printf("%s\n", lcd_buf[0]);
     }
-    assert(0 == strncmp("dflkjf   ?       ", lcd_buf[0], LCD_MAX_COL));
+    assert(0 == strncmp("dflkjf?", lcd_buf[1], 7));
     assert(hour == arg1.value.time.hour);
     assert(min == arg1.value.time.min);
   }

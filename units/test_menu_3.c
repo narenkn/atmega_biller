@@ -62,14 +62,14 @@ main(void)
       assert(0 == strncmp("Passwd Wrong!!  ", lcd_buf[0], LCD_MAX_COL));
     } else {
       assert(0 == strncmp("Passwd Updated  ", lcd_buf[0], LCD_MAX_COL));
-      //printf("%s\n", lcd_buf[0]);
     }
+    //printf("%s\n", lcd_buf[0]);
     assert(MenuMode == ui3);
     assert(LoginUserId == ui2);
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<0; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;

@@ -674,7 +674,7 @@ menuSetPasswd(uint8_t mode)
   /* Compute CRC on old password, check */
   if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
     assert(MENU_ITEM_STR == arg1.valid);
-    for (ui8_4=0; ui8_4<EPS_MAX_UNAME; ui8_4++) {
+    for (ui8_4=0; ui8_4<arg1.value.str.len; ui8_4++) {
       ui8_2 = (ui8_4<arg1.value.str.len) ? arg1.value.str.sptr[ui8_4] : ' ';
       crc_old = _crc16_update(crc_old, ui8_2);
     }
@@ -688,7 +688,7 @@ menuSetPasswd(uint8_t mode)
 
   /* update mine only */
   assert(MENU_ITEM_STR == arg2.valid);
-  for (ui8_4=0; ui8_4<EPS_MAX_UNAME; ui8_4++) {
+  for (ui8_4=0; ui8_4<arg2.value.str.len; ui8_4++) {
     ui8_2 = (ui8_4 < arg2.value.str.len) ? arg2.value.str.sptr[ui8_4] : ' ';
     crc_new = _crc16_update(crc_new, ui8_2);
   }
@@ -1569,8 +1569,8 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   for (ui16_1=((ITEM_MAX_ADDR+(idx*sizeof(itemIdxs_t)))>>EEPROM_MAX_DEVICES_LOGN2); idx<ITEM_MAX;
        idx++, ui16_1+=(sizeof(itemIdxs_t)>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)itIdx1, sizeof(itemIdxs_t));
-    //    printf("idx:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
-    //	   idx, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
+    printf("idx:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
+    	   idx, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
     ee24xx_read_bytes(menuItemAddr(idx), (uint8_t *)it, ITEM_SIZEOF);
     if ((NULL != name) && (NULL != prod_code)) {
       if ((itIdx[0] == itIdx1[0]) && (itIdx[1] == itIdx1[1])) {
@@ -1894,7 +1894,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
 
   arg1.value.str.sptr = bufSS;
 
-  LCD_WR_P((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
   for (ui16_1=0; ui16_1<max_chars; ui16_1++) {
     ui8_1 = eeprom_read_byte((uint8_t *)(addr+ui16_1));
     arg1.value.str.sptr[ui16_1] = isgraph(ui8_1) ? ui8_1 : ' ';
