@@ -8,7 +8,8 @@ void menu_handler(uint8_t ui);
 void
 menu_handler(uint8_t ui)
 {
-  LCD_WR_LINE_NP(1, 0, "menu_handler:", 13);
+  LCD_CLRLINE(1);
+  LCD_WR_NP(PSTR("menu_handler:"), 13);
   LCD_PUT_UINT8X(ui);
   LCD_refresh();
 }
@@ -17,7 +18,7 @@ int
 main(void)
 {
   uint32_t loop, size;
-  uint8_t ui1;
+  uint8_t ui1, ui3;
 
   srand(time(NULL));
 
@@ -36,7 +37,7 @@ main(void)
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     arg1.value.str.sptr = bufSS;
-    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR, NULL);
     assert(0 == strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL));
     if (0 != strncmp("Prompt 1 ?      ", &(lcd_buf[0][0]), LCD_MAX_COL)) {
 #ifdef DEBUG
@@ -82,7 +83,7 @@ main(void)
     }
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menuGetOpt("lsjdflkjf", &arg1, MENU_ITEM_ID);
+    menuGetOpt("lsjdflkjf", &arg1, MENU_ITEM_ID, NULL);
     r1 = arg1.value.integer.i32;
     assert(r2 == r1);
     if (r2 != r1) {
@@ -99,7 +100,7 @@ main(void)
     sprintf(inp, "%02d%02d%04d", date, month, 1980+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE);
+    menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE, NULL);
     if ( (date != arg1.value.date.day) || (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
       printf("date:%d org:%d\n", arg1.value.date.day, date);
@@ -119,7 +120,7 @@ main(void)
     sprintf(inp, "%02d%04d", month, 1980+year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menuGetOpt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH);
+    menuGetOpt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH, NULL);
     if ( (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
       printf("month:%d org:%d\n", arg1.value.date.month, month);
@@ -137,7 +138,7 @@ main(void)
     sprintf(inp, "%02d%02d", hour, min);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menuGetOpt("dflkjf", &arg1, MENU_ITEM_TIME);
+    menuGetOpt("dflkjf", &arg1, MENU_ITEM_TIME, NULL);
     if ( (hour != arg1.value.time.hour) || (min != arg1.value.time.min) ) {
       printf("string:%s\n", inp);
       printf("hour:%d org:%d\n", arg1.value.time.hour, hour);
@@ -172,7 +173,7 @@ main(void)
     if (ui3 >= TEST_KEY_ARR_SIZE)
       continue;
     INIT_TEST_KEYS(inp);
-    ui3 = menuGetChoice("what crap?", menu_str1, MENU_PROMPT_LEN, MENU_STR1_IDX_NUM_ITEMS);
+    ui3 = menuGetChoice(PSTR("what crap?"), (uint8_t *)menu_str1, MENU_PROMPT_LEN, MENU_STR1_IDX_NUM_ITEMS);
 #if 0
     assert(0 == strncmp("what : Name     ", lcd_buf, LCD_MAX_COL));
     if (0 != strncmp("what : Name     ", lcd_buf, LCD_MAX_COL)) {

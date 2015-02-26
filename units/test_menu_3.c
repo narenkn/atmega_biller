@@ -32,7 +32,7 @@ main(void)
     KBD_RESET_KEY;
     arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
     arg2.value.str.len = passwd_size;
-    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR, NULL);
 
     LCD_CLRSCR;
     ui2 = LoginUserId = (rand() % EPS_MAX_USERS)+1;
@@ -55,7 +55,7 @@ main(void)
     KBD_RESET_KEY;
     arg1.value.str.sptr = bufSS;
     arg1.value.str.len = passwd_size;
-    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR, NULL);
     menuSetPasswd(ui3|MENU_MVALIDATE);
 
     if (corrupted) {
@@ -85,7 +85,7 @@ main(void)
     KBD_RESET_KEY;
     arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
     arg2.value.str.len = passwd_size;
-    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR, NULL);
     //    printf("passwd:'%s'", inp);
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
 
@@ -102,7 +102,7 @@ main(void)
     KBD_RESET_KEY;
     arg1.value.str.sptr = bufSS;
     arg1.value.str.len = EPS_MAX_UNAME;
-    menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
+    menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR, NULL);
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
 
     LCD_CLRSCR;
@@ -137,11 +137,11 @@ main(void)
     MenuMode = MENU_MRESET;
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
-    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR);
+    menuGetOpt("Prompt 1", &arg2, MENU_ITEM_STR, NULL);
     arg2.value.str.sptr[0] ^= ui4;
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
-    menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR);
+    menuGetOpt("Prompt 2", &arg1, MENU_ITEM_STR, NULL);
     arg1.value.str.sptr[0] ^= ui3;
     //    printf("inp2:'%s' arg1:'%s'\n", inp2, arg1.value.str.sptr);
     menuUserLogin(MENU_MRESET);

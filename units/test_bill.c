@@ -14,7 +14,8 @@ main(void)
   MenuMode = MENU_MSUPER;
   menuFactorySettings(MENU_MSUPER);
 
-  LCD_WR_LINE_N(0, 0, "Bill Sample: ", 13);
+  LCD_CLRLINE(0);
+  LCD_WR_N("Bill Sample: ", 13);
   _delay_ms(10);
 
   struct sale *sl = (void *) (bufSS+LCD_MAX_COL+LCD_MAX_COL+4);

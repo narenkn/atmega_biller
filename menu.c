@@ -2588,8 +2588,8 @@ menuMainStart:
 	  menuRet |= ((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
 #endif
 	}
-      }
 #endif
+      }
     }
     /* Choose the next best if mode had changed */
     if (0 == (MenuMode & (pgm_read_byte(menu_mode+menu_selected) & MENU_MODEMASK))) {
