@@ -8,13 +8,20 @@
 struct item all_items[ITEM_MAX];
 
 int
-main()
+main(int argc, char *argv[])
 {
   uint32_t errors;
   uint8_t  ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
   uint32_t loop, ui32_1, ui32_2;
   uint16_t ui16_1, ui16_2, ui16_3;
   uint8_t quest[LCD_MAX_COL];
+
+  if ((argc == 1) || (0 == argv[1]))
+    ui32_1 = time(NULL);
+  else
+    ui32_1 = atoi(argv[1]);
+  printf("seed : %d\n", ui32_1);
+  srand(ui32_1);
 
   /* */
   common_init();
@@ -23,8 +30,6 @@ main()
   i2c_init();
   ep_store_init();
   KbdInit();
-
-  LCD_CLRSCR;
 
   for (loop=0; loop<1000; loop++) {
     /* setup the question */
@@ -45,12 +50,15 @@ main()
     }
     inp[ui16_2] = 0;
     INIT_TEST_KEYS(inp);
+    LCD_CLRLINE(0);
     menuSettingString(ui16_1, quest, ui16_2);
     /* check question */
-    for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
-      quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[1], LCD_MAX_COL));
+    ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;
+    quest[ui8_3] = '?';
+    //printf("lcd_buf[1]:%s quest:%s\n", lcd_buf[1], quest);
+    assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
     /* check stored value */
+    //printf("inp:'%s'\neep:'%s' size:%d\n", inp, _avr_eeprom+ui16_1, ui16_3);
     assert(0 == strncmp(inp, _avr_eeprom+ui16_1, ui16_3));
   }
 
@@ -68,11 +76,12 @@ main()
     int2str(inp, ui8_1, &ui32_1);
     /* */
     INIT_TEST_KEYS(inp);
+    LCD_CLRLINE(0);
     menuSettingUint8(ui16_1, quest);
     /* check */
-    for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
-      quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[0], LCD_MAX_COL));
+    ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;
+    quest[ui8_3] = '?';
+    assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
     //printf("quest:'%s' lcd_buf[0]:'%s'\n", quest, lcd_buf[0]);
     //printf("addr:%d ui8_1:%x eeprom:%x\n", ui16_1, ui8_1, _avr_eeprom[ui16_1]);
     assert(ui8_1 == _avr_eeprom[ui16_1]);
@@ -93,11 +102,12 @@ main()
     int2str(inp, ui16_3, &ui32_1);
     /* */
     INIT_TEST_KEYS(inp);
+    LCD_CLRLINE(0);
     menuSettingUint16(ui16_1, quest);
     /* check */
-    for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
-      quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[0], LCD_MAX_COL));
+    ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;
+    quest[ui8_3] = '?';
+    assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
     assert(((ui16_3>>8)&0xFF) == _avr_eeprom[ui16_1]);
     assert((ui16_3&0xFF) == _avr_eeprom[ui16_1+1]);
   }
@@ -117,11 +127,12 @@ main()
     int2str(inp, ui16_3, &ui32_1);
     /* */
     INIT_TEST_KEYS(inp);
+    LCD_CLRLINE(0);
     menuSettingUint32(ui32_2, quest);
     /* check */
-    for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
-      quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[0], LCD_MAX_COL));
+    ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;
+    quest[ui8_3] = '?';
+    assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
     assert(((ui16_3>>24)&0xFF) == _avr_eeprom[ui32_2+0]);
     assert(((ui16_3>>16)&0xFF) == _avr_eeprom[ui32_2+1]);
     assert(((ui16_3>>8)&0xFF) == _avr_eeprom[ui32_2+2]);
@@ -146,11 +157,12 @@ main()
     int2str(inp, ui16_3, &ui32_1);
     /* */
     INIT_TEST_KEYS(inp);
+    LCD_CLRLINE(0);
     menuSettingBit(ui32_2, quest, ui8_5, ui8_4);
     /* check */
-    for (ui8_3=0; ui8_3<LCD_MAX_COL; ui8_3++)
-      quest[ui8_3] = ((ui8_3<MENU_PROMPT_LEN)&&(0 == quest[ui8_3])) ? ' ' : (ui8_3<MENU_PROMPT_LEN) ? quest[ui8_3]: (ui8_3==(MENU_PROMPT_LEN+1)) ? '?' : ' ';
-    assert(0 == strncmp(quest, lcd_buf[0], LCD_MAX_COL));
+    ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;
+    quest[ui8_3] = '?';
+    assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
     assert( (ui16_3 & ((1<<ui8_5)-1)) ==
 	    ((_avr_eeprom[ui32_2]>>ui8_4) & ((1<<ui8_5)-1)) );
     //printf("val:%x\n", (ui16_3 & ((1<<ui8_5)-1)));

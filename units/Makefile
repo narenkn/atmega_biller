@@ -1,4 +1,4 @@
-.PHONY: headers clean all_tests
+.PHONY: headers clean make_tests run_tests
 
 NCURSES := /tool/pandora/.package/ncurses-5.7
 CFLAGS  := -g -I. -I.. -DUNIT_TEST -DDEBUG $(CMDLINE_CFLAGS) -I$(NCURSES)/include -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
@@ -11,7 +11,9 @@ VPATH = .:..
 SOURCE = $(wildcard test_menu_2.c)
 TESTS =  $(filter-out test_common, $(subst .c, , $(SOURCE)))
 
-all_tests: $(TESTS)
+make_tests: $(TESTS)
+
+run_tests: make_tests
 	for test in $(TESTS) ; do echo -n $$test ; ./$$test ; done
 
 include ../make.proj

@@ -54,7 +54,7 @@ main(void)
 
   move(0, 0);
   printw("Press F2 to exit");
-  menuSDLoadItem(0);
+  menuSDLoadItem(MENU_MSUPER);
   test_init3();
   menuMain();
   getch();

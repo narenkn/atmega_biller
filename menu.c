@@ -207,40 +207,40 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 {
   uint8_t item_type = (opt & MENU_ITEM_TYPE_MASK);
   uint32_t val;
-  uint8_t ui8_1, ui8_2;
-  uint8_t sbuf[LCD_MAX_COL], *buf, buf_idx;
+  uint16_t ui16_1, ui16_2, buf_idx;
+  uint8_t sbuf[LCD_MAX_COL], *buf;
 
   if (MENU_ITEM_NONE == opt) return;
 
   /* init */
   if (MENU_ITEM_STR == item_type) {
     assert(0 != arg->value.str.len);
-    for (ui8_1=0; ui8_1<arg->value.str.len; ui8_1++)
-      arg->value.str.sptr[ui8_1] = ' ';
+    for (ui16_1=0; ui16_1<arg->value.str.len; ui16_1++)
+      arg->value.str.sptr[ui16_1] = ' ';
     buf = arg->value.str.sptr;
   } else {
-    for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++)
-      sbuf[ui8_1] = ' ';
+    for (ui16_1=0; ui16_1<LCD_MAX_COL; ui16_1++)
+      sbuf[ui16_1] = ' ';
     buf = sbuf;
   }
   buf_idx = 0;
 
   /* Assume it is a string, then typecast it */
   do {
-    ui8_1 = helper ? (*helper)(buf, buf_idx) : MENU_RET_NOERROR;
-    if (ui8_1 & MENU_RET_NOTAGAIN)
+    ui16_1 = helper ? (*helper)(buf, buf_idx) : MENU_RET_NOERROR;
+    if (ui16_1 & MENU_RET_NOTAGAIN)
       break;
     /* Ask a question */
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)prompt, MENU_PROMPT_LEN);
     LCD_PUTCH('?');
-    for (ui8_1=MENU_PROMPT_LEN+1,
-	   ui8_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
-	 (ui8_1<LCD_MAX_COL) && (ui8_2<buf_idx); ui8_1++, ui8_2++) {
+    for (ui16_1=MENU_PROMPT_LEN+1,
+	   ui16_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
+	 (ui16_1<LCD_MAX_COL) && (ui16_2<buf_idx); ui16_1++, ui16_2++) {
       if (opt&MENU_ITEM_PASSWD) {
 	LCD_PUTCH('*');
       } else {
-	LCD_PUTCH(buf[ui8_2]);
+	LCD_PUTCH(buf[ui16_2]);
       }
     }
     LCD_refresh();
@@ -293,10 +293,10 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 
   if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
     val = 0;
-    for (ui8_1=0; ui8_1<buf_idx; ui8_1++) {
-      if ((buf[ui8_1] >= '0') && (buf[ui8_1] <= '9')) {
+    for (ui16_1=0; ui16_1<buf_idx; ui16_1++) {
+      if ((buf[ui16_1] >= '0') && (buf[ui16_1] <= '9')) {
 	val *= 10;
-	val += buf[ui8_1] - '0';
+	val += buf[ui16_1] - '0';
 	menu_error = 0;
       } else {
 	break;
@@ -308,15 +308,15 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   } else if ((MENU_ITEM_DATE == item_type) || (MENU_ITEM_MONTH == item_type)) {
     /* format DDMMYYYY || format MMYYYY */
     menu_error = 0;
-    for (ui8_1=0; ui8_1<(item_type+2); ui8_1++) {
-      if ((buf[ui8_1] < '0') || (buf[ui8_1] > '9'))
+    for (ui16_1=0; ui16_1<(item_type+2); ui16_1++) {
+      if ((buf[ui16_1] < '0') || (buf[ui16_1] > '9'))
 	menu_error++;
     }
     if (0 == menu_error) {
       /* Date */
       val = 0;
       if (MENU_ITEM_DATE == item_type) {
-	for (ui8_1=0; ui8_1<2; ui8_1++) {
+	for (ui16_1=0; ui16_1<2; ui16_1++) {
 	  val *= 10;
 	  val += buf[0] - '0';
 	  buf++;
@@ -326,7 +326,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       }
       /* Month */
       val = 0;
-      for (ui8_1=0; ui8_1<2; ui8_1++) {
+      for (ui16_1=0; ui16_1<2; ui16_1++) {
 	val *= 10;
 	val += buf[0] - '0';
 	buf++;
@@ -335,7 +335,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       arg->value.date.month = val;
       /* Year */
       val = 0;
-      for (ui8_1=0; ui8_1<4; ui8_1++) {
+      for (ui16_1=0; ui16_1<4; ui16_1++) {
 	val *= 10;
 	val += buf[0] - '0';
 	buf++;
@@ -346,14 +346,14 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   } else if (MENU_ITEM_TIME == item_type) {
     /* format HHMM */
     menu_error = 0;
-    for (ui8_1=0; ui8_1<4; ui8_1++) {
-      if ((buf[ui8_1] < '0') || (buf[ui8_1] > '9'))
+    for (ui16_1=0; ui16_1<4; ui16_1++) {
+      if ((buf[ui16_1] < '0') || (buf[ui16_1] > '9'))
 	menu_error++;
     }
     if (0 == menu_error) {
       /* Hour */
       val = 0;
-      for (ui8_1=0; ui8_1<2; ui8_1++) {
+      for (ui16_1=0; ui16_1<2; ui16_1++) {
 	val *= 10;
 	val += buf[0] - '0';
 	buf++;
@@ -362,7 +362,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       arg->value.time.hour = val;
       /* Mins */
       val = 0;
-      for (ui8_1=0; ui8_1<2; ui8_1++) {
+      for (ui16_1=0; ui16_1<2; ui16_1++) {
 	val *= 10;
 	val += buf[0] - '0';
 	buf++;
@@ -864,6 +864,36 @@ menuInit()
 #endif
 }
 
+uint8_t
+menuItemGetOptHelper(uint8_t *str, uint8_t strlen)
+{
+  struct item it;
+  uint16_t ui16_1;
+
+  LCD_CLRLINE(0);
+
+  ui16_1 = menuItemFind(str, str, &it, 0);
+  if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) {
+    sscanf(str, "%d", &ui16_1);
+    printf("id is %d", ui16_1);
+    if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
+      ee24xx_read_bytes(menuItemAddr((ui16_1-1)), (void *)&it, ITEM_SIZEOF);
+    } else
+      return MENU_RET_NOERROR;
+  }
+  if ( (0 == it.id) || (it.id > ITEM_MAX) )
+    return MENU_RET_NOERROR;
+
+  /* found item */
+  LCD_PUT_UINT(it.id);
+  LCD_PUTCH(':');
+  LCD_WR_N(it.name, 8);
+  LCD_PUTCH(',');
+  LCD_PUT_UINT(it.cost);
+
+  return MENU_RET_NOERROR;
+}
+
 /* Indexing at the following levels
    1. Complete product code
    2. Complete name
@@ -888,9 +918,7 @@ menuBilling(uint8_t mode)
   uint16_t ui16_1, ui16_2;
 
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
-  for (ui8_2=0; ui8_2<SALE_SIZEOF; ui8_2++) {
-    ((uint8_t *)sl)[ui8_2] = 0;
-  }
+  memset((void *)sl, 0, SALE_SIZEOF);
 
   /* memory requirements */
   //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
@@ -921,7 +949,7 @@ menuBilling(uint8_t mode)
     arg1.valid = MENU_ITEM_NONE;
     arg1.value.str.sptr = bufSS;
     arg1.value.str.len = LCD_MAX_COL;
-    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, NULL);
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, menuItemGetOptHelper);
     for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
       if (!isgraph(arg1.value.str.sptr[ui8_1]))
 	continue;
@@ -1518,7 +1546,9 @@ menuIndexItem(struct item *it)
   }
 }
 
-/* either name or prod_code be NULL */
+/* either name or prod_code be NULL
+   idx: starting idx for recursive find's
+ */
 uint16_t
 menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 {
@@ -1569,8 +1599,8 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   for (ui16_1=((ITEM_MAX_ADDR+(idx*sizeof(itemIdxs_t)))>>EEPROM_MAX_DEVICES_LOGN2); idx<ITEM_MAX;
        idx++, ui16_1+=(sizeof(itemIdxs_t)>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)itIdx1, sizeof(itemIdxs_t));
-    printf("idx:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
-    	   idx, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
+    //printf("idx:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
+    //	   idx, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
     ee24xx_read_bytes(menuItemAddr(idx), (uint8_t *)it, ITEM_SIZEOF);
     if ((NULL != name) && (NULL != prod_code)) {
       if ((itIdx[0] == itIdx1[0]) && (itIdx[1] == itIdx1[1])) {
@@ -1892,17 +1922,18 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
   uint16_t ui16_1;
   uint8_t  ui8_1;
 
+  arg1.valid = MENU_ITEM_NONE;
   arg1.value.str.sptr = bufSS;
+  arg1.value.str.len = max_chars;
 
-  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
   for (ui16_1=0; ui16_1<max_chars; ui16_1++) {
     ui8_1 = eeprom_read_byte((uint8_t *)(addr+ui16_1));
     arg1.value.str.sptr[ui16_1] = isgraph(ui8_1) ? ui8_1 : ' ';
   }
-  LCD_WR_N(arg1.value.str.sptr, LCD_MAX_COL-MENU_PROMPT_LEN);
+  LCD_WR_N(arg1.value.str.sptr, LCD_MAX_COL-4);
 
-  arg1.valid = MENU_ITEM_NONE;
-  arg1.value.str.len = max_chars;
   menuGetOpt(quest, &arg1, MENU_ITEM_STR, NULL);
 #ifndef UNIT_TEST
   if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
@@ -1925,7 +1956,8 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
   uint32_t val;
   char buf[16];
 
-  LCD_WR_P((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
   val = eeprom_read_dword((uint32_t *)addr);
   sprintf(buf, "%d", val);
   LCD_WR(buf);
@@ -1949,7 +1981,8 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
   uint16_t val;
   char buf[8];
 
-  LCD_WR_P((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
   val = eeprom_read_word((uint16_t *)addr);
   sprintf(buf, "%d", val);
   LCD_WR(buf);
@@ -1973,7 +2006,8 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
   uint8_t val;
   char buf[8];
 
-  LCD_WR_P((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
   val = eeprom_read_byte((uint8_t *)addr);
   sprintf(buf, "%d", val);
   LCD_WR(buf);
@@ -1997,7 +2031,8 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
   uint8_t ui8_1, ui8_2;
   char buf[4];
 
-  LCD_WR_P((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
   ui8_1 = (eeprom_read_byte((uint8_t *)addr) >> offset);
   ui8_1 &= (1<<size)-1;
   sprintf(buf, "%d", ui8_1);
