@@ -39,9 +39,9 @@ keyChars[] PROGMEM = {
 };
 const uint8_t
 keyMap[] PROGMEM = {
-  1,           2,            3,        ASCII_PRNSCRN,
-  4,           5,            6,        ASCII_UP,
-  7,           8,            9,        ASCII_DOWN,
+  1,           2,            3,        ASCII_ESCAPE,
+  4,           5,            6,        ASCII_DEL,
+  7,           8,            9,        ASCII_PRNSCRN,
   ASCII_LEFT,  0,  ASCII_RIGHT,        ASCII_ENTER
 };
 

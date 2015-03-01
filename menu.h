@@ -184,7 +184,7 @@ extern uint8_t devStatus;
   }
 
 /* Helper routines */
-typedef uint8_t (*menuGetOptHelper)(uint8_t *str, uint8_t strlen);
+typedef uint16_t (*menuGetOptHelper)(uint8_t *str, uint16_t strlen, uint16_t prev);
 void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
@@ -205,7 +205,7 @@ void menuIndexItem(struct item *it);
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
 /* billing routines */
-uint8_t menuBilling(uint8_t mode);  // Unverified
+uint8_t menuBilling(uint8_t mode);
 uint8_t menuShowBill(uint8_t mode); // Unverified
 void menuPrnBill(struct sale *sl); // Unverified
 

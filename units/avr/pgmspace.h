@@ -9,6 +9,7 @@
 #define pgm_read_byte pgm_read_byte_near
 #define pgm_read_byte_near(addr)       ((uint8_t *)addr)[0]
 #define strncpy_P strncpy
+#define strcpy_P strcpy
 
 #define pgm_read_word(addr) (		    \
   (((uint16_t)(((uint8_t *)addr)[1]))<<8) | \

@@ -43,6 +43,8 @@
 #define ASCII_DOWN       0xA7
 #define ASCII_F2         0xA8
 #define ASCII_ESCAPE     0xA9
+#define ASCII_ALT        0xAA
+#define ASCII_CTRL       0xAB
 
 #define KBD_RESET_KEY          \
   keyHitData.KbdData=0, keyHitData._kbdData=0, keyHitData.count=0, keyHitData.KbdDataAvail=0

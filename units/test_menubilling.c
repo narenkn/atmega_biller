@@ -53,6 +53,9 @@ main(void)
   test_init1();
   menuInit();
   test_init2();
+
+  uartInit();
+  uartSelect(0);
   printerInit();
 
   move(0, 0);

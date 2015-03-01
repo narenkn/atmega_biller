@@ -167,6 +167,7 @@ class csv2dat:
 #      outfile.write(bytearray(pbytes))
 #      signature = self.crc16(bytearray(pbytes), signature)
       re_graph = re.compile(r'[\x20-\x7E]')
+      re_hexdigit = re.compile(r'[\x30-\x39\x41-\x46\x61-\x66]')
       goffset += 0.9
       for li in range(csv_lines):
         pbytes = [0] * int(goffset)
@@ -187,7 +188,7 @@ class csv2dat:
             while (i < vardict[var][1]):
               if (j < len(data[var][li])): ## each bytes
                 c = data[var][li][j]
-                if re_graph.match(c):
+                if re_hexdigit.match(c):
                   k <<= 4
                   k |= int(c, 16)
               else:
@@ -214,7 +215,7 @@ class csv2dat:
               if (i >= len(data[var][li])) or (not re_graph.match(data[var][li][i])):
                 pbytes[offset+i] = ' '
               else:
-                pbytes[offset+i] = data[var][li][i]
+                pbytes[offset+i] = data[var][li][i].upper()
           elif TYPE_BIT == vardict[var][2]:
             if '' != data[var][li]:
               pbytes[offset] |= int(data[var][li]) << (int((vardict[var][-1]*10)%10))
@@ -265,13 +266,13 @@ class item:
       'name_in_unicode':[':1', 0.1, TYPE_BIT],
       'has_vat':[':1', 0.1, TYPE_BIT],
       'is_disabled':[':1', 0.1, TYPE_BIT],
+      'unused_find_best_match':[':1', 0.1, TYPE_BIT],
       'unused_0':[':1', 0.1, TYPE_BIT],
       'unused_1':[':1', 0.1, TYPE_BIT],
       'unused_2':[':1', 0.1, TYPE_BIT],
       'unused_3':[':1', 0.1, TYPE_BIT],
       'unused_4':[':1', 0.1, TYPE_BIT],
       'unused_5':[':1', 0.1, TYPE_BIT],
-      'unused_6':[':1', 0.1, TYPE_BIT],
       }
     }
 

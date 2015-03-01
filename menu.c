@@ -206,7 +206,7 @@ void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper)
 {
   uint8_t item_type = (opt & MENU_ITEM_TYPE_MASK);
-  uint32_t val;
+  uint32_t val, prev_helper = 0;
   uint16_t ui16_1, ui16_2, buf_idx;
   uint8_t sbuf[LCD_MAX_COL], *buf;
 
@@ -227,9 +227,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 
   /* Assume it is a string, then typecast it */
   do {
-    ui16_1 = helper ? (*helper)(buf, buf_idx) : MENU_RET_NOERROR;
-    if (ui16_1 & MENU_RET_NOTAGAIN)
-      break;
+    prev_helper = helper ? (*helper)(buf, buf_idx, prev_helper) : prev_helper;
     /* Ask a question */
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const uint8_t *)prompt, MENU_PROMPT_LEN);
@@ -273,6 +271,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_F2:
       break;
     default:
+      prev_helper = 0; /* start searching from first */
       buf[buf_idx] = keyHitData.KbdData;
       /* Don't overflow buffer */
       if (MENU_ITEM_STR == item_type) {
@@ -291,7 +290,13 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   if (ASCII_ESCAPE == keyHitData.KbdData)
     return;
 
-  if ((MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type)) {
+  if (0 != prev_helper) {
+    arg->value.integer.i8  = prev_helper&0xFF;
+    arg->value.integer.i16 = prev_helper;
+    arg->value.integer.i32 = prev_helper;
+    item_type = MENU_ITEM_ID;
+    menu_error = 0;
+  } else if ( (MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type) ) {
     val = 0;
     for (ui16_1=0; ui16_1<buf_idx; ui16_1++) {
       if ((buf[ui16_1] >= '0') && (buf[ui16_1] <= '9')) {
@@ -864,25 +869,28 @@ menuInit()
 #endif
 }
 
-uint8_t
-menuItemGetOptHelper(uint8_t *str, uint8_t strlen)
+uint16_t
+menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
 {
   struct item it;
   uint16_t ui16_1;
 
+  if (0 == strlen) return 0;
+
   LCD_CLRLINE(0);
 
-  ui16_1 = menuItemFind(str, str, &it, 0);
+  it.unused_find_best_match = 1;
+  ui16_1 = menuItemFind(str, str, &it, prev);
   if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) {
     sscanf(str, "%d", &ui16_1);
-    printf("id is %d", ui16_1);
+    //printf("id is %d", ui16_1);
     if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
       ee24xx_read_bytes(menuItemAddr((ui16_1-1)), (void *)&it, ITEM_SIZEOF);
     } else
-      return MENU_RET_NOERROR;
+      return 0;
   }
   if ( (0 == it.id) || (it.id > ITEM_MAX) )
-    return MENU_RET_NOERROR;
+    return 0;
 
   /* found item */
   LCD_PUT_UINT(it.id);
@@ -891,7 +899,7 @@ menuItemGetOptHelper(uint8_t *str, uint8_t strlen)
   LCD_PUTCH(',');
   LCD_PUT_UINT(it.cost);
 
-  return MENU_RET_NOERROR;
+  return ui16_1;
 }
 
 /* Indexing at the following levels
@@ -910,19 +918,19 @@ menuItemGetOptHelper(uint8_t *str, uint8_t strlen)
  */
 typedef uint16_t itemIdxs_t[ITEM_SUBIDX_NAME];
 
-// Not unit tested
 uint8_t
 menuBilling(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
   uint16_t ui16_1, ui16_2;
+  uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
 
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   memset((void *)sl, 0, SALE_SIZEOF);
 
   /* memory requirements */
-  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)), BUFSS_SIZE);
-  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4+(EPS_MAX_VAT_CHOICE*4)) <= BUFSS_SIZE);
+  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
+  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
 
   /* if modification of bill is requested... */
   if (mode & MENU_MMODBILL) {
@@ -936,13 +944,11 @@ menuBilling(uint8_t mode)
     /* can't take more items */
     if (ui8_5 >= MAX_ITEMS_IN_BILL) {
       ui8_5--;
-      goto menuBillingConfirm;
+      goto menuBillingBill;
     }
     
   menuBillingStartBilling:
     ui8_4 = 0;  /* item not found */
-    ui8_2 = 1;  /* is a digit */
-    ui8_3 = 0;  /* not empty */
     ui16_2 = 0; /* int value */
 
     /* Get arg and find if valid, str or num */
@@ -950,46 +956,57 @@ menuBilling(uint8_t mode)
     arg1.value.str.sptr = bufSS;
     arg1.value.str.len = LCD_MAX_COL;
     menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, menuItemGetOptHelper);
-    for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
-      if (!isgraph(arg1.value.str.sptr[ui8_1]))
-	continue;
-      ui8_3 = 1;
-      ui8_2 &= isdigit(arg1.value.str.sptr[ui8_1]);
-      if (ui8_2) {
-	ui16_2 *= 10;
-	ui16_2 += arg1.value.str.sptr[ui8_1] - '0';
+    if (MENU_ITEM_STR == arg1.valid) {
+      ui8_2 = 1;  /* is a digit */
+      for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
+	if (!isgraph(arg1.value.str.sptr[ui8_1]))
+	  continue;
+	ui8_2 &= isdigit(arg1.value.str.sptr[ui8_1]);
+	if (ui8_2) {
+	  ui16_2 *= 10;
+	  ui16_2 += arg1.value.str.sptr[ui8_1] - '0';
+	}
       }
+      if (ui8_2) { /* integer input */
+	if ((ui16_2==0) || (ui16_2 > ITEM_MAX))
+	  continue; /* get input again */
+      } else { /* string input */
+	sl->it[0].unused_find_best_match = 1;
+	ui16_2 = menuItemFind(arg1.value.str.sptr, arg1.value.str.sptr, sl->it, 0);
+	if ((ui16_2==0) || (ui16_2 > ITEM_MAX))
+	  continue; /* get input again */
+      }
+    } else if (MENU_ITEM_ID == arg1.valid) {
+      ui16_2 = arg1.value.integer.i16;
+      if ((ui16_2==0) || (ui16_2 > ITEM_MAX))
+	continue; /* get input again */
     }
 
     /* Just Enter was hit, may be the user wants to proceed to billing */
-    if (0 == ui8_3) {
-      LCD_CLRLINE(0);
-      LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_CLRLINE(LCD_MAX_ROW-1);
-      LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_ENTRYES*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_refresh();
-      KBD_RESET_KEY;
-      KBD_GETCH;
-      if ( (ASCII_ENTER == keyHitData.KbdData) ||
-	   (0 == sl->items[0].quantity) /* no items yet */ ) {
-	break;
-      } else {
-	ui8_5--;
-	goto menuBillingConfirm;
-      }
+    if (0 == ui16_2) {
+      goto menuBillingBill;
     }
 
     /* Find item */
-    ui16_1 = menuItemFind(arg1.value.str.sptr, arg1.value.str.sptr, sl->it, 0);
-    if (0 == ui16_1) {
+    assert( (ui16_2 > 0) && (ui16_2 <= ITEM_MAX) );
+    ee24xx_read_bytes(menuItemAddr(ui16_2-1), (uint8_t *)sl->it, ITEM_SIZEOF);
+    if ( (0 == sl->it[0].id) || (sl->it[0].is_disabled) ) {
       LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const uint8_t *)PSTR("Invalid Item"), 12);
       _delay_ms(1000);
       continue; /* match not found */
     }
 
+    /* Display item to be billed */
+    LCD_CLRLINE(0);
+    LCD_PUT_UINT(ui16_2);
+    LCD_PUTCH(':');
+    LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
+    //LCD_PUTCH(',');
+    //LCD_PUT_UINT(sl->it[0].cost);
+
     /* common inputs */
-    sl->items[ui8_5].ep_item_ptr = ui16_1;
+    sl->items[ui8_5].ep_item_ptr = menuItemAddr(ui16_2-1);
     sl->items[ui8_5].cost = sl->it[0].cost;
     sl->items[ui8_5].discount = sl->it[0].discount;
     sl->items[ui8_5].has_serv_tax = sl->it[0].has_serv_tax;
@@ -1005,77 +1022,138 @@ menuBilling(uint8_t mode)
     /* Enable edit of earlier added item  */
     do {
       /* Display item for confirmation */
-      LCD_CLRLINE(0);
+      LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
       ee24xx_read_bytes((uint16_t)(((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2))), bufSS, 7);
-      bufSS[8] = 0;
-      LCD_WR((char *)bufSS);
-      sprintf((char *)bufSS, "%d", sl->items[ui8_5].quantity);
-      LCD_WR((char *)bufSS);
-      LCD_refresh();
+      LCD_PUT_UINT(sl->items[ui8_5].quantity);
+      LCD_PUTCH('=');
+      ui16_1 = sl->it[0].cost;
+      ui16_1 *= sl->items[ui8_5].quantity;
+      LCD_PUT_UINT(ui16_1);
 
       KBD_RESET_KEY;
       KBD_GETCH;
-      if (ASCII_ENTER == keyHitData.KbdData) {
+      if (ASCII_ENTER == keyHitData.KbdData) { /* accept */
 	ui8_5++;
-      } else if ( (ASCII_LEFT == keyHitData.KbdData) ||
-		(ASCII_RIGHT == keyHitData.KbdData) ) {
-	/* FIXME: add default values from item data */
-	do {
-	  arg2.valid = MENU_ITEM_NONE;
-	  menuGetOpt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+	LCD_CLRLINE(0);
+	LCD_WR_P(PSTR("Added to bill!"));
+      } else if ( (ASCII_UP == keyHitData.KbdData) ||
+		  (ASCII_RIGHT == keyHitData.KbdData) ) { /* override */
+	/* add default values from item data */
+	/* override cost */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	LCD_PUTCH(':');
+	LCD_PUT_UINT(sl->items[ui8_5].cost);
+	arg2.valid = MENU_ITEM_NONE;
+	menuGetOpt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+	if (MENU_ITEM_FLOAT == arg2.valid)
 	  sl->items[ui8_5].cost = arg2.value.integer.i16;
-	} while (MENU_ITEM_NONE == arg2.valid);
-	do {
-	  arg2.valid = MENU_ITEM_NONE;
-	  menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+
+	/* override discount */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	LCD_PUTCH(':');
+	LCD_PUT_UINT(sl->items[ui8_5].discount);
+	arg2.valid = MENU_ITEM_NONE;
+	menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+	if (MENU_ITEM_NONE == arg2.valid)
 	  sl->items[ui8_5].discount = arg2.value.integer.i16;
-	} while (MENU_ITEM_NONE == arg2.valid);
-	LCD_CLRSCR;
+
+	/* override has_serv_tax */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	LCD_PUTCH(':');
+	LCD_PUT_UINT(sl->items[ui8_5].has_serv_tax);
 	sl->items[ui8_5].has_serv_tax = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+
+	/* override has_common_discount */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_COMNDISC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	LCD_PUTCH(':');
+	LCD_PUT_UINT(sl->items[ui8_5].has_common_discount);
 	sl->items[ui8_5].has_common_discount = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_COMNDISC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 
-	/* vat */
+	/* override vat */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), 4);
+	LCD_PUTCH(':');
 	for (ui8_4=0; ui8_4<EPS_MAX_VAT_CHOICE; ui8_4++) {
 	  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*ui8_4)));
-	  for (ui8_2=0; ui8_2<4; ui8_2++) {
-	    (bufSS+SALE_SIZEOF+(ui8_4*4))[ui8_2] = '0' + ui16_2%10;
-	    ui16_2 /= 10;
+	  for (ui8_2=1; ui8_2<=4; ui8_2++) {
+	    (choice+(ui8_4*MENU_PROMPT_LEN)+MENU_PROMPT_LEN-ui8_2)[0] = '0' + ui16_2%10;
+	    ui16_2 /= (uint16_t)10;
+	  }
+	  for (; ui8_2<=MENU_PROMPT_LEN; ui8_2++) {
+	    (choice+(ui8_4*MENU_PROMPT_LEN)+MENU_PROMPT_LEN-ui8_2)[0] = ' ';
+	  }
+	  if (ui8_4 == sl->it[0].vat_sel) {
+	    LCD_WR_N(choice+(ui8_4*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	  }
 	}
-	sl->items[ui8_5].vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), (bufSS+SALE_SIZEOF), 4, EPS_MAX_VAT_CHOICE);
+	sl->items[ui8_5].vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, EPS_MAX_VAT_CHOICE);
 
-	do {
-	  arg2.valid = MENU_ITEM_NONE;
-	  menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+	/* override quantity */
+	LCD_CLRLINE(0);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+	LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	LCD_PUTCH(':');
+	LCD_PUT_UINT(sl->items[ui8_5].quantity);
+	arg2.valid = MENU_ITEM_NONE;
+	menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+	if (MENU_ITEM_FLOAT == arg2.valid)
 	  sl->items[ui8_5].quantity = arg2.value.integer.i16;
-	} while (MENU_ITEM_NONE == arg2.valid);
-      } else if ( (ASCII_UP == keyHitData.KbdData) ||
+
+	LCD_CLRLINE(0);
+	LCD_WR_P(PSTR("Override Done!"));
+      } else if ( (ASCII_LEFT == keyHitData.KbdData) ||
 		  (ASCII_DOWN == keyHitData.KbdData) ) {
-	if (ASCII_UP == keyHitData.KbdData) {
-	  ui8_5 ? --ui8_5 : 0;
-	} else {
-	  if ( (ui8_5 < MAX_ITEMS_IN_BILL) &&
-	       (sl->items[ui8_5].quantity > 0) )
-	    ui8_5++;
-	}
-	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
+	/* move to prev item to edit it */
+	ui8_5 ? --ui8_5 : sl->info.n_items-1;
+	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
       } else if (ASCII_DEL == keyHitData.KbdData) {
+	/* delete the item */
 	for (ui8_2=ui8_5; sl->items[ui8_2+1].quantity>0; ui8_2++) {
 	  memcpy(&(sl->items[ui8_2]), &(sl->items[ui8_2+1]), ITEM_SIZEOF);
 	}
 	sl->items[ui8_2].quantity = 0;
-      } else
+	LCD_CLRLINE(0);
+	LCD_WR_P(PSTR("Deleted!"));
+      } else {
+	LCD_CLRLINE(0);
+	LCD_WR_P(PSTR("Skipped, Retry!"));
 	continue;
+      }
     } while (0);
-
   }
 
+ menuBillingBill:
   /* Why would somebody make a 0 item bill? */
-  for (; sl->items[ui8_5].quantity>0; ui8_5++) ;
+  for (ui8_5=0; sl->items[ui8_5].quantity>0; ui8_5++) ;
   if (0 == ui8_5) {
+    LCD_CLRLINE(1);
     LCD_ALERT(PSTR("No bill items"));
     return MENU_RET_NOTAGAIN;
+  }
+
+  /* Final confirmation before billing */
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Total Items: "));
+  LCD_PUT_UINT(ui8_5);
+  LCD_CLRLINE(1);
+  LCD_WR_NP((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  KBD_RESET_KEY;
+  KBD_GETCH;
+  if (ASCII_ESCAPE == keyHitData.KbdData) {
+    return 0;
+  } else if (ASCII_ENTER != keyHitData.KbdData) {
+    ui8_5--;
+    goto menuBillingConfirm;
   }
 
   /* Calculate bill, confirm */
@@ -1083,18 +1161,25 @@ menuBilling(uint8_t mode)
   sl->t_stax = 0, sl->t_vat = 0, sl->t_discount = 0, sl->total = 0;
   ui32_2 = 0;
   for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
-    if (sl->items[ui8_3].cost > sl->items[ui8_3].discount) {
-      ui32_1 = (sl->items[ui8_3].cost - sl->items[ui8_3].discount);
-      sl->t_discount += sl->items[ui8_3].discount;
+    if ( (0 != sl->items[ui8_3].discount) && (sl->items[ui8_3].cost > sl->items[ui8_3].discount) ) {
+      ui32_1 = sl->items[ui8_3].cost - sl->items[ui8_3].discount;
+      sl->t_discount += sl->items[ui8_3].discount * sl->items[ui8_3].quantity;
     } else if (sl->items[ui8_3].has_common_discount) {
       ui32_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, ComnDis));
       ui32_1 <<= 8;
       ui32_1 |= eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, ComnDis) + 1));
-      ui32_1 = ((10000 - ui32_1) * sl->items[ui8_3].cost);
-      sl->t_discount += (sl->items[ui8_3].cost - ui32_1);
-    }
-    ui32_1 *= sl->items[ui8_3].quantity;
+      if (ui32_1 <= 10000) {
+	ui32_1 = (10000 - ui32_1) * sl->items[ui8_3].cost;
+	ui32_1 /= 100;
+	sl->t_discount += (sl->items[ui8_3].cost - ui32_1) * sl->items[ui8_3].quantity;
+      } else {
+	ui32_1 = sl->items[ui8_3].cost;
+	LCD_ALERT(PSTR("Err: ComnDis > 100%"));
+      }
+    } else
+      ui32_1 = sl->items[ui8_3].cost;
 
+    ui32_1 *= sl->items[ui8_3].quantity;
     sl->total += ui32_1;
 
     if (sl->items[ui8_3].has_serv_tax) {
@@ -1105,7 +1190,8 @@ menuBilling(uint8_t mode)
       ui32_2 /= 100;
       sl->t_stax += ui32_2;
       sl->total  += ui32_2;
-    } else if (sl->items[ui8_3].vat_sel < EPS_MAX_VAT_CHOICE) {
+    }
+    if (sl->items[ui8_3].vat_sel < EPS_MAX_VAT_CHOICE) {
       ui32_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*sl->items[ui8_3].vat_sel));
       ui32_2 <<= 8;
       ui32_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*sl->items[ui8_3].vat_sel) + 1);
@@ -1136,8 +1222,7 @@ menuBilling(uint8_t mode)
     memset(&Fil, 0, sizeof(Fil));
     //  change_sd(0); /* FIXME: */
     f_mount(&FS, "", 0);		/* Give a work area to the default drive */
-    strncpy_P((char *)bufSS, SD_BILLING_FILE, sizeof(SD_BILLING_FILE));
-    bufSS[sizeof(SD_BILLING_FILE)] = 0;
+    strcpy_P((char *)bufSS, BillFileName);
     if (f_open(&Fil, (char *)bufSS, FA_READ|FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
       do {
 	/* Move to end of the file to append data */
@@ -1160,14 +1245,13 @@ menuBilling(uint8_t mode)
 	  assert(2 == ret_val);
 	  ui16_2 = bufSS[0]; ui16_2 <<= 8; ui16_2 |= bufSS[1];
 	  f_lseek(&Fil, ui32_2-2);
-	} else {     /* file already exists */
-	  /* new file, set it up ... */
+	} else { /* new file, set it up ... */
 	  f_lseek(&Fil, 0);
 	  ui16_2 = 0;
 	  ui16_2 = _crc16_update(ui16_2, (GIT_HASH_CRC>>8)&0xFF);
 	  ui16_2 = _crc16_update(ui16_2, GIT_HASH_CRC&0xFF);
-	  bufSS[0] = GIT_HASH_CRC>>8;
-	  bufSS[1] = GIT_HASH_CRC&0xFF;
+	  bufSS[0] = GIT_HASH_CRC&0xFF;
+	  bufSS[1] = GIT_HASH_CRC>>8;
 	  f_write(&Fil, (void *)bufSS, 2, &ret_val);
 	  assert(2 == ret_val);
 	}
@@ -1199,15 +1283,18 @@ menuBilling(uint8_t mode)
 	assert(2 == ret_val);
 	/* */
 	f_close(&Fil);
+	LCD_ALERT(PSTR("Bill Saved"));
       } while (0);
-    } else
+    } else {
       LCD_ALERT(PSTR("Can't save bill"));
+    }
     f_mount(NULL, "", 0);
   }
 #endif
 
   /* Now print the bill */
   menuPrnBill(sl);
+
   return 0;
 }
 
@@ -1521,7 +1608,7 @@ menuIndexItem(struct item *it)
     /* empty or very big name */
   } else {
     /* */
-    for (ui8_1=0; ui8_1<ui8_2; ui8_1++)
+    for (ui8_1=0; ui8_1<=ui8_2; ui8_1++)
       ui16_1 = _crc16_update(ui16_1, it->name[ui8_1]);
   }
   if (ui16_1 != itIdx[2]) {
@@ -1553,8 +1640,9 @@ uint16_t
 menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 {
   itemIdxs_t itIdx, itIdx1;
-  uint16_t ui16_1;
+  uint16_t ui16_1, ui16_2;
   uint8_t  ui8_1, ui8_2;
+  uint8_t  ui8_3 = it->unused_find_best_match;
 
   /* upcase inputs */
   assert( (NULL != name) || (NULL != prod_code) );
@@ -1596,26 +1684,41 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   }
 #endif
 
-  for (ui16_1=((ITEM_MAX_ADDR+(idx*sizeof(itemIdxs_t)))>>EEPROM_MAX_DEVICES_LOGN2); idx<ITEM_MAX;
-       idx++, ui16_1+=(sizeof(itemIdxs_t)>>EEPROM_MAX_DEVICES_LOGN2)) {
+  ui16_2 = (idx>0) && (idx<=ITEM_MAX) ? idx : 0;
+  for (ui16_1=((ITEM_MAX_ADDR+(ui16_2*sizeof(itemIdxs_t)))>>EEPROM_MAX_DEVICES_LOGN2); ui16_2<ITEM_MAX;
+       ui16_2++, ui16_1+=(sizeof(itemIdxs_t)>>EEPROM_MAX_DEVICES_LOGN2)) {
     ee24xx_read_bytes(ui16_1, (void *)itIdx1, sizeof(itemIdxs_t));
-    //printf("idx:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
-    //	   idx, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
-    ee24xx_read_bytes(menuItemAddr(idx), (uint8_t *)it, ITEM_SIZEOF);
-    if ((NULL != name) && (NULL != prod_code)) {
-      if ((itIdx[0] == itIdx1[0]) && (itIdx[1] == itIdx1[1])) {
-	if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) &&
-	     (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL)) )
-	  return idx+1;
+    if ( (itIdx[0] == itIdx1[0]) || (itIdx[1] == itIdx1[1]) ) {
+      //printf("ui16_2:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
+      //     ui16_2, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
+      ee24xx_read_bytes(menuItemAddr(ui16_2), (uint8_t *)it, ITEM_SIZEOF);
+      /*if ((NULL != name) && (NULL != prod_code)) {
+	if ((itIdx[0] == itIdx1[0]) && (itIdx[1] == itIdx1[1])) {
+	  if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) &&
+	       (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL)) )
+	    return ui16_2+1;
+	}
+	} else*/ if ((NULL != name) && (itIdx[1] == itIdx1[1])) {
+	if (0 == strncmp((char *)name, (const char *)(it->name), ITEM_NAME_BYTEL))
+	  return ui16_2+1;
+      } else if ((NULL != prod_code) && (itIdx[0] == itIdx1[0])) {
+	if (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL))
+	  return ui16_2+1;
       }
-    } else if ((NULL != name) && (itIdx[1] == itIdx1[1])) {
-      if (0 == strncmp((char *)name, (const char *)(it->name), ITEM_NAME_BYTEL))
-	return idx+1;
-    } else if ((NULL != prod_code) && (itIdx[0] == itIdx1[0])) {
-      if (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL))
-	return idx+1;
     }
   }
+
+  ui16_2 = (idx>0) && (idx<=ITEM_MAX) ? idx : 0;
+#if 4 == ITEM_SUBIDX_NAME
+  for (ui16_1=((ITEM_MAX_ADDR+(ui16_2*sizeof(itemIdxs_t)))>>EEPROM_MAX_DEVICES_LOGN2); (ui16_2<ITEM_MAX) && (ui8_3);
+       ui16_2++, ui16_1+=(sizeof(itemIdxs_t)>>EEPROM_MAX_DEVICES_LOGN2)) {
+    ee24xx_read_bytes(ui16_1, (void *)itIdx1, sizeof(itemIdxs_t));
+    if ( (itIdx[2] == itIdx1[2]) || (itIdx[3] == itIdx1[3]) ) {
+      ee24xx_read_bytes(menuItemAddr(ui16_2), (uint8_t *)it, ITEM_SIZEOF);
+      return ui16_2+1;
+    }
+  }
+#endif
 
   assert(ITEM_MAX < ((uint16_t)-1));
   return -1;
@@ -1702,6 +1805,7 @@ menuPrnBill(struct sale *sl)
   }
 
   /* Total */
+  PRINTER_FONT_ENLARGE(2);
   PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", (double)sl->t_discount);
   PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", (double)sl->t_vat);
   PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", (double)sl->t_stax);
