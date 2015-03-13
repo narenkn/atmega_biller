@@ -28,8 +28,10 @@ struct sale_item {
 #define  SALE_INFO_INVALID      0x1
 struct sale_info {
   uint8_t   n_items;
-  uint8_t   prop;
+  uint8_t   property;
   uint8_t   user[EPS_MAX_UNAME];
+
+  uint16_t  bill_id;
 
   uint16_t  date_yy:7;
   uint16_t  date_mm:4;
@@ -41,16 +43,17 @@ struct sale_info {
 } __attribute__((packed));
 
 struct sale {
-  struct sale_info info;                 /*           6 */
+  struct sale_info info;                 /*           8 */
   struct sale_item items[MAX_ITEMS_IN_BILL]; /*8*14=112       45*9 = 405     */
   uint32_t  t_stax;                      /*           4 */
   uint32_t  t_discount;                  /*           4 */
   uint32_t  t_vat;                       /*           4 */
   uint32_t  total;                       /*           4 */
   struct item      it[1];                /*          56 */
-} __attribute__((packed));               /* Tot   = 190              484     */
+} __attribute__((packed));               /* Tot   = 192              486     */
 
 /* constants */
 #define SALE_SIZEOF       sizeof(struct sale)
+#define SIZEOF_1BILL      (SALE_SIZEOF-ITEM_SIZEOF+(ITEM_SIZEOF*MAX_ITEMS_IN_BILL))
 
 #endif

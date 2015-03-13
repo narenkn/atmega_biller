@@ -11,7 +11,7 @@ VPATH = .:..
 SOURCE = $(wildcard test_menu_2.c)
 TESTS =  $(filter-out test_common, $(subst .c, , $(SOURCE)))
 
-make_tests: $(TESTS)
+make_tests: $(TESTS) ../ep_ds.h ../version.h
 
 run_tests: make_tests
 	for test in $(TESTS) ; do echo -n $$test ; ./$$test ; done

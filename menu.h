@@ -88,11 +88,10 @@ typedef struct {
 #define MENU_MRESET    0x80  /* State after reset */
 #define MENU_MODITEM   0x01
 #define MENU_MVALIDATE 0x02
-#define MENU_MMODBILL  0x03
+#define MENU_NOCONFIRM 0x03
 #define MENU_MITEM     0x04
 #define MENU_MFULL     0x05
 #define MENU_MTAX      0x06
-#define MENU_NOCONFIRM 0x03
 #define MENU_MODEMASK  0xE0
 
 /* Implementation of Hierarchical menu : Every menu item could be associated
@@ -122,8 +121,8 @@ struct setting_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MRESET)  MENU_NAME("User Login  ") COL_JOIN MENU_FUNC(menuUserLogin) COL_JOIN \
     ARG1(MENU_PR_NAME,  MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_PASS,  MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MMODBILL)  MENU_NAME("Modify Bill ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MODITEM)  MENU_NAME("Modify Bill ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
+    ARG1(MENU_PR_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Add Item    ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
     ARG1(MENU_PR_NAME, MENU_ITEM_STR|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete Item ") COL_JOIN MENU_FUNC(menuDelItem) COL_JOIN \
@@ -176,13 +175,6 @@ extern uint8_t devStatus;
 #define DS_DEV_INVALID (1<<5)
 #define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD)
 
-#define PSTR2STR(pstr, str, ui_1, ui_2)		\
-  for (ui_2=0; ;ui_2++) {			\
-    ui_1 = pgm_read_byte(pstr+ui_2);		\
-    str[ui_2] = ui_1;				\
-    if (0 == ui_1) break;			\
-  }
-
 /* Helper routines */
 typedef uint16_t (*menuGetOptHelper)(uint8_t *str, uint16_t strlen, uint16_t prev);
 void menuInit(void);
@@ -200,6 +192,7 @@ uint8_t menuUserLogin(uint8_t mode);
 uint8_t menuAddItem(uint8_t mode);
 uint8_t menuDelItem(uint8_t mode);
 #define menuItemAddr(id) ((id)*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
+#define menuItemId(addr) ((addr)/((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* */
 #define menuItemIdxOff(id) ((id)*(uint16_t)ITEM_SUBIDX_NAME)
 void menuIndexItem(struct item *it);
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
@@ -207,7 +200,10 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 /* billing routines */
 uint8_t menuBilling(uint8_t mode);
 uint8_t menuShowBill(uint8_t mode); // Unverified
-void menuPrnBill(struct sale *sl); // Unverified
+typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
+void menuPrnBillSDHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
+void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
+void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
 
 /* User option routines */
 #if MENU_SETTING_ENABLE

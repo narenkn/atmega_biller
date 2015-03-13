@@ -26,8 +26,10 @@ test_init2()
   uint8_t ui8_1;
   uint16_t ui16_1;
 
-  eeprom_update_block((const void *)"Sri Ganapathy Stores",
+#if 0
+  eeprom_update_block((const void *)"Sri Ganapathy Stores            ",
 		      (void *)(offsetof(struct ep_store_layout, shop_name)) , SHOP_NAME_SZ_MAX);
+#endif
   for (ui8_1=0, ui16_1=700; ui8_1<EPS_MAX_VAT_CHOICE; ui8_1++, ui16_1 += 110) {
     eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*ui8_1)), ui16_1);
   }
@@ -52,12 +54,15 @@ main(void)
   test_init1();
 
   menuInit();
-  test_init2();
+  //  test_init2();
 
   uartInit();
   uartSelect(0);
   printerInit();
 
+  move(0, 0);
+  printw("Press F2 to exit");
+  menuSDLoadItem(MENU_MSUPER);
   test_init3();
 
   LCD_CLRLINE(0);
@@ -67,12 +72,12 @@ main(void)
   struct sale *sl = (void *) (bufSS+LCD_MAX_COL+LCD_MAX_COL+4);
   assert(sizeof(struct sale)+LCD_MAX_COL+LCD_MAX_COL+4 <= BUFSS_SIZE);
   sl->info.n_items = 1;
-  sl->info.prop    = 0;
+  sl->info.property = 0;
   strncpy_P(sl->info.user, PSTR("naren   "), 8);
   sl->info.date_yy = 44;
   sl->info.date_mm = 9;
   sl->info.date_dd = 4;
-  sl->items[0].ep_item_ptr = 0;
+  sl->items[0].ep_item_ptr = menuItemAddr(22-1);
   sl->items[0].quantity = 5;
   sl->items[0].cost = 55;
   sl->items[0].discount = 13;
@@ -84,20 +89,8 @@ main(void)
   sl->t_discount = 144;
   sl->t_vat = 33;
   sl->total = 16734;
-  sl->it[0].id = 23;
-  sl->it[0].cost = 5500;
-  sl->it[0].discount = 1155;
-  strncpy_P(sl->it[0].name, PSTR("milk n cream"), 12);
-  strncpy_P(sl->it[0].prod_code, PSTR("98798sdfaiuy988a"), 16);
-  sl->it[0].has_serv_tax = 1;
-  sl->it[0].has_common_discount = 0;
-  sl->it[0].has_weighing_mc = 1;
-  sl->it[0].vat_sel = 0;
-  sl->it[0].name_in_unicode = 0;
-  sl->it[0].has_vat = 1;
-  sl->it[0].is_disabled = 0;
 
-  menuPrnBill(sl);
+  menuPrnBill(sl, menuPrnBillEE24xxHelper);
 
   getch();
   LCD_end();

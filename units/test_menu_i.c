@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <time.h>
 
 #define SD_ITEM_FILE "test_data/items_1.dat"
 
@@ -37,8 +38,15 @@ test_init2()
 void
 test_init3()
 {
+  /* login */
   MenuMode = MENU_MSUPER;
   LoginUserId = 1;
+
+  /* time */
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  timerDateSet(tm.tm_year-80, tm.tm_mon+1, tm.tm_mday);
+  timerTimeSet(tm.tm_hour, tm.tm_min);
 }
 
 int

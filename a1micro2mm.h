@@ -92,13 +92,22 @@
   uartTransmitByte('%');			\
   uartTransmitByte(N)
 
-#define PRINTER_SPRINTF(STR, FMT, ...)	do {	\
-  uint8_t ui8_1t, ui8_2t;				\
-  ui8_2t = sprintf((char *)STR, FMT, __VA_ARGS__);	\
-  for (ui8_1t=0; ui8_1t<ui8_2t; ui8_1t++) {		\
-    PRINTER_PRINT(STR[ui8_1t]);			\
-  }						\
-} while (0)
+#define PRINTER_PSTR(P) do {						\
+    uint8_t ui8_1t, ui8_2t;						\
+    for (ui8_1t=0, ui8_2t=pgm_read_byte(((const uint8_t *)P));		\
+	 ui8_2t;							\
+	 ui8_2t=pgm_read_byte(((const uint8_t *)P)+ ++ui8_1t)) {		\
+      PRINTER_PRINT(ui8_2t);						\
+    }									\
+  } while (0)
+
+#define PRINTER_SPRINTF(STR, FMT, ...)	do {		\
+    uint8_t ui8_1t, ui8_2t;				\
+    ui8_2t = sprintf((char *)STR, FMT, __VA_ARGS__);	\
+    for (ui8_1t=0; ui8_1t<ui8_2t; ui8_1t++) {		\
+      PRINTER_PRINT(STR[ui8_1t]);			\
+    }							\
+  } while (0)
 
 void printerInit(void);
 void printerDefineUserChar(uint8_t idx);

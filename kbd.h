@@ -41,16 +41,33 @@
 #define ASCII_RIGHT      0xA5
 #define ASCII_UP         0xA6
 #define ASCII_DOWN       0xA7
-#define ASCII_F2         0xA8
-#define ASCII_ESCAPE     0xA9
-#define ASCII_ALT        0xAA
-#define ASCII_CTRL       0xAB
+#define ASCII_F1         0xA8
+#define ASCII_F2         0xA9
+#define ASCII_F3         0xAA
+#define ASCII_F4         0xAB
+#define ASCII_F5         0xAC
+#define ASCII_F6         0xAD
+#define ASCII_F7         0xAE
+#define ASCII_F8         0xAF
+#define ASCII_F9         0xB0
+#define ASCII_F10        0xB1
+#define ASCII_F11        0xB2
+#define ASCII_F12        0xB3
+#define ASCII_ESCAPE     0xB4
+#define ASCII_ALT        0xB5
+#define ASCII_CTRL       0xB6
+#define ASCII_LGUI       0xB7
+#define ASCII_SHIFT      0xB8
 
 #define KBD_RESET_KEY          \
   keyHitData.KbdData=0, keyHitData._kbdData=0, keyHitData.count=0, keyHitData.KbdDataAvail=0
 
-#define KBD_HIT      (0x0 != keyHitData.KbdDataAvail)
-#define KBD_NOT_HIT  (0x0 == keyHitData.KbdDataAvail)
+#define KBD_HIT_BIT      (0x1)
+#define KBD_LWIN_BIT     (0x2)
+#define KBD_SHIFT_BIT    (0x4)
+
+#define KBD_HIT      (keyHitData.KbdDataAvail & KBD_HIT_BIT)
+#define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & KBD_HIT_BIT))
 
 #ifdef UNIT_TEST
 # define KBD_GETCH KbdGetCh()

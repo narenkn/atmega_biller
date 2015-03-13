@@ -140,3 +140,36 @@ timerTimeGet(uint8_t *hm)
   hm[1] = i2c_hm[1];
   hm[2] = i2c_hm[2];
 }
+
+//******************************************************************
+//Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
+//******************************************************************  
+uint32_t
+get_fattime (void)
+{
+  uint8_t buf[3];
+  uint32_t dtFat;
+
+  /* Process date */
+  timerDateGet(buf);
+  dtFat = buf[2];
+  dtFat <<= 4;
+  dtFat |= buf[1];
+  dtFat <<= 5;
+  dtFat |= buf[0];
+
+  /* Process time */
+  timerTimeGet(buf);
+  dtFat <<= 5;
+  dtFat |= buf[0];
+  dtFat <<= 6;
+  dtFat |= buf[1];
+  /* FAT32 fromat accepts dates with 2sec resolution
+     (e.g. value 5 => 10sec) */
+  dtFat <<= 5;
+  dtFat |= buf[2]>>1;
+
+  return dtFat;
+}

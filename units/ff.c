@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "integer.h"
 #include "ffconf.h"
@@ -77,12 +78,12 @@ typedef char TCHAR;
 
 typedef struct {
   uint8_t  mount_path[FF_STR_LEN];
-  uint32_t is_mounted:1;
+  uint8_t  fs_type;
 } FATFS;
 
 typedef struct {
   uint8_t fpath[FF_STR_LEN<<1];
-  FILE *fp;
+  FILE *fs;
   BYTE mode;
   uint32_t is_active:1;
 } FIL;
@@ -103,12 +104,12 @@ FRESULT f_mount (
 {
   if (NULL == fs) { /* unmount */
     _fs->mount_path[0] = 0;
-    _fs->is_mounted = 0;
+    _fs->fs_type = 0;
     return FR_OK;
   }
   /* mount */
   strncat(fs->mount_path, path, FF_STR_LEN);
-  fs->is_mounted = 1;
+  fs->fs_type = 1;
   _fs = fs;
   return FR_OK;
 }
@@ -124,13 +125,14 @@ FRESULT f_open (
 
   /* */
   if (fp->is_active) {
-    fclose(fp->fp);
+    fclose(fp->fs);
     fp->is_active = 0;
   }
 
   /* */
-  fp->fp = fopen(fp->fpath, (((FA_READ|FA_WRITE)&mode)==(FA_READ|FA_WRITE)) ? "a+" : (FA_READ&mode) ? "r":"a");
-  if (NULL == fp->fp) {
+  fp->fs = fopen(fp->fpath, (((FA_READ|FA_WRITE)&mode)==(FA_READ|FA_WRITE)) ? "rb+" : (FA_READ&mode) ? "rb":"ab+");
+  if (NULL == fp->fs) {
+    printf("error:'%s' '%s'\n", strerror(errno), fp->fpath);
     return FR_DISK_ERR;
   }
   fp->is_active = 1;
@@ -148,7 +150,7 @@ FRESULT f_read (
 {
   uint32_t size;
   
-  size = fread(buff, 1, btr, fp->fp);
+  size = fread(buff, 1, btr, fp->fs);
   *br = size;
   return (0 == size) ? FR_DISK_ERR : FR_OK;
 }
@@ -167,7 +169,7 @@ FRESULT f_write (
 {
   uint32_t size;
   
-  size = fwrite(buff, 1, btw, fp->fp);
+  size = fwrite(buff, 1, btw, fp->fs);
   *bw = size;
   return (0 == size) ? FR_DISK_ERR : FR_OK;
 }
@@ -177,7 +179,7 @@ FRESULT f_sync (
 	FIL* fp
 )
 {
-  fflush(fp->fp);
+  fflush(fp->fs);
 }
 
 #endif /* !_FS_READONLY */
@@ -187,7 +189,7 @@ FRESULT f_close (
 	FIL *fp
 )
 {
-  fclose(fp->fp);
+  fclose(fp->fs);
   fp->is_active = 0;
 }
 
@@ -237,33 +239,33 @@ FRESULT f_lseek (
 	DWORD ofs		/* File pointer from top of file */
 )
 {
-  fseek(fp->fp, ofs, SEEK_SET);
+  fseek(fp->fs, ofs, SEEK_SET);
   return FR_OK;
 }
 
 UINT f_eof(FIL *fp)
 {
-  return feof(fp->fp);
+  return feof(fp->fs);
 }
 
 FRESULT f_error(FIL* fp)
 {
-  return ferror(fp->fp);
+  return ferror(fp->fs);
 }
 
 DWORD f_tell(FIL *fp)
 {
-  return ftell(fp->fp);
+  return ftell(fp->fs);
 }
 
 DWORD f_size(FIL *fp)
 {
   DWORD size, temp;
 
-  temp = ftell(fp->fp);
-  fseek(fp->fp, 0L, SEEK_END);
-  size = ftell(fp->fp);
-  fseek(fp->fp, temp, SEEK_SET);
+  temp = ftell(fp->fs);
+  fseek(fp->fs, 0L, SEEK_END);
+  size = ftell(fp->fs);
+  fseek(fp->fs, temp, SEEK_SET);
 
   return size;
 }
@@ -319,8 +321,7 @@ FRESULT f_stat (
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
-  assert(0);
-  return FR_DISK_ERR;
+  return (0 == stat(path, NULL)) ? FR_OK : FR_DISK_ERR;
 }
 
 
@@ -352,12 +353,7 @@ FRESULT f_unlink (
 	const TCHAR* path		/* Pointer to the file or directory path */
 )
 {
-  uint8_t fpath[FF_STR_LEN<<2];
-  
-  fpath[0] = 0;
-  sprintf(fpath, "rm -rf %s/%s", _fs->mount_path, path);
-
-  return 0 == system(fpath) ? FR_OK : FR_DISK_ERR;
+  return (0 == unlink(path)) ? FR_OK : FR_DISK_ERR;
 }
 
 FRESULT f_mkdir (
@@ -403,8 +399,7 @@ FRESULT f_rename (
 	const TCHAR* path_new	/* Pointer to the new name */
 )
 {
-  assert(0);
-  return FR_DISK_ERR;
+  return (0 == rename(path_old, path_new)) ? FR_OK : FR_DISK_ERR;
 }
 
 #endif /* !_FS_READONLY */
@@ -542,7 +537,7 @@ int f_puts (
   return FR_DISK_ERR;
 }
 
-#define f_printf(FP, ...) fprintf(FP->fp, ...)
+#define f_printf(FP, ...) fprintf(FP->fs, ...)
 
 #endif /* !_FS_READONLY */
 #endif /* _USE_STRFUNC */

@@ -37,12 +37,21 @@ keyChars[] PROGMEM = {
   '8', 'v', 'w', 'x', '*', 'V', 'W', 'X', '<',
   '9', 'y', 'z', '(', '-', 'Y', 'Z', '=', '>',
 };
+
 const uint8_t
 keyMap[] PROGMEM = {
   1,           2,            3,        ASCII_ESCAPE,
-  4,           5,            6,        ASCII_DEL,
-  7,           8,            9,        ASCII_PRNSCRN,
+  4,           5,            6,        ASCII_LGUI,
+  7,           8,            9,        ASCII_SHIFT,
   ASCII_LEFT,  0,  ASCII_RIGHT,        ASCII_ENTER
+};
+
+const uint8_t
+keyMapLGui[] PROGMEM = {
+  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_DEL,
+  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UP,
+  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_DOWN,
+  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
 };
 
 keyHitData_t keyHitData;
@@ -214,15 +223,24 @@ ISR(TIMER1_OVF_vect)
       keyHitData._kbdData--;
       keyHitData._kbdData &= 0xF;
       keyHitData.KbdData = pgm_read_byte(keyMap+keyHitData._kbdData);
-      if (keyHitData.KbdData < 10) {
-	keyHitData.KbdData = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count));
+      keyHitData.KbdDataAvail |= KBD_HIT_BIT;
+      if (keyHitData.KbdDataAvail & KBD_LWIN_BIT) {
+	keyHitData.KbdData = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
+	keyHitData.KbdDataAvail |= KBD_HIT_BIT;
+      } else if (keyHitData.KbdData < 10) {
+	keyHitData.KbdData = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & KBD_SHIFT_BIT)*5) ));
+      } else if (ASCII_LGUI == keyHitData.KbdData) {
+	keyHitData.KbdDataAvail |= KBD_LWIN_BIT;
+	keyHitData.KbdDataAvail &= ~KBD_HIT_BIT; /* disable this key now */
+      } else if (ASCII_SHIFT == keyHitData.KbdData) {
+	keyHitData.KbdDataAvail |= KBD_SHIFT_BIT;
+	keyHitData.KbdDataAvail &= ~KBD_HIT_BIT; /* disable this key now */
       }
-      keyHitData.KbdDataAvail = 1;
     }
     keyHitData._kbdData = 0;
     keyHitData.count = 0;
     timer1_iter = 0;
-  } else if (3 == keyHitData.KbdDataAvail) {
+  } else if (keyHitData.KbdDataAvail & KBD_HIT_BIT) {
     timer1_iter = 0;
   }
 
@@ -240,16 +258,18 @@ ISR(TIMER1_OVF_vect)
   }
 }
 
+#define PS2CODE2ASCII_MASK  0x7F
+
 const uint8_t
 ps2code2ascii[] PROGMEM = {
-  ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, '`', ASCII_UNDEF, /* 0-15 */
+  ASCII_UNDEF, ASCII_F9, ASCII_UNDEF, ASCII_F5, ASCII_F3, ASCII_F1, ASCII_F2, ASCII_F12, ASCII_UNDEF, ASCII_F10, ASCII_F8, ASCII_F6, ASCII_F4, ASCII_UNDEF, '`', ASCII_UNDEF, /* 0-15 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'q', '1', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'z', 's', 'a', 'w', '2', ASCII_UNDEF, /* 16-31 */
   ASCII_UNDEF, 'c', 'x', 'd', 'e', '4', '3', ASCII_UNDEF, ' ', ASCII_UNDEF, 'v', 'f', 't', 'r', '5', ASCII_UNDEF, /* 32-47 */
   ASCII_UNDEF, 'n', 'b', 'h', 'g', 'y', '6', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'm', 'j', 'u', '7', '8', ASCII_UNDEF, /* 48-63 */
   ASCII_UNDEF, ',', 'k', 'i', 'o', '0', '9', ASCII_UNDEF, ASCII_UNDEF, '.', '/', 'l', ';', 'p', '-', ASCII_UNDEF, /* 64-79 */
   ASCII_UNDEF, ASCII_UNDEF, '\'', ASCII_UNDEF, '[', '=', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_ENTER, ']', ASCII_UNDEF, '\\', ASCII_UNDEF, ASCII_UNDEF, /* 80-95 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_BACKSPACE, ASCII_UNDEF, ASCII_UNDEF, '1', ASCII_UNDEF, '4', '7', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 96-111 */
-  '0', '.', '2', '5', '6', '8', ASCII_ESCAPE, ASCII_NUMLK, ASCII_UNDEF, '+', '3', '-', '*', '9', ASCII_PRNSCRN, ASCII_UNDEF, /* 112-127 */
+  '0', '.', '2', '5', '6', '8', ASCII_ESCAPE, ASCII_NUMLK, ASCII_F11, '+', '3', '-', '*', '9', ASCII_PRNSCRN, ASCII_UNDEF, /* 112-127 */
 };
 
 const uint8_t
@@ -307,12 +327,10 @@ ISR(INT0_vect)
       if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
 	kbdTransL = 6;
       } else {
-	KeyData = (kbdStatus & ps2ShiftHit) ?
-	  pgm_read_byte(&(ps2code2asciiE0[kbdDr[2]])) :
-	  pgm_read_byte(&(ps2code2ascii[kbdDr[2]]));
+	KeyData = pgm_read_byte(&(ps2code2asciiE0[kbdDr[2]&PS2CODE2ASCII_MASK]));
 	if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
 	  keyHitData.KbdData = KeyData;
-	  keyHitData.KbdDataAvail = 1;
+	  keyHitData.KbdDataAvail |= KBD_HIT_BIT;
 	  drC = 3; /* make sure == kbdTransL */
 	}
       }
@@ -328,13 +346,18 @@ ISR(INT0_vect)
 	kbdStatus &= ~ps2AltHit;
       else {
 	KeyData = (kbdStatus & ps2ShiftHit) ?
-	  pgm_read_byte(&(ps2code2asciiE0[kbdDr[1]])) :
-	  pgm_read_byte(&(ps2code2ascii[kbdDr[1]]));
+	  pgm_read_byte(&(ps2code2asciiE0[kbdDr[1]&PS2CODE2ASCII_MASK])) :
+	  pgm_read_byte(&(ps2code2ascii[kbdDr[1]&PS2CODE2ASCII_MASK]));
+	/* temporary fix for code not in table */
+	if (ASCII_UNDEF == KeyData) {
+	  if (0x83 == kbdDr[1])
+	    KeyData = ASCII_F7;
+	}
 	if (ASCII_NUMLK == KeyData) {
 	  /* FIXME: Switch TOGGLE the light */
 	} else if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
 	  keyHitData.KbdData = KeyData;
-	  keyHitData.KbdDataAvail = 1;
+	  keyHitData.KbdDataAvail |= KBD_HIT_BIT;
 	}
       }
     }
