@@ -2177,10 +2177,23 @@ menuShowBill(uint8_t mode)
 	ui8_1 ^= 1;
       }
 
-      if (MENU_ITEM_DATE != arg1.valid) {
+      if ((MENU_ITEM_DATE != arg1.valid) && (MENU_ITEM_ID != arg2.valid)) {
 	ui16_3 = 0;
 	break;
-      } else {
+      } else if ((MENU_ITEM_DATE == arg1.valid) && (MENU_ITEM_ID == arg2.valid)) {
+	if ( (sl->info.date_yy == arg1.value.date.year) &&
+	     (sl->info.date_mm == arg1.value.date.month) &&
+	     (sl->info.date_dd == arg1.value.date.day) &&
+	     (sl->info.bill_id == arg2.value.integer.i32) ) {
+	  ui16_3 = 0;
+	  break;
+	}
+      } else if (MENU_ITEM_ID == arg2.valid) {
+	if (sl->info.bill_id == arg2.value.integer.i32) {
+	  ui16_3 = 0;
+	  break;
+	}
+      } else { /* should be MENU_ITEM_DATE == arg1.valid */
 	if ( (sl->info.date_yy == arg1.value.date.year) &&
 	     (sl->info.date_mm == arg1.value.date.month) &&
 	     (sl->info.date_dd == arg1.value.date.day) ) {
