@@ -55,3 +55,5 @@ FIXME:
 ##39. Check for name/ prod-code in item before accepting it
 40. Make sure no two items have same name & prod-code : is this required?
 41. Show bill : Need to provide facility to enter bill id
+42. LEFT takes back. We introduced ESCAPE, so that needs to be factored in!
+43. Number of bill should be rechecked on every bill item. On reset, it needs to be initialized.

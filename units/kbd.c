@@ -198,6 +198,7 @@ KbdInit(void)
   cursesKbdFixes[KEY_ENTER] = ASCII_ENTER;
   cursesKbdFixes[ASCII_LF] = ASCII_ENTER;
   cursesKbdFixes[ASCII_ENTER] = ASCII_ENTER;
+  cursesKbdFixes[27] = ASCII_ESCAPE;
 }
 
 void

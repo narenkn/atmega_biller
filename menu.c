@@ -2119,7 +2119,7 @@ menuShowBill(uint8_t mode)
   }
   UINT  ret_val;
   uint8_t  ui8_1;
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, ui16_3;
   uint32_t ui32_1, ui32_2;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
@@ -2139,7 +2139,7 @@ menuShowBill(uint8_t mode)
   assert(2 == ret_val);
   ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
   ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
-  if (GIT_HASH_CRC != ui16_2) {
+  if (GIT_HASH_CRC != ui16_1) {
     LCD_ALERT(PSTR("Old Format"));
     goto menuShowBillReturn;
   }
@@ -2153,40 +2153,44 @@ menuShowBill(uint8_t mode)
     goto menuShowBillReturn;
   }
   assert( ui32_2 >= (SIZEOF_1BILL+4) );
+  ui16_2 = ui32_2 / SIZEOF_1BILL; /* num bills */
 
-  do {
+  for (ui32_1=ui32_2-2-SIZEOF_1BILL, ui8_1=0; ; ) {
     /* iterate records */
-    for (ui32_1=ui32_2-2-SIZEOF_1BILL, ui8_1=1; ;) {
+    for (ui16_3=0; ;) {
       /* Display this item */
       f_lseek(&Fil, ui32_1);
-      f_read(&Fil, (void *)sl, SALE_SIZEOF, &ret_val);
-      assert(sizeof(struct sale) == ret_val);
-      if (MENU_ITEM_DATE == arg1.valid) {
+      f_read(&Fil, (void *)sl, SALE_SIZEOF-ITEM_SIZEOF, &ret_val);
+      assert((SALE_SIZEOF-ITEM_SIZEOF) == ret_val);
+      ui16_3++;
+
+      if (ui16_3 > ui16_2) { /* couldn't find goto last bill */
+	LCD_ALERT(PSTR("No Bill"));
+	ui32_1=ui32_2-2-SIZEOF_1BILL;
+	ui16_3 = 0;
+	continue;
+      } else if ((0 == (ui8_1&1)) && (ui32_1>SIZEOF_1BILL)) { /* prev */
+	ui32_1 -= SIZEOF_1BILL;
+      } else if ((1 == (ui8_1&1)) && ((ui32_1+SIZEOF_1BILL)<(ui32_2-SIZEOF_1BILL))) { /* next */
+	ui32_1 += SIZEOF_1BILL;
+      } else { /* not found, change direction */
+	ui8_1 ^= 1;
+      }
+
+      if (MENU_ITEM_DATE != arg1.valid) {
+	ui16_3 = 0;
+	break;
+      } else {
 	if ( (sl->info.date_yy == arg1.value.date.year) &&
 	     (sl->info.date_mm == arg1.value.date.month) &&
 	     (sl->info.date_dd == arg1.value.date.day) ) {
+	  ui16_3 = 0;
 	  break;
 	}
-      } else
-	break;
-      if ((0 == (ui8_1&1)) && (ui32_1>SIZEOF_1BILL)) { /* prev */
-	ui32_1 -= SIZEOF_1BILL;
-	continue;
-      } else if ((1 == (ui8_1&1)) && ((ui32_1+SIZEOF_1BILL)<ui32_2)) { /* next */
-	ui32_2 += SIZEOF_1BILL;
-	continue;
-      } else if ((ui8_1 & 0xF0) > 0x10) {
-	break;
-      } else { /* not found, change direction */
-	ui8_1 += 0x10;
-	ui8_1 ^= 1;
-	continue;
       }
     }
-    ui8_1 &= ~0xF0;
 
-    /* FIXME: Display bill */
-    f_read(&Fil, (void *)sl, SALE_SIZEOF-ITEM_SIZEOF, &ret_val);
+    /* Display bill */
     LCD_CLRLINE(0);
     LCD_PUT_UINT(sl->info.bill_id);
     LCD_PUTCH(':');
@@ -2206,7 +2210,9 @@ menuShowBill(uint8_t mode)
     /* according to user's wish */
     KBD_RESET_KEY;
     KBD_GETCH;
-    if ((ASCII_ENTER == keyHitData.KbdData) || (ASCII_PRNSCRN == keyHitData.KbdData)) {
+    if (ASCII_ENTER == keyHitData.KbdData) {
+      /* keep direction */
+    } else if (ASCII_PRNSCRN == keyHitData.KbdData) {
       f_lseek(&Fil, ui32_1+SALE_SIZEOF-ITEM_SIZEOF);
       menuPrnBill(sl, menuPrnBillSDHelper);
     } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
@@ -2214,9 +2220,9 @@ menuShowBill(uint8_t mode)
     } else if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
       ui8_1 = 1;
     } else if (ASCII_ESCAPE == keyHitData.KbdData) {
-      goto menuShowBillReturn;
+      break;
     }
-  } while (1);
+  }
 
   /* */
  menuShowBillReturn:
