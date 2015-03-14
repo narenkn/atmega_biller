@@ -97,9 +97,9 @@ main(void)
   /* Welcome screen */
   LCD_bl_on;
   LCD_CLRSCR;
-  LCD_WR_NP((const uint8_t *)PSTR("Welcome..."), 10);
+  LCD_WR_NP((const char *)PSTR("Welcome..."), 10);
   LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const uint8_t *)PSTR("  Initializing.."), 1);
+  LCD_WR_NP((const char *)PSTR("  Initializing.."), 1);
   LCD_refresh();
   _delay_ms(500);
 
@@ -116,13 +116,13 @@ main(void)
      error and exit */
   if (0 == (devStatus&DS_DEV_ERROR)) {
     LCD_cmd(LCD_CMD_CUR_20);
-    LCD_WR_NP((const uint8_t *)PSTR("   Initialized!"), 15);
+    LCD_WR_NP((const char *)PSTR("   Initialized!"), 15);
     LCD_refresh();
     _delay_ms(1000);
     menuMain();
   } else if (devStatus & DS_DEV_INVALID) {
     LCD_CLRLINE(0);
-    LCD_WR_NP((const uint8_t *)PSTR("Invalid Prod Key"), 15);
+    LCD_WR_NP((const char *)PSTR("Invalid Prod Key"), 15);
     LCD_refresh();
     _delay_ms(5000);
   } else {
@@ -132,7 +132,7 @@ main(void)
 
   /* reach here and you could never get out */
   LCD_CLRSCR;
-  LCD_WR_NP((const uint8_t *)PSTR("Power Off Now"), 13);
+  LCD_WR_NP((const char *)PSTR("Power Off Now"), 13);
   LCD_refresh();
   while (1) {
     KBD_GETCH;

@@ -97,7 +97,7 @@ LCD_WR(char *str)
 }
 
 void
-LCD_WR_N(char *str, uint8_t len)
+LCD_WR_N(uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t;
 
@@ -114,7 +114,7 @@ LCD_WR_N(char *str, uint8_t len)
 }
 
 void
-LCD_WR_P(const uint8_t *str)
+LCD_WR_P(const char *str)
 {
   uint8_t ui1_t;
   refresh();
@@ -129,7 +129,7 @@ LCD_WR_P(const uint8_t *str)
 }
 
 void
-LCD_WR_NP(const uint8_t *str, uint8_t len)
+LCD_WR_NP(const char *str, uint8_t len)
 {
   uint8_t ui1_t;
 

@@ -199,9 +199,11 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode);
-uint8_t menuShowBill(uint8_t mode); // Unverified
+uint8_t menuShowBill(uint8_t mode);
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
+#if FF_ENABLE
 void menuPrnBillSDHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
+#endif
 void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
 void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
 

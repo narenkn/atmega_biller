@@ -2,6 +2,8 @@
 /* Foolproof FatFs sample project for AVR              (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 #include "ffconf.h"
+#undef   _USE_MKFS
+#define  _USE_MKFS 1
 #include "../ff.c"
 #include "mmc_avr.c"
 

@@ -120,8 +120,7 @@
 #endif // #ifdef UNIT_TEST
 
 // Not working
-//#define LCD_CLRSCR				\
-//  LCD_cmd(LCD_CMD_CLRSCR)
+//#define LCD_CLRSCR  LCD_cmd(LCD_CMD_CLRSCR)
 #define LCD_CLRSCR				\
   LCD_CLRLINE(1); LCD_CLRLINE(0)
 
@@ -136,9 +135,9 @@
 
 void LCD_CLRLINE(uint8_t line);
 void LCD_WR(char *str);
-void LCD_WR_N(char *str, uint8_t len);
-void LCD_WR_P(const uint8_t *str);
-void LCD_WR_NP(const uint8_t *str, uint8_t len);
+void LCD_WR_N(uint8_t *str, uint8_t len);
+void LCD_WR_P(const char *str);
+void LCD_WR_NP(const char *str, uint8_t len);
 
 void LCD_PUT_UINT8X(uint8_t ch);
 void LCD_PUT_UINT16X(uint16_t ch);
@@ -148,13 +147,13 @@ void LCD_PUT_UINT(uint32_t val);
 
 #define LCD_ALERT(str)				\
   LCD_CLRLINE(0);				\
-  LCD_WR_P((const uint8_t *)str);		\
+  LCD_WR_P((const char *)str);		\
   LCD_refresh();				\
   KBD_GETCH
 
 #define LCD_ALERT_16N(str, n)			\
   LCD_CLRLINE(0);				\
-  LCD_WR_P((const uint8_t *)str);		\
+  LCD_WR_P((const char *)str);		\
   LCD_PUT_UINT16X(n);				\
   LCD_refresh();				\
   KBD_GETCH
