@@ -1,8 +1,3 @@
-#undef LCD_USE_FUNCTIONS
-#define LCD_USE_FUNCTIONS 0
-
-#define assert(x)
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -19,7 +14,8 @@ main()
   LCD_init();
 
   LCD_bl_on;
-  LCD_WR_LINE(0, 0, "UART Testing:");
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("UART Testing:"));
   LCD_refresh();
   _delay_ms(1000);
   uartInit();
@@ -32,8 +28,8 @@ main()
     for (ui1=0; ui1<26; ui1++) {
 //      ui2 = receiveByte();
 
-      LCD_POS(1, 0);
-      LCD_PUTCH('a'+ui1);
+      LCD_CLRLINE(1);
+      LCD_PUTCH(('a'+ui1));
 //      LCD_PUTCH(ui2);
       LCD_refresh();
       uartTransmitByte('a'+ui1);

@@ -43,27 +43,23 @@ main(void)
   sei();
 
   LCD_bl_on;
-  LCD_WR_LINE_NP(0, 0, PSTR("PS2 Kbd: "), 9);
-  LCD_refresh();
   _delay_ms(1000);
 
   for (ui1=0; ; ui1++) {
+    LCD_CLRLINE(0);
+    LCD_WR_P(PSTR("PS2 Kbd: "));
     if (KBD_HIT) {
-      LCD_POS(0, 9);
-      LCD_PUTCH(KbdData);
+      LCD_PUTCH(keyHitData.KbdData);
       KBD_RESET_KEY;
     }
-//    LCD_POS(0, 11);
 //    LCD_PUT_UINT8X(drC);
-    LCD_POS(0, 14);
     LCD_PUT_UINT8X(ui1);
-//    LCD_POS(1, 0);
+//    LCD_CLRLINE(1);
 //    LCD_PUT_UINT8X(bitC);
 //    LCD_PUT_UINT8X(kbdDr[0]);
 //    LCD_PUT_UINT8X(kbdDr[1]);
 //    LCD_PUT_UINT8X(kbdDr[2]);
 //    LCD_PUT_UINT8X(kbdDr[3]);
-    LCD_refresh();
     _delay_ms(500);
   }
 

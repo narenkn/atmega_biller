@@ -1,6 +1,3 @@
-
-#define assert(x)
-
 #include <inttypes.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -40,16 +37,14 @@ main()
   LCD_init();
 
   DDRD |= 0x10 ; LCD_bl_on;
-  LCD_WR_LINE(0, 0, "Flash test:");
-  LCD_refresh();
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Flash test:"));
   _delay_ms(1);
 
-    ui16_2 = pgm_read_byte(page+ui16_1);
+  ui16_2 = pgm_read_byte(page+ui16_1);
   boot_program_page();
 
-  LCD_POS(0, 15);
   LCD_PUTCH('@');
-  LCD_refresh();
 
   /* don't come back */
   for (;;) { }
@@ -105,8 +100,7 @@ boot_program_page()
   }
 
   /* report */
-  LCD_WR_LINE_NP(1, 0, PSTR("#errors:"), 8);
-  LCD_POS(1, 9);
+  LCD_CLRLINE(1);
+  LCD_WR_P(PSTR("#errors:"));
   LCD_PUT_UINT16X(ui16_3);
-  LCD_refresh();
 }

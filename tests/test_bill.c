@@ -3,7 +3,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include <avr/crc16.h>
+#include <util/crc16.h>
 #include <avr/eeprom.h>
 
 #include "ep_ds.h"
@@ -191,8 +191,8 @@ main(void)
   sei();
 
   PORTD |= 0x10;
-  LCD_WR_LINE_NP(0, 0, PSTR("Bill Sample: "), 13);
-  LCD_refresh();
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Bill Sample: "));
   _delay_ms(1000);
 
   struct sale *sl = (void *) bufSS;
@@ -229,8 +229,7 @@ main(void)
 
   menuPrnBill(sl);
 
-  LCD_WR_LINE_NP(1, 0, PSTR("Printed"), 7);
-  LCD_refresh();
+  LCD_WR_P(PSTR("Printed"));
 
   while (1) {}
 

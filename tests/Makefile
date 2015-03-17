@@ -2,6 +2,8 @@
 # Makefile for the individual test programs
 ###############################################################################
 
+.PHONY: clean all headers
+
 ## General Flags
 PROJECT = 
 MCU = atmega32
@@ -49,8 +51,6 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 ##
 include ../make.proj
 
-.PHONY: clean all headers
-
 ##
 headers: ../ep_ds.h ../version.h 
 
@@ -82,5 +82,4 @@ clean:
 
 
 ## Other dependencies
--include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
-
+##-include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)

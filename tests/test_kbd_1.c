@@ -4,8 +4,6 @@
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 
-#define assert(x)
-
 #include "lcd.c"
 #include "i2c.c"
 
@@ -174,7 +172,7 @@ ISR(TIMER1_OVF_vect)
   iter++;
   TCNT1 = 0xFFFF - (F_CPU>>11);
   LCD_bl_on;
-  LCD_cmd(LCD_CMD_CUR_10 + 14);
+  LCD_cmd((LCD_CMD_CUR_10 + 14));
   LCD_uint8x(iter);
   if (iter > 10) {
     TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
@@ -214,12 +212,12 @@ ISR(TIMER2_OVF_vect)
 int
 main()
 {
-  uint8_t ui8_1, ui8_2, ui8_3;
+  uint8_t ui8_1, ui8_2;
 
   LCD_init();
   LCD_bl_on;
-  LCD_WR_LINE(0, 0, "Kbd Testing");
-  LCD_refresh();
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Kbd Testing"));
 
   keyHitData.KbdData = keyHitData.KbdDataAvail = 0;
   keyHitData._kbdData = keyHitData.count = 0;
@@ -270,9 +268,10 @@ main()
   ui8_1=0;
   for (ui8_2=0; ; ui8_2++) {
     KBD_GETCH;
-    LCD_POS(0, 12);
+    LCD_CLRLINE(0);
+    LCD_WR_P(PSTR("Kbd Testing"));
     LCD_PUTCH(keyHitData.KbdData);
-    LCD_POS(1, 0);
+    LCD_CLRLINE(1);
     LCD_PUT_UINT8X(ui8_2);
     LCD_PUTCH(' ');
     LCD_PUT_UINT8X(keyHitData.KbdData);
@@ -281,7 +280,6 @@ main()
     LCD_PUTCH(':');
     LCD_PUT_UINT8X(keyHitData._kbdData);
     KBD_RESET_KEY;
-    LCD_refresh();
   }
 
   return 0;

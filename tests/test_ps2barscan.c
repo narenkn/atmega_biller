@@ -1,10 +1,10 @@
+#define KBD_H
+
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-
-#define assert(...)
 
 volatile uint8_t KbdData, KbdDataAvail=0;
 #define KBD_HIT (0 != KbdDataAvail)

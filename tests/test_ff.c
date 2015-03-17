@@ -1,6 +1,3 @@
-
-#define assert(x)
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -30,28 +27,26 @@ main(void)
   PORTB |= 0xF2;
 
   LCD_bl_on;
-  LCD_WR_LINE(0, 0, "Fat32 Testing:");
-  LCD_refresh();
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Fat32 Testing:"));
   _delay_ms(1000);
 
-  LCD_WR_LINE(1, 0, "File hw.txt m");
-  LCD_refresh();
+  LCD_CLRLINE(1);
+  LCD_WR_P(PSTR("File hw.txt m"));
   bw = f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
-  LCD_WR_LINE(1, 0, "File hw.txt ");
-  LCD_POS(1, 12);
+  LCD_CLRLINE(1);
+  LCD_WR_P(PSTR("File hw.txt "));
   LCD_PUT_UINT16X(bw);
-  LCD_refresh();
 
   if (f_open(&Fil, "hw.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
-    LCD_WR_LINE(1, 0, "File hw.txt o");
-    LCD_refresh();
+    LCD_CLRLINE(1);
+    LCD_WR_P(PSTR("File hw.txt o"));
     f_write(&Fil, "Hello World1!\r\n", 15, &bw);	/* Write data to the file */
     f_close(&Fil);				/* Close the file */
-    LCD_WR_LINE(1, 0, "File hw.txt pass");
-    LCD_refresh();
+    LCD_CLRLINE(1);
+    LCD_WR_P(PSTR("File hw.txt pass"));
   } else {
-    LCD_WR_LINE(1, 0, "File hw.txt fail");
-    LCD_refresh();
+    LCD_WR_P(PSTR("File hw.txt fail"));
   }
 
   for (;;) ;

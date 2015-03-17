@@ -26,7 +26,7 @@ void TftFill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16_
 void TftShowChar(uint16_t x, uint16_t y, uint8_t num, uint8_t mode);
 void TftShowNum(uint16_t x, uint16_t y, uint32_t num, uint8_t len);
 void TftShow2Num(uint16_t x, uint16_t y, uint16_t num, uint8_t len);
-void TftShowString(uint16_t x, uint16_t y, const uint8_t *p);
+void TftShowString(uint16_t x, uint16_t y, char *p);
 
 #define WHITE         	 0xFFFF
 #define BLACK         	 0x0000

@@ -13,8 +13,6 @@
 int
 main(void)
 {
-  uint8_t ui1;
-
   LCD_init();
 
   PORTD = 0x10;
@@ -30,7 +28,8 @@ main(void)
   LCD_WriteDirect(LCD_CMD_CUR_20, "Hello World B", 13);
   _delay_ms(1000);
 
-  LCD_WR_LINE_NP(1, 0, PSTR("Hello World 10"), 14);
+  LCD_CLRLINE(1);
+  LCD_WR_P(PSTR("Hello World 10"));
   LCD_refresh();
   _delay_ms(1000);
 

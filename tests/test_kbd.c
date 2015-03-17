@@ -4,8 +4,6 @@
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 
-#define assert(x)
-
 #include "lcd.c"
 #include "i2c.c"
 #include "kbd.c"
@@ -19,7 +17,8 @@ main()
 
   LCD_init();
   LCD_bl_on;
-  LCD_WR_P((const uint8_t *)PSTR("Kbd Testing"));
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Kbd Testing"));
   LCD_refresh();
   KbdInit();
 
@@ -35,23 +34,24 @@ main()
   for (ui8_2=0; ; ui8_2++) {
     KBD_RESET_KEY;
     KBD_GETCH;
-    LCD_WR_P((const uint8_t *)PSTR("Kbd Testing:"));
+    LCD_CLRLINE(0);
+    LCD_WR_P(PSTR("Kbd Testing:"));
     if (keyHitData.KbdData <= '~') {
       LCD_PUTCH(keyHitData.KbdData);
     } else if (ASCII_LEFT == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("LEFT"), 4);
+      LCD_WR_NP(PSTR("LEFT"), 4);
     } else if (ASCII_RIGHT == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("RIGT"), 4);
+      LCD_WR_NP(PSTR("RIGT"), 4);
     } else if (ASCII_UP == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("UP  "), 4);
+      LCD_WR_NP(PSTR("UP  "), 4);
     } else if (ASCII_DOWN == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("DOWN"), 4);
+      LCD_WR_NP(PSTR("DOWN"), 4);
     } else if (ASCII_PRNSCRN == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("PRSC"), 4);
+      LCD_WR_NP(PSTR("PRSC"), 4);
     } else if (ASCII_ENTER == keyHitData.KbdData) {
-      LCD_WR_NP((const uint8_t *)PSTR("ENTR"), 4);
+      LCD_WR_NP(PSTR("ENTR"), 4);
     } else {
-      LCD_WR_NP((const uint8_t *)PSTR("UNKN"), 4);
+      LCD_WR_NP(PSTR("UNKN"), 4);
     }
     LCD_refresh();
   }

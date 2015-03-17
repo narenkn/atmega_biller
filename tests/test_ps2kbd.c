@@ -1,3 +1,5 @@
+#define KBD_H
+
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -7,6 +9,7 @@
 #include "i2c.c"
 
 volatile uint8_t KbdData, KbdDataAvail=0;
+#define KBD_HIT (0 != KbdDataAvail)
 #define KBD_PS2_CLK      ((PIND >> 2)&1)
 #define KBD_PS2_CLK_NS   (PIND & 0x4)
 #define KBD_PS2_DATA     ((PIND >> 3)&1)

@@ -537,7 +537,7 @@ TftShow2Num(uint16_t x,uint16_t y,uint16_t num,uint8_t len)
 }
 
 void
-TftShowString(uint16_t x,uint16_t y,const uint8_t *p)
+TftShowString(uint16_t x, uint16_t y, char *p)
 {
   while(*p!='\0') {
     if(x>TFT_WIDTH-16){x=0;y+=16;}

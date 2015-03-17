@@ -1,6 +1,3 @@
-
-#define  assert(X)
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -26,35 +23,34 @@ main(void)
   LCD_bl_on;
 
   _delay_ms(1000);
-  LCD_WR_LINE(0, 0, "DS1307 Tests!!!");
-  LCD_refresh();
 
   timerDateSet(0x5, 0x5, 0x14);
   timerTimeSet(0x1, 0x53);
 
   for (ui1=0; ; ui1++) {
-    LCD_POS(0, 15);
-    LCD_PUTCH('a'+(ui1&0xF));
+    LCD_CLRLINE(0);
+    LCD_WR_P(PSTR("DS1307 Tests!!!"));
+    LCD_PUTCH(('a'+(ui1&0xF)));
     timerDateGet(ymd);
-    LCD_POS(1, 0);
-    LCD_PUTCH('0'+((ymd[0]>>4)&0xF));
-    LCD_PUTCH('0'+(ymd[0]&0xF));
+    LCD_CLRLINE(1);
+    LCD_PUTCH(('0'+((ymd[0]>>4)&0xF)));
+    LCD_PUTCH(('0'+(ymd[0]&0xF)));
     LCD_PUTCH('/');
-    LCD_PUTCH('0'+((ymd[1]>>4)&0xF));
-    LCD_PUTCH('0'+(ymd[1]&0xF));
+    LCD_PUTCH(('0'+((ymd[1]>>4)&0xF)));
+    LCD_PUTCH(('0'+(ymd[1]&0xF)));
     LCD_PUTCH('/');
-    LCD_PUTCH('0'+((ymd[2]>>4)&0xF));
-    LCD_PUTCH('0'+(ymd[2]&0xF));
+    LCD_PUTCH(('0'+((ymd[2]>>4)&0xF)));
+    LCD_PUTCH(('0'+(ymd[2]&0xF)));
     LCD_refresh();
     timerTimeGet(hms);
-    LCD_PUTCH('0'+((hms[0]>>4)&0xF));
-    LCD_PUTCH('0'+(hms[0]&0xF));
+    LCD_PUTCH(('0'+((hms[0]>>4)&0xF)));
+    LCD_PUTCH(('0'+(hms[0]&0xF)));
     LCD_PUTCH(':');
-    LCD_PUTCH('0'+((hms[1]>>4)&0xF));
-    LCD_PUTCH('0'+(hms[1]&0xF));
+    LCD_PUTCH(('0'+((hms[1]>>4)&0xF)));
+    LCD_PUTCH(('0'+(hms[1]&0xF)));
     LCD_PUTCH(':');
-    LCD_PUTCH('0'+((hms[2]>>4)&0xF));
-    LCD_PUTCH('0'+(hms[2]&0xF));
+    LCD_PUTCH(('0'+((hms[2]>>4)&0xF)));
+    LCD_PUTCH(('0'+(hms[2]&0xF)));
     _delay_ms(1000);
   }
 
