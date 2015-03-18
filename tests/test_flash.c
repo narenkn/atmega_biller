@@ -29,7 +29,7 @@ uint16_t testLoc[SPM_PAGESIZE] PROGMEM =
 
 void boot_program_page() BOOTLOADER_SECTION;
 
-uint8_t data[8] = {0x1, 0x3, 0x5, 0x8, 0x13, 0x21, 0x34, 0x55} PROGMEM;
+const uint8_t data[8] PROGMEM = {0x1, 0x3, 0x5, 0x8, 0x13, 0x21, 0x34, 0x55};
 
 int
 main()
@@ -41,7 +41,6 @@ main()
   LCD_WR_P(PSTR("Flash test:"));
   _delay_ms(1);
 
-  ui16_2 = pgm_read_byte(page+ui16_1);
   boot_program_page();
 
   LCD_PUTCH('@');

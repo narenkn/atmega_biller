@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
@@ -35,24 +36,30 @@
 uint8_t bufSS[BUFSS_SIZE];
 
 void
-eeprom_update_byte_NP(uint16_t addr, uint8_t *pstr, uint8_t size)
+eeprom_update_byte_NP(uint16_t addr, const char *pstr, uint8_t size)
 {
   uint8_t ui8_1;
   for (; size; size--) {
     ui8_1 = pgm_read_byte(pstr);
     if (0 == ui8_1) break;
-    eeprom_update_byte(addr, ui8_1);
+    eeprom_update_byte((uint8_t *)addr, ui8_1);
     addr++;
     pstr++;
   }
   for (; size; size--) {
-    eeprom_update_byte(addr, ' ');
+    eeprom_update_byte((uint8_t *)addr, ' ');
     addr++;
   }
 }
 
 void
-menuPrnBill(struct sale *sl)
+menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index)
+{
+  ee24xx_read_bytes(item_id, (void *)it, ITEM_SIZEOF);
+}
+
+void
+menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
   uint8_t prnBuf[256];
@@ -65,7 +72,7 @@ menuPrnBill(struct sale *sl)
       PRINTER_PRINT('\n');
       ui8_2 = 0;
     } else {
-      ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, shop_name)+ui8_1));
+      ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, shop_name)+ui8_1));
       PRINTER_PRINT(ui8_3);
       ui8_1++;
     }
@@ -75,7 +82,7 @@ menuPrnBill(struct sale *sl)
 
   /* Header */
   for (ui8_1=0; ui8_1<HEADER_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, b_head)+ui8_1));
+    ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, b_head)+ui8_1));
     PRINTER_PRINT(ui8_3);
   }
 
@@ -83,7 +90,7 @@ menuPrnBill(struct sale *sl)
 
   /* Caption, user, Date */
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, caption)+ui8_1));
+    ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, caption)+ui8_1));
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
   }
@@ -106,31 +113,33 @@ menuPrnBill(struct sale *sl)
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
     if (EEPROM_MAX_ADDRESS != sl->items[ui8_1].ep_item_ptr) {
-      ee24xx_write_bytes(sl->items[ui8_1].ep_item_ptr,
-			 (void *)&(sl->it[0]), ITEM_SIZEOF);
+      nitem(sl->items[ui8_1].ep_item_ptr, &(sl->it[0]), ui8_1);
       ui8_2 = 0;
     } else {
       ui8_2 = ui8_1;
     }
-    PRINTER_SPRINTF(prnBuf, "%2d. ", ui8_1);
+    PRINTER_PSTR(PSTR("Sl. Item  Nos  Price Disc Tax \n"));
+    PRINTER_PSTR(PSTR("------------------------------\n"));
+    PRINTER_SPRINTF(prnBuf, "%2u. ", (unsigned int)(ui8_1+1));
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
-    PRINTER_SPRINTF(prnBuf, " %4d", sl->items[ui8_3].cost);
-    PRINTER_SPRINTF(prnBuf, "(-%4d)", sl->items[ui8_3].discount);
-    PRINTER_SPRINTF(prnBuf, " %4d", sl->items[ui8_3].quantity);
-    PRINTER_SPRINTF(prnBuf, " %6d\n", sl->items[ui8_3].cost * sl->items[ui8_3].quantity);
+    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].cost);
+    PRINTER_SPRINTF(prnBuf, "(-%4u)", (unsigned int)sl->items[ui8_1].discount);
+    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].quantity);
+    PRINTER_SPRINTF(prnBuf, " %6u\n", (unsigned int)sl->items[ui8_1].cost * sl->items[ui8_1].quantity);
   }
 
   /* Total */
-  PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", sl->t_discount);
-  PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", sl->t_vat);
-  PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", sl->t_stax);
-  PRINTER_SPRINTF(prnBuf, "Bill Total (Rs): %.2f\n", sl->total);
+  PRINTER_FONT_ENLARGE(2);
+  PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", (double)sl->t_discount);
+  PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", (double)sl->t_vat);
+  PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", (double)sl->t_stax);
+  PRINTER_SPRINTF(prnBuf, "Bill Total (Rs): %.2f\n", (double)sl->total);
 
   /* Footer */
   ui8_2 = 0;
   for (ui8_1=0; ui8_1<FOOTER_SZ_MAX; ui8_1++) {
-    ui8_3 = eeprom_read_byte((void *)(offsetof(struct ep_store_layout, b_foot)+ui8_1));
+    ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, b_foot)+ui8_1));
     ui8_2 = ('\n' == ui8_3) ? 0 :
       ( (PRINTER_MAX_CHARS_ON_LINE == ui8_2) ? 0 : ui8_2+1 );
     if (0 == ui8_2) {
@@ -141,7 +150,7 @@ menuPrnBill(struct sale *sl)
   }
 }
 
-void
+uint8_t
 menuFactorySettings(uint8_t mode)
 {
   uint8_t ui8_1;
@@ -171,6 +180,8 @@ menuFactorySettings(uint8_t mode)
 			PSTR("A000"), EPS_WORD_LEN);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, caption),
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
+
+  return 0;
 }
 
 int
@@ -197,8 +208,7 @@ main(void)
 
   struct sale *sl = (void *) bufSS;
   sl->info.n_items = 1;
-  sl->info.prop    = 0;
-  strncpy_P(sl->info.user, PSTR("naren"), 5);
+  strncpy_P((char *)sl->info.user, PSTR("naren"), 5);
   sl->info.date_yy = 44;
   sl->info.date_mm = 9;
   sl->info.date_dd = 4;
@@ -217,8 +227,8 @@ main(void)
   sl->it[0].id = 23;
   sl->it[0].cost = 5500;
   sl->it[0].discount = 1155;
-  strncpy_P(sl->it[0].name, PSTR("milk n cream"), 12);
-  strncpy_P(sl->it[0].prod_code, PSTR("98798sdfaiuy988a"), 16);
+  strncpy_P((char *)sl->it[0].name, PSTR("milk n cream"), 12);
+  strncpy_P((char *)sl->it[0].prod_code, PSTR("98798sdfaiuy988a"), 16);
   sl->it[0].has_serv_tax = 1;
   sl->it[0].has_common_discount = 0;
   sl->it[0].has_weighing_mc = 1;
@@ -227,7 +237,7 @@ main(void)
   sl->it[0].has_vat = 1;
   sl->it[0].is_disabled = 0;
 
-  menuPrnBill(sl);
+  menuPrnBill(sl, NULL);
 
   LCD_WR_P(PSTR("Printed"));
 
