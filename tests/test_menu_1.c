@@ -17,7 +17,7 @@ uint8_t bufSS[BUFSS_SIZE];
 
 /* Helper routine to obtain input from user */
 void
-menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
+menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper)
 {
   uint8_t item_type = (opt & MENU_ITEM_TYPE_MASK);
   uint32_t val = 0;
@@ -42,7 +42,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt)
   do {
     /* Ask a question */
     LCD_CLRLINE(LCD_MAX_ROW-1);
-    LCD_WR_NP((const uint8_t *)prompt, MENU_PROMPT_LEN);
+    LCD_WR_NP((const char *)prompt, MENU_PROMPT_LEN);
     LCD_PUTCH('?');
     for (ui8_1=MENU_PROMPT_LEN+1,
 	   ui8_2=((LCD_MAX_COL-MENU_PROMPT_LEN-1)<=buf_idx) ? 0 : buf_idx-MENU_PROMPT_LEN-2;
@@ -195,9 +195,9 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
   for (ret=0; ;) {
     ret &= 1;
     LCD_CLRLINE(LCD_MAX_ROW-1);
-    LCD_WR_NP((const uint8_t *)quest, size);
+    LCD_WR_NP((const char *)quest, size);
     LCD_PUTCH(':');
-    LCD_WR_P((const uint8_t *)menu_str2+((ret)*3));
+    LCD_WR_P((const char *)menu_str2+((ret)*3));
     LCD_PUTCH('?');
     LCD_refresh();
 
@@ -228,9 +228,9 @@ menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_
 
     ui8_1 = LCD_MAX_COL-choice_len-1;
     LCD_CLRLINE(LCD_MAX_ROW-1);
-    LCD_WR_NP((const uint8_t *)quest, ui8_1);
-    LCD_WR_P((const uint8_t *)PSTR(":"));
-    LCD_WR_N((char *)(opt_arr+(ret*choice_len)), choice_len);
+    LCD_WR_NP((const char *)quest, ui8_1);
+    LCD_WR_P((const char *)PSTR(":"));
+    LCD_WR_N((uint8_t *)(opt_arr+(ret*choice_len)), choice_len);
     LCD_refresh();
 
     KBD_RESET_KEY;
@@ -257,40 +257,40 @@ main()
 
   sei();
 
-  LCD_WR_NP((const uint8_t *)PSTR("Hello World 7"), 13);
+  LCD_WR_NP((const char *)PSTR("Hello World 7"), 13);
   _delay_ms(1000);
   LCD_CLRLINE(1);
-  LCD_WR_NP((const uint8_t *)PSTR("Hello World 8"), 13);
+  LCD_WR_NP((const char *)PSTR("Hello World 8"), 13);
   _delay_ms(1000);
 
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = 5;
-  menuGetOpt((const uint8_t *)PSTR("What 5"), &arg1, MENU_ITEM_STR);
+  menuGetOpt((const uint8_t *)PSTR("What 5"), &arg1, MENU_ITEM_STR, NULL);
   LCD_CLRSCR;
-  LCD_WR_N((char *)arg1.value.str.sptr, 5);
+  LCD_WR_N((uint8_t *)arg1.value.str.sptr, 5);
   KBD_GETCH;
 
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = 8;
-  menuGetOpt((const uint8_t *)PSTR("What 8"), &arg1, MENU_ITEM_STR);
+  menuGetOpt((const uint8_t *)PSTR("What 8"), &arg1, MENU_ITEM_STR, NULL);
   LCD_CLRSCR;
-  LCD_WR_N((char *)arg1.value.str.sptr, 8);
+  LCD_WR_N((uint8_t *)arg1.value.str.sptr, 8);
   KBD_GETCH;
 
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = 10;
-  menuGetOpt((const uint8_t *)PSTR("What 10"), &arg1, MENU_ITEM_STR);
+  menuGetOpt((const uint8_t *)PSTR("What 10"), &arg1, MENU_ITEM_STR, NULL);
   LCD_CLRSCR;
-  LCD_WR_N((char *)arg1.value.str.sptr, 10);
+  LCD_WR_N((uint8_t *)arg1.value.str.sptr, 10);
   KBD_GETCH;
 
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = 20;
-  menuGetOpt((const uint8_t *)PSTR("What 20"), &arg1, MENU_ITEM_STR);
+  menuGetOpt((const uint8_t *)PSTR("What 20"), &arg1, MENU_ITEM_STR, NULL);
   LCD_CLRLINE(0);
-  LCD_WR_N((char *)arg1.value.str.sptr, LCD_MAX_COL);
+  LCD_WR_N((uint8_t *)arg1.value.str.sptr, LCD_MAX_COL);
   LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_N((char *)arg1.value.str.sptr+LCD_MAX_COL, 20-LCD_MAX_COL);
+  LCD_WR_N((uint8_t *)arg1.value.str.sptr+LCD_MAX_COL, 20-LCD_MAX_COL);
   KBD_GETCH;
 
   while (1) {}

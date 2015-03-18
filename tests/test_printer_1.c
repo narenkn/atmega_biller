@@ -1,3 +1,5 @@
+#define KBD_H
+
 #include <stdint.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -170,8 +172,8 @@ main(void)
 
   LCD_init();
 
-  uart_init();
-  uart_select(0);
+  uartInit();
+  uartSelect(0);
 
   /* Set pin mode & enable pullup */
   DDRD &= ~((1<<PD2)|(1<<PD3));
@@ -195,9 +197,9 @@ main(void)
       LCD_cmd((LCD_CMD_CUR_10+9));
       LCD_wrchar(KbdData);
       KbdDataAvail = 0;
-      uart_transmitByte(KbdData);
-      uart_transmitByte('\r');
-      uart_transmitByte('\n');
+      uartTransmitByte(KbdData);
+      uartTransmitByte('\r');
+      uartTransmitByte('\n');
     }
     _delay_ms(100);
   }
