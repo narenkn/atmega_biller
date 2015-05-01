@@ -56,6 +56,18 @@ keyMapLGui[] PROGMEM = {
 
 keyHitData_t keyHitData;
 
+#if defined (__AVR_ATmega32__)
+/* Known device */
+#elif defined (__AVR_ATxmega64A1__) || defined (__AVR_ATxmega64A3__) || defined (__AVR_ATxmega64D3__)
+# error "Not a known device"
+#elif defined (__AVR_ATxmega128A1__) || defined (__AVR_ATxmega128A3__) || defined (__AVR_ATxmega128D3__) || defined (__AVR_ATmega1284P__)
+#define TIMSK  TIMSK1
+#define MCUCR  EICRA
+#define GICR   EIMSK
+#elif defined (__AVR_ATxmega256A3__) || defined (__AVR_ATxmega256A3B__) || defined (__AVR_ATxmega256D3__)
+# error "Not a known device"
+#endif
+
 void
 KbdInit(void)
 {

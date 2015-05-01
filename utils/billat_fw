@@ -274,6 +274,8 @@ if "__main__" == __name__:
                   help="Fuse low byte value");
   parser.add_option("", "--fhb", dest="fhb", default=0xC9, type="int",
                   help="Fuse high byte value");
+  parser.add_option("", "--feb", dest="feb", default=0xFC, type="int",
+                  help="Fuse extended byte value");
   parser.add_option("-r", "--release_bus", dest="release_bus", default=False,
                   action="store_true", help="release the drive");
   parser.add_option("-D", "--defaults", dest="defaults", default=False,
@@ -284,6 +286,8 @@ if "__main__" == __name__:
                   action="store_true", help=SUPPRESS_HELP);
   parser.add_option("", "--serial_no", dest="serial_no", default="abcdef123456",
                   help=SUPPRESS_HELP);
+  parser.add_option("", "--mcu", dest="mcu", default="atmega32",
+                  help=SUPPRESS_HELP); ## atmega1284p
   parser.add_option("", "--device_id", dest="device_id", default="1k",
                   help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
@@ -299,6 +303,14 @@ if "__main__" == __name__:
     dev.Reset();
     dev.Release();
     exit(dev.error);
+
+  ## modify certain default values
+  if (0xE4 == options.flb) and (0xC9 == options.fhb):
+    if 'atmega32' == options.mcu:
+      pass
+    elif 'atmega1284p' == options.mcu:
+      options.flb = 0x62
+      options.fhb = 0x99
 
   ## 
   if options.program_serial_no:

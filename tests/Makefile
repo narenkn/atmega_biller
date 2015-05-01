@@ -6,7 +6,8 @@
 
 ## General Flags
 PROJECT = 
-MCU = atmega32
+#MCU = atmega32
+MCU = atmega1284p
 SOURCE := buzzer.c
 TARGET = $(SOURCE:.c=)
 CC = avr-gcc
@@ -18,7 +19,7 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DLCD_USE_FUNCTIONS=1
 CFLAGS = $(COMMON) $(CLINE_ARG)
 CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -DBUFSS_SIZE=272 -DDS1307 -DITEM_SUBIDX_NAME=4 -DATMega32=1
+CFLAGS += -DBUFSS_SIZE=272 -DDS1307 -DITEM_SUBIDX_NAME=4
 CFLAGS += -DMENU_USER_ENABLE=1 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=1 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=1
 
 ## Assembly specific flags

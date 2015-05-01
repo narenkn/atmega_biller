@@ -19,6 +19,7 @@
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"
+#include "item.h"
 #include "billing.h"
 #include "i2c.h"
 #include "uart.h"
@@ -2080,7 +2081,7 @@ menuBillReports(uint8_t mode)
     assert(2 == ret_val);
     ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
     ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
-    if (GIT_HASH_CRC != ui16_2) {
+    if (GIT_HASH_CRC != ui16_1) {
       LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_FILEERR*MENU_PROMPT_LEN));
       f_mount(NULL, "", 0);
       return 0;

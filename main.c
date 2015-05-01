@@ -92,6 +92,17 @@ ISR(TIMER2_OVF_vect)
 int
 main(void)
 {
+  /* select power down option */
+#if defined (__AVR_ATmega32__)
+#elif defined (__AVR_ATxmega64A1__) || defined (__AVR_ATxmega64A3__) || defined (__AVR_ATxmega64D3__)
+  #error "Unknown device"
+#elif defined (__AVR_ATxmega128A1__) || defined (__AVR_ATxmega128A3__) || defined (__AVR_ATxmega128D3__) || defined (__AVR_ATmega1284P__)
+  PRR0 = 0xFF;
+  PRR1 = 0xFF;
+#elif defined (__AVR_ATxmega256A3__) || defined (__AVR_ATxmega256A3B__) || defined (__AVR_ATxmega256D3__)
+  #error "Unknown device"
+#endif
+
   LCD_init();
 
   /* Welcome screen */

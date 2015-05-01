@@ -15,4 +15,5 @@ utils/dist
 tests/test_uart2.c
 default/*
 units/*.dat
+units/*.exe
 units/test_data/*.dat*

@@ -57,3 +57,4 @@ FIXME:
 41. Show bill : Need to provide facility to enter bill id
 42. LEFT takes back. We introduced ESCAPE, so that needs to be factored in!
 43. Number of bill should be rechecked on every bill item. On reset, it needs to be initialized.
+44. In Atmega128p device use CLKPR register to scale down clock frequency if necessary
