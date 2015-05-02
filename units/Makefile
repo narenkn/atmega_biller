@@ -8,8 +8,9 @@ LDFLAGS := -L$(NCURSES)/lib -lncurses
 CC = gcc
 VPATH = .:..
 
-SOURCE = $(wildcard test_menu_2.c)
-TESTS =  $(filter-out test_common, $(subst .c, , $(SOURCE)))
+SOURCE = $(wildcard test_*.c)
+SOURCE_EXCLUDES = test_common test_menu_i test_menu_setting_i
+TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, $(EXEEXT), $(SOURCE)))
 
 make_tests: $(TESTS) ../ep_ds.h ../version.h
 
@@ -27,4 +28,4 @@ headers : ../ep_ds.h ../version.h
 	python ../utils/csv2dat --to_dat --in_file $< --out_file $@
 
 clean:
-	-\rm -f core.* $(TARGETS)
+	-\rm -f core.* *~ $(TESTS)

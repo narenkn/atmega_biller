@@ -2,14 +2,12 @@
 # Makefile for the individual test programs
 ###############################################################################
 
-.PHONY: clean all headers
+.PHONY: clean size all headers
 
 ## General Flags
 PROJECT = 
 #MCU = atmega32
 MCU = atmega1284p
-SOURCE := buzzer.c
-TARGET = $(SOURCE:.c=)
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules
@@ -40,11 +38,17 @@ HEX_EEPROM_FLAGS = -j .eeprom
 HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
+## Files
+SOURCE = $(wildcard test_*.c)
+SOURCE_EXCLUDES = test_common
+TARGETS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, , $(SOURCE)))
+TARGET = $(word 1, $(TARGETS))
+
 ## Objects that must be built in order to link
 OBJECTS = $(SOURCE:.c=.o)
 
 ## Objects explicitly added by the user
-LINKONLYOBJECTS = 
+LINKONLYOBJECTS =
 
 ## Build
 all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
@@ -61,16 +65,16 @@ VPATH := ..
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 ##Link
-$(TARGET).elf: $(OBJECTS)
-	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET).elf
+%.elf: %.o
+	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $@
 
-%.hex: $(TARGET).elf
+%.hex: %.elf
 	avr-objcopy -O ihex $(HEX_FLASH_FLAGS)  $< $@
 
-%.eep: $(TARGET).elf
+%.eep: %.elf
 	-avr-objcopy $(HEX_EEPROM_FLAGS) -O ihex $< $@ || exit 0
 
-%.lss: $(TARGET).elf
+%.lss: %.elf
 	avr-objdump -h -S $< > $@
 
 size: $(TARGET).elf
@@ -81,6 +85,5 @@ size: $(TARGET).elf
 clean:
 	-$(RM) *.o *.elf dep/* *.hex *.eep *.lss *.map *~
 
-
 ## Other dependencies
-##-include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
+-include $(shell mkdir dep 2>/dev/null)
