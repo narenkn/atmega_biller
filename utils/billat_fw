@@ -86,21 +86,21 @@ class Atmega32:
     self.Out(0x00);
     in_val = self.Out(0x00);
     if 0x1E != in_val:
-      print "Error.sig1: Not a compatible device";
+      print "Error.sig1(0x%x): Not a compatible device" % in_val;
       return;
     self.Out(0x30);
     self.Out(0x00);
     self.Out(0x01);
     in_val = self.Out(0x00);
     if 0x95 != in_val:
-      print "Error.sig2: Not a compatible device";
+      print "Error.sig2(0x%x): Not a compatible device" % in_val;
       return;
     self.Out(0x30);
     self.Out(0x00);
     self.Out(0x02);
     in_val = self.Out(0x00);
     if 0x02 != in_val:
-      print "Error.sig3: Not a compatible device";
+      print "Error.sig3(0x%x): Not a compatible device" % in_val;
       return;
     else:
       print "Info: Compatible device...";
@@ -241,6 +241,254 @@ class Atmega32:
           break;
       if (0 == self.error): print " : Done"
 
+class Atmega1284p:
+
+  p = WinDLL("io");
+  def_val = 0x0;
+  ## 32K with each page 64 words
+  PAGE_SIZE = 128*2;
+  NUM_PAGES = 1024>>1; ## 128K bytes (128*1024/(128*2))
+
+  def Out(self, byte):
+    in_val = 0;
+    for i in range(8):
+      in_val <<= 1;
+      self.p.PortOut(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20));
+      self.p.PortOut(self.dat_reg, self.def_val|((byte>>(7-i)<<5)&0x20)|0x10);
+      in_val |= (self.p.PortIn(self.sta_reg)>>6) & 0x1;
+      self.p.PortOut(self.dat_reg, self.def_val);
+    return (in_val & 0xFF);
+
+  def RawOut(self, byte):
+    self.p.PortOut(self.dat_reg, self.def_val|byte);
+    return 0;
+
+  def Reset(self):
+    ## Simple delay to release the port
+    self.def_val = 0x0;
+    for i in range(8):
+      self.RawOut(0x0);
+    ## Enable the port
+    self.def_val = 0x0;
+    self.RawOut(0x0);
+    ## Toggle Reset
+    self.RawOut(0x80);
+    self.RawOut(0x0);
+
+  def Release(self):
+    self.RawOut(0x0);
+    self.def_val = 0xFF;
+    self.RawOut(0xFF);
+    self.p.PortOut(self.cnt_reg, 0x0);
+
+  def __init__(self, dr):
+    self.error = 0;
+    self.dat_reg = dr;
+    self.sta_reg = dr+1;
+    self.cnt_reg = dr+2;
+    self.def_val = 0x8;
+    self.RawOut(0);
+
+  def TestPins(self):
+    self.Reset();
+    self.RawOut(0x0);
+
+  def ProgEn(self, options):
+    ## 1. Reset
+    self.Reset();
+    ## 2. Get acknowledgement of programming
+    self.Out(0xAC);
+    self.Out(0x53);
+    in_val = self.Out(0x00);
+    self.Out(0x00);
+    ## 3. Check for ack before proceeding
+    if (0x53 != in_val):
+      print "Error: Couldn't communicate with device(0x%x), check cable" % in_val;
+      return;
+    else:
+      print "Info: Detected device connected...";
+    ## 4. Read signature byte of device
+    self.Out(0x30);
+    self.Out(0x00);
+    self.Out(0x00);
+    in_val = self.Out(0x00);
+    if 0x1E != in_val:
+      print "Error.sig1(0x%x): Not a compatible device" % in_val;
+      return;
+    self.Out(0x30);
+    self.Out(0x00);
+    self.Out(0x01);
+    in_val = self.Out(0x00);
+    if 0x97 != in_val:
+      print "Error.sig2(0x%x): Not a compatible device" % in_val;
+      return;
+    self.Out(0x30);
+    self.Out(0x00);
+    self.Out(0x02);
+    in_val = self.Out(0x00);
+    if 0x06 != in_val:
+      print "Error.sig3(0x%x): Not a compatible device" % in_val;
+      return;
+    else:
+      print "Info: Compatible device...";
+    ## Fuse programming
+    if options.program_fuse:
+      print "Info: Programming Fuse : ", ;
+      ## Write low byte
+      self.Out(0xAC);
+      self.Out(0xA0);
+      self.Out(0x0);
+      self.Out(options.flb);
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      ## Write high byte
+      self.Out(0xAC);
+      self.Out(0xA8);
+      self.Out(0x0);
+      self.Out(options.fhb);
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      ## Write extended byte
+      self.Out(0xAC);
+      self.Out(0xA4);
+      self.Out(0x0);
+      self.Out(options.feb);
+      ## Just wait for some time
+      for j in range(300):
+        addr = (j<<7);
+        self.Out(0x20);
+        self.Out((addr>>9)&0x3F);
+        self.Out((addr>>1)&0xFF);
+        self.Out(0x0);
+      ## Read back & verify : low byte
+      self.Out(0x50);
+      self.Out(0x0);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      if options.flb != in_val:
+        self.error += 1;
+        print "Failed (0x%x Vs 0x%x)" % (options.flb, in_val);
+      ## Read back & verify : high byte
+      self.Out(0x58);
+      self.Out(0x08);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      if options.fhb != in_val:
+        self.error += 1;
+        print "Failed (0x%x Vs 0x%x)" % (options.fhb, in_val);
+      ## Read back & verify : extended byte
+      self.Out(0x50);
+      self.Out(0x08);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      if options.feb != in_val:
+        self.error += 1;
+        print "Failed (0x%x Vs 0x%x)" % (options.feb, in_val);
+      ## Final check for errors
+      if self.error:
+        print "Failed";
+      else:
+        print "Wrote %x:%x Done" % (options.fhb, options.flb);
+      return;
+    ## 5. Chip erase
+##    self.Out(0xAC);
+##    self.Out(0x80);
+##    self.Out(0x00);
+##    self.Out(0x00);
+##    for j in range(10000):
+##      range(j);
+    ## 6. Program sector by sector
+    print "Info: Writing & Checking",;
+    for i in range(self.NUM_PAGES):
+      if None != self.pages[i]:
+        print ".",;
+	for j in range(0, self.PAGE_SIZE, 2):
+          if (0xFF != self.pages[i][j]) or (0xFF != self.pages[i][j+1]):
+            self.Out(0x40);
+            self.Out(0x0);
+            self.Out((j>>1)&0x3F);
+            self.Out(self.pages[i][j]);
+            self.Out(0x48);
+            self.Out(0x0);
+            self.Out((j>>1)&0x3F);
+            self.Out(self.pages[i][j+1]);
+        ## Initiate write of page
+        self.Out(0x4C);
+        self.Out((i>>2)&0x3F);
+        self.Out((i<<6)&0xC0);
+        self.Out(0x0);
+        ## Just wait for some time
+        for j in range(300):
+          addr = (j<<7);
+          self.Out(0x20);
+          self.Out((addr>>9)&0x3F);
+          self.Out((addr>>1)&0xFF);
+          self.Out(0x0);
+        ## 7. Read each byte and verify write
+        error = False;
+	for j in range(0, self.PAGE_SIZE, 2):
+          addr = (i<<7)|j;
+          self.Out(0x20);
+          self.Out((addr>>9)&0x3F);
+          self.Out((addr>>1)&0xFF);
+          bo = self.Out(0x0);
+          if bo != self.pages[i][j]:
+##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j]);
+            error = True;
+            self.error += 1;
+          self.Out(0x28);
+          self.Out((addr>>9)&0x3F);
+          self.Out((addr>>1)&0xFF);
+          bo = self.Out(0x0);
+          if bo != self.pages[i][j+1]:
+##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j+1]);
+            error = True;
+            self.error += 1;
+        if error: print "x",;
+        else: print ".",;
+    print "Complete";
+    ## 8. Write lock bits
+##    print "Info: Protecting the memory...",;
+##    self.Out(0xAC); self.Out(0xE0); self.Out(0x00); self.Out(0xCC);
+##    ## 8b. Read & check lock bits
+##    self.Out(0x58); self.Out(0x00); self.Out(0x00); in_val = self.Out(0x00);
+##    if (0x0C != (in_val&0x3F)):
+##      print " : Failed (Exp:0x0C Obt:0x%x)" % (in_val&0x3F);
+##      self.error += 1;
+##      break;
+##    else:
+##      print " : Done";
+    ## 9. Write serial number
+    if options.program_serial_no:
+      print "Info: Writing serial number...",;
+      for i in range(16):
+        print ".",;
+        self.Out(0xC0); self.Out(0x00); self.Out(i); self.Out(ord(options.serial_no[i]));
+        ## Just wait for some time
+        for j in range(100):
+          self.Out(0xA0);
+          self.Out(0x00);
+          self.Out(i);
+          self.Out(0x0);
+      for i in range(16):
+        print ".",;
+        self.Out(0xA0); self.Out(0x00); self.Out(i); in_val = self.Out(0);
+        if (ord(options.serial_no[i]) != in_val):
+          print " : Serial # Failed (idx:%d Exp:0x%x Obt:0x%x)" % (i, ord(options.serial_no[i]), in_val&0xFF);
+          self.error += 1;
+          break;
+      if (0 == self.error): print " : Done"
+
 ##
 def crc16(string, crc=0):
   for a in string:
@@ -292,11 +540,6 @@ if "__main__" == __name__:
                   help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
 
-  dev = Atmega32(options.lpt_addr);
-  dev.pages = [None]*dev.NUM_PAGES;
-
-  dev.error = 0;
-
   ##
   if options.release_bus:
     print "Causing reset & releasing the bus";
@@ -307,10 +550,15 @@ if "__main__" == __name__:
   ## modify certain default values
   if (0xE4 == options.flb) and (0xC9 == options.fhb):
     if 'atmega32' == options.mcu:
-      pass
+      dev = Atmega32(options.lpt_addr);
     elif 'atmega1284p' == options.mcu:
       options.flb = 0x62
       options.fhb = 0x99
+      dev = Atmega1284p(options.lpt_addr);
+
+  ##
+  dev.pages = [None]*dev.NUM_PAGES;
+  dev.error = 0;
 
   ## 
   if options.program_serial_no:
