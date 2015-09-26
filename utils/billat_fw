@@ -340,36 +340,27 @@ class Atmega1284p:
       self.Out(0x0);
       self.Out(options.flb);
       ## Just wait for some time
-      for j in range(300):
-        addr = (j<<7);
-        self.Out(0x20);
-        self.Out((addr>>9)&0x3F);
-        self.Out((addr>>1)&0xFF);
-        self.Out(0x0);
+      for j in range(3000):
+        for k in range(3000):
+          l = k*k;
       ## Write high byte
       self.Out(0xAC);
       self.Out(0xA8);
       self.Out(0x0);
       self.Out(options.fhb);
       ## Just wait for some time
-      for j in range(300):
-        addr = (j<<7);
-        self.Out(0x20);
-        self.Out((addr>>9)&0x3F);
-        self.Out((addr>>1)&0xFF);
-        self.Out(0x0);
+      for j in range(3000):
+        for k in range(3000):
+          l = k*k;
       ## Write extended byte
       self.Out(0xAC);
       self.Out(0xA4);
       self.Out(0x0);
       self.Out(options.feb);
       ## Just wait for some time
-      for j in range(300):
-        addr = (j<<7);
-        self.Out(0x20);
-        self.Out((addr>>9)&0x3F);
-        self.Out((addr>>1)&0xFF);
-        self.Out(0x0);
+      for j in range(3000):
+        for k in range(3000):
+          l = k*k;
       ## Read back & verify : low byte
       self.Out(0x50);
       self.Out(0x0);
@@ -400,65 +391,65 @@ class Atmega1284p:
       else:
         print "Wrote %x:%x Done" % (options.fhb, options.flb);
       return;
-    ## 5. Chip erase
+##    ## 5. Chip erase
 ##    self.Out(0xAC);
 ##    self.Out(0x80);
 ##    self.Out(0x00);
 ##    self.Out(0x00);
-##    for j in range(10000):
+##    for j in range(1000):
 ##      range(j);
     ## 6. Program sector by sector
     print "Info: Writing & Checking",;
     for i in range(self.NUM_PAGES):
       if None != self.pages[i]:
-        print ".",;
-	for j in range(0, self.PAGE_SIZE, 2):
-          if (0xFF != self.pages[i][j]) or (0xFF != self.pages[i][j+1]):
-            self.Out(0x40);
-            self.Out(0x0);
-            self.Out((j>>1)&0xFF);
-            self.Out(self.pages[i][j]);
-            self.Out(0x48);
-            self.Out(0x0);
-            self.Out((j>>1)&0xFF);
-            self.Out(self.pages[i][j+1]);
         ## Load extended address byte
         self.Out(0x4D);
         self.Out(0x0);
         self.Out((i>>8)&1)
         self.Out(0x0);
+        ## Start page programming
+        print ".",;
+	for j in range(0, self.PAGE_SIZE, 2):
+          self.Out(0x40);
+          self.Out(0x0);
+          self.Out(j&0xFF);
+          self.Out(self.pages[i][j]);
+          self.Out(0x48);
+          self.Out(0x0);
+          self.Out(j&0xFF);
+          self.Out(self.pages[i][j+1]);
         ## Initiate write of page
         self.Out(0x4C);
-        self.Out((i>>1)&0xFF);
+        self.Out(i&0xFF);
         self.Out(0x0);
         self.Out(0x0);
         ## Just wait for some time
-        for j in range(300):
-          addr = (j<<7);
-          self.Out(0x20);
-          self.Out((addr>>9)&0x3F);
-          self.Out((addr>>1)&0xFF);
-          self.Out(0x0);
+        for j in range(3000):
+          for k in range(3000):
+            l = k*k;
         ## 7. Read each byte and verify write
         error = False;
 	for j in range(0, self.PAGE_SIZE, 2):
-          addr = (i<<9)|j;
+          ## Read Low byte
+          addr = (i<<8)|(j>>0);
           self.Out(0x20);
-          self.Out((addr>>9)&0xFF);
-          self.Out((addr>>1)&0xFF);
+          self.Out((addr>>8)&0xFF);
+          self.Out(addr&0xFF);
           bo = self.Out(0x0);
           if bo != self.pages[i][j]:
-##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j]);
+            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j]);
             error = True;
             self.error += 1;
+          ## Read High byte
           self.Out(0x28);
-          self.Out((addr>>9)&0xFF);
-          self.Out((addr>>1)&0xFF);
+          self.Out((addr>>8)&0xFF);
+          self.Out(addr&0xFF);
           bo = self.Out(0x0);
           if bo != self.pages[i][j+1]:
-##            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j+1]);
+            print "Addr:0x%x Obt:0x%x Exp:0x%x" % (addr, bo, self.pages[i][j+1]);
             error = True;
             self.error += 1;
+          if self.error > 10: break;
         if error: print "x",;
         else: print ".",;
     print "Complete";
@@ -544,18 +535,11 @@ if "__main__" == __name__:
                   action="store_true", help=SUPPRESS_HELP);
   parser.add_option("", "--serial_no", dest="serial_no", default="abcdef123456",
                   help=SUPPRESS_HELP);
-  parser.add_option("", "--mcu", dest="mcu", default="atmega32",
-                  help=SUPPRESS_HELP); ## atmega1284p
+  parser.add_option("", "--mcu", dest="mcu", default="atmega1284p",
+                  help=SUPPRESS_HELP); ## atmega32/atmega1284p
   parser.add_option("", "--device_id", dest="device_id", default="1k",
                   help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
-
-  ##
-  if options.release_bus:
-    print "Causing reset & releasing the bus";
-    dev.Reset();
-    dev.Release();
-    exit(dev.error);
 
   ## modify certain default values
   if (0xE4 == options.flb) and (0xC9 == options.fhb):
@@ -569,6 +553,13 @@ if "__main__" == __name__:
   ##
   dev.pages = [None]*dev.NUM_PAGES;
   dev.error = 0;
+
+  ##
+  if options.release_bus:
+    print "Causing reset & releasing the bus";
+    dev.Reset();
+    dev.Release();
+    exit(dev.error);
 
   ## 
   if options.program_serial_no:
@@ -588,9 +579,15 @@ if "__main__" == __name__:
 
   ##
   if options.defaults:
-    options.flb = 0xE1;
-    options.fhb = 0x99 | 0x40; ## Disable JTAG
-    print "Using default fuse values";
+    print "Using default fuse values for mcu: ", options.mcu;
+    if 'atmega32' == options.mcu:
+      options.flb = 0xE1;
+      options.fhb = 0x99 | 0x40; ## Disable JTAG
+      options.feb = 0xFC;
+    elif 'atmega1284p' == options.mcu:
+      options.flb = 0x62;
+      options.fhb = 0x99 | 0x40; ## Disable JTAG
+      options.feb = 0xFF;
 
   ## Process file
   any_page_valid = False;
