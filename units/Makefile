@@ -2,20 +2,23 @@
 
 NCURSES := /tool/pandora/.package/ncurses-5.7
 CFLAGS  := -g -I. -I.. -DUNIT_TEST -DDEBUG $(CMDLINE_CFLAGS) -I$(NCURSES)/include -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
-CFLAGS += -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=272 -DDS1307 -DITEM_SUBIDX_NAME=4 -D__AVR_ATmega32__=1
-CFLAGS += -DMENU_USER_ENABLE=1 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=1 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=1
+CFLAGS += -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=336 -DDS1307 -DITEM_SUBIDX_NAME=4 -D__AVR_ATmega32__=1
+CFLAGS += -DMENU_USER_ENABLE=0 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=0 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=0 -DUNICODE_ENABLE=1
 LDFLAGS := -L$(NCURSES)/lib -lncurses
 CC = gcc
 VPATH = .:..
 
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_common test_menu_i test_menu_setting_i
+SOURCE_EXCLUDES = test_common # not a test
+SOURCE_EXCLUDES	+= test_menu_i test_menu_setting_i # interactive
+SOURCE_EXCLUDES += test_menu_3 # users, passwd
 TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, $(EXEEXT), $(SOURCE)))
-
-make_tests: $(TESTS) ../ep_ds.h ../version.h
+TESTSEXE = $(TESTS:.c=)
 
 run_tests: make_tests
-	for test in $(TESTS) ; do echo -n $$test ; ./$$test ; done
+	for test in $(TESTSEXE) ; do echo -n $$test ; ./$$test ; done
+
+make_tests: $(TESTSEXE) ../ep_ds.h ../version.h
 
 include ../make.proj
 

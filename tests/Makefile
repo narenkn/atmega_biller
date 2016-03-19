@@ -18,7 +18,16 @@ CFLAGS = $(COMMON) $(CLINE_ARG)
 CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 CFLAGS += -DBUFSS_SIZE=272 -DDS1307 -DITEM_SUBIDX_NAME=4
-CFLAGS += -DMENU_USER_ENABLE=1 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=1 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=1
+CFLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
+CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
+CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
+CFLAGS += -DMENU_DELBILL=1               # Delete bill
+CFLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
+CFLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
+CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
+CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
+CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
+CFLAGS += -DUNICODE_ENABLE=0             # Unicode in device
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)

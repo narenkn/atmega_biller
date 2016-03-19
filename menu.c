@@ -591,10 +591,8 @@ menuFactorySettings(uint8_t mode)
 
   /* */
   eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, idle_wait), 5);
-  LCD_PUTCH('.'); LCD_refresh();
-
-  /* */
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_next_billaddr), EEPROM_SALE_START_ADDR);
+  LCD_PUTCH('.'); LCD_refresh();
 
   /* At the end, log out the user */
   menuUserLogout(mode|MENU_NOCONFIRM);
@@ -775,7 +773,6 @@ menuUserLogin(uint8_t mode)
   return MENU_RET_NOTAGAIN;
 }
 
-// Not unit tested
 void
 menuInit()
 {
@@ -856,7 +853,7 @@ menuInit()
   }
   LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const char *)PSTR("Empty Bills:"), 12);
-  LCD_PUT_UINT8X(ui16_1);
+  LCD_PUT_UINT(ui16_1);
   LCD_refresh();
   KBD_GETCH;
 
@@ -915,7 +912,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
 #ifdef 4 == ITEM_SUBIDX_NAME
    3. First word of name
    4. First 3 letters of name
-   #endif
+#endif
 
   Normally 5K items are needed to be supported :
     So, need 5K*4*2(bytes/sig) = 40K bytes to index it
@@ -925,7 +922,6 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
  */
 typedef uint16_t itemIdxs_t[ITEM_SUBIDX_NAME];
 
-// Not unit tested
 uint8_t
 menuBilling(uint8_t mode)
 {
@@ -939,7 +935,7 @@ menuBilling(uint8_t mode)
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
 
   /* memory requirements */
-  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
+  //  printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
   assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
 
   /* load old bill */
@@ -1485,6 +1481,7 @@ menuAddItem(uint8_t mode)
     goto menuItemInvalidArg;
   }
 
+#if UNICODE_ENABLE
   /* name unicode */
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
@@ -1518,6 +1515,7 @@ menuAddItem(uint8_t mode)
     }
     //printw("ui8_1:%d ui8_2:%d", ui8_1, ui8_2);
   }
+#endif
 
   /* vat */
   LCD_CLRLINE(0);
@@ -1755,13 +1753,13 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
       //printf("ui16_2:%d itIdx[0]:%x itIdx[1]:%x itIdx1[0]:%x itIdx1[1]:%x\n",
       //     ui16_2, itIdx[0], itIdx[1], itIdx1[0], itIdx1[1]);
       ee24xx_read_bytes(menuItemAddr(ui16_2), (uint8_t *)it, ITEM_SIZEOF);
-      /*if ((NULL != name) && (NULL != prod_code)) {
+      if ((NULL != name) && (NULL != prod_code) && (name != prod_code)) {
 	if ((itIdx[0] == itIdx1[0]) && (itIdx[1] == itIdx1[1])) {
 	  if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) &&
 	       (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL)) )
 	    return ui16_2+1;
 	}
-	} else*/ if ((NULL != name) && (itIdx[1] == itIdx1[1])) {
+      } else if ((NULL != name) && (itIdx[1] == itIdx1[1])) {
 	if (0 == strncmp((char *)name, (const char *)(it->name), ITEM_NAME_BYTEL))
 	  return ui16_2+1;
       } else if ((NULL != prod_code) && (itIdx[0] == itIdx1[0])) {
@@ -1787,7 +1785,6 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   return -1;
 }
 
-// Not tested
 void
 menuPrintTestPage(uint8_t mode)
 {

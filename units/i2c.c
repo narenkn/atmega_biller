@@ -78,6 +78,7 @@ ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
   uint32_t addr_t = addr;
 
   addr_t <<= 2;
+  assert(0 == (num_bytes&0x3));
 
   for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
     assert((addr_t+n_bytes) < EEPROM_SIZE);
@@ -96,6 +97,7 @@ ee24xx_read_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
   uint32_t addr_t = addr;
 
   addr_t <<= 2;
+  assert(0 == (num_bytes&0x3));
 
   for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
     assert((addr_t+n_bytes) < EEPROM_SIZE);

@@ -65,7 +65,7 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #include "ep_store.c"
 #include "i2c.c"
 #include "uart.c"
-#include "ff.c"
+//#include "ff.c"
 #include "a1micro2mm.c"
 #include "menu.c"
 #include "main.c"

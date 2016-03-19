@@ -301,12 +301,11 @@ main(int argc, char *argv[])
     ui4 = rand() & 3;
     if (3 == ui4) {
       ui3 = menuItemFind(ri.name, NULL, &ri1, 0);
-    } else if (2 == ui2) {
+    } else if (2 == ui4) {
       ui3 = menuItemFind(NULL, ri.prod_code, &ri1, 0);
     } else {
       ui3 = menuItemFind(ri.name, ri.prod_code, &ri1, 0);
     }
-    //    printf("ui1:%d found ui3:0x%d\n", ui1, ui3);
     assert(-1 != ui3);
     if (ui1 != ui3) {
       ee24xx_read_bytes(menuItemAddr((ui3-1)), (void *)&ri1, ITEM_SIZEOF);
@@ -316,7 +315,12 @@ main(int argc, char *argv[])
       } else if (2 == ui4) {
 	//	printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
 	assert(0 == strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL));
-      } else assert(0);
+      } else {
+	printf("not equal %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
+	printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
+	printf("ui1:%d found ui3:%d\n", ui1, ui3);
+	assert(0);
+      }
     }
     //    else printf("equal\n");
   }

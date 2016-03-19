@@ -56,3 +56,32 @@ printerStatus(void)
 {
   return PRINTER_STATUS_ONLINE;
 }
+
+uint32_t
+printerCompareStatus(char *golden)
+{
+  char buf[512];
+  uint32_t golden_size = strlen(golden), file_size=0, this_sz, ret=0;
+  char *gp;
+
+  assert(golden_size);
+  assert(NULL != prn_outf);
+
+  fclose(prn_outf);
+
+  prn_outf = fopen("stdout.log", "r");
+  gp = golden;
+  do {
+    this_sz = fread(buf, 1, 512, prn_outf);
+    file_size += this_sz;
+    ret += strncmp(buf, gp, this_sz);
+    gp += this_sz;
+  } while (this_sz);
+  assert(0 == ret);
+  assert(file_size == golden_size);
+
+  fclose(prn_outf);
+  prn_outf = fopen("stdout.log", "w");
+
+  return ret;
+}
