@@ -101,6 +101,28 @@
     }									\
   } while (0)
 
+#define PRINTER_PRINT_2D(var) do {			\
+    uint8_t _ui8 = ((var)/10)%10;			\
+    PRINTER_PRINT('0'+_ui8);				\
+    _ui8 = (var)%10;					\
+    PRINTER_PRINT('0'+_ui8);				\
+  } while (0)
+
+#define PRINTER_PRINT_4D(var) do {			\
+  uint8_t ui8_1 = ((var)/1000)%10;			\
+  PRINTER_PRINT('0'+ui8_1);				\
+  ui8_1 = ((var)/100)%10;				\
+  PRINTER_PRINT('0'+ui8_1);				\
+  ui8_1 = ((var)/10)%10;				\
+  PRINTER_PRINT('0'+ui8_1);				\
+  ui8_1 = (var)%10;					\
+  PRINTER_PRINT('0'+ui8_1);				\
+  } while (0)
+
+#define PRINTER_PRINT_D menuPrnD
+#define PRINTER_PRINT_F menuPrnF
+
+#if 0
 #define PRINTER_SPRINTF(STR, FMT, ...)	do {		\
     uint8_t ui8_1t, ui8_2t;				\
     ui8_2t = sprintf((char *)STR, FMT, __VA_ARGS__);	\
@@ -108,6 +130,7 @@
       PRINTER_PRINT(STR[ui8_1t]);			\
     }							\
   } while (0)
+#endif
 
 void printerInit(void);
 void printerDefineUserChar(uint8_t idx);

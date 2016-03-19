@@ -298,13 +298,14 @@ class ep_store_layout:
   variables = {
     'uint16_t' : {
       'Vat' : ['[EPS_MAX_VAT_CHOICE]', 2*6, TYPE_ARR, TYPE_UINT16],
+      'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       'ServTax' : ['', 2, TYPE_UINT16],
       'ComnDis' : ['', 2, TYPE_UINT16],
-      'RndOff' : ['', 2, TYPE_UINT16],
-      'unused_ItemLastUsed' : ['', 2, TYPE_UINT16],
-      'unused_LastBillId' : ['', 2, TYPE_UINT16],
       'unused_DiagStat' : ['', 2, TYPE_UINT16],
-      'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
+      'unused_LastBillId' : ['', 2, TYPE_UINT16],
+      'unused_ItemLastUsed' : ['', 2, TYPE_UINT16],
+      'RndOff' : ['', 2, TYPE_UINT16],
+      'unused_next_billaddr' : ['', 2, TYPE_UINT16],
       },
     'uint8_t' : {
       ## User options

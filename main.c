@@ -121,6 +121,7 @@ main(void)
   uartInit();
   printerInit();
   main_init();
+  billingInit();
   menuInit();
 
   /* Check if all devices are ready to go, else give

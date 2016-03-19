@@ -144,7 +144,7 @@ uint8_t    menu_error;
 #define MENU_STR1_IDX_FINALIZ  7
 #define MENU_STR1_IDX_PRINT  8
 #define MENU_STR1_IDX_SAVE   9
-#define MENU_STR1_IDX_DADAT 10
+#define MENU_STR1_IDX_DELETE 10
 #define MENU_STR1_IDX_NAME  11
 #define MENU_STR1_IDX_REPLA 12
 #define MENU_STR1_IDX_DAY   13
@@ -185,20 +185,15 @@ const uint8_t menu_str1[] PROGMEM =
   ;
 
 /* */
+#if FF_ENABLE
 const uint8_t BillFileName[] PROGMEM = SD_BILLING_FILE;
+const uint8_t SKIP_INFO_PSTR[] PROGMEM = "Skip Operation";
+#endif
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
 static uint8_t LoginUserId = 0; /* 0 is invalid */
 uint8_t devStatus = 0;   /* 0 is no err */
-
-const uint8_t SKIP_INFO_PSTR[] PROGMEM = "Skip Operation";
-
-/* data struct for FF */
-#if FF_ENABLE
-FATFS FS;
-FIL   Fil;
-#endif
 
 /* Diagnosis */
 uint16_t diagStatus;
@@ -598,6 +593,9 @@ menuFactorySettings(uint8_t mode)
   eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, idle_wait), 5);
   LCD_PUTCH('.'); LCD_refresh();
 
+  /* */
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_next_billaddr), EEPROM_SALE_START_ADDR);
+
   /* At the end, log out the user */
   menuUserLogout(mode|MENU_NOCONFIRM);
   LCD_CLRSCR; LCD_refresh();
@@ -662,9 +660,9 @@ menuSetUserPasswd(uint8_t mode)
     ui16_1 = _crc16_update(ui16_1, arg2.value.str.sptr[ui8_3]);
   }
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_2)), ui16_1);
+#endif
 
   return 0;
-#endif
 }
 
 /* Set my password, arg1 is old passwd, arg2 is new passwd */
@@ -781,7 +779,7 @@ menuUserLogin(uint8_t mode)
 void
 menuInit()
 {
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
   uint8_t ui8_1, ui8_2;
   MenuMode = MENU_MRESET;
 
@@ -840,50 +838,42 @@ menuInit()
     devStatus |= DS_DEV_INVALID;
   }
 
-#if FF_ENABLE
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    /* When start, check billing.csv for proper version and move it to _x.old files if wrong version */
-    UINT ret_val;
-    memset(&FS, 0, sizeof(FS));
-    memset(&Fil, 0, sizeof(Fil));
-    //  change_sd(0); /* FIXME: */
-    strcpy_P((char *)bufSS, (const char *)BillFileName);
-    if (FR_OK != f_mount(&FS, ".", 1))
-      goto menuInitNoSD;
-    if (FR_OK != f_open(&Fil, (char *)bufSS, FA_WRITE|FA_CREATE_ALWAYS))
-      goto menuInitNoSD;
-    if (FR_OK == f_open(&Fil, (char *)bufSS, FA_READ|FA_WRITE|FA_CREATE_ALWAYS)) {
-      if (f_size(&Fil) > 0) { /* check version */
-	assert(FR_OK == f_lseek(&Fil, 0));
-	f_read(&Fil, bufSS, 2, &ret_val);
-	assert(2 == ret_val);
-	ui16_1 = bufSS[0]; ui16_1 <<= 8; ui16_1 |= bufSS[1];
-	if (GIT_HASH_CRC != ui16_1) {
-	  for (ui16_2=1; ui16_2; ui16_2++) {
-	    sprintf((char *)bufSS+LCD_MAX_COL+LCD_MAX_COL, "%s.%d", bufSS, ui16_2);
-	    if (FR_OK != f_stat((char *)bufSS+LCD_MAX_COL+LCD_MAX_COL, NULL))
-	      break;
-	  }
-	  LCD_ALERT(PSTR("Moved old data"));
-	  f_unlink((char *)bufSS+LCD_MAX_COL+LCD_MAX_COL);
-	  f_rename((char *)bufSS, (char *)bufSS+LCD_MAX_COL+LCD_MAX_COL);
-	}
-      }
-      goto menuInitSD;
+  /* Report # of bills that could be made */
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  memset((void *)sl, 0, SALE_SIZEOF);
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
+  ui16_3 = EEPROM_PREV_SALE_RECORD(ui16_2);
+  for (ui16_1=0, ui16_4=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
+    if (ui16_2 == ui16_3) {
+      break;
+    }
+    ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    if (sl->crc != ~sl->crc_invert) {
+      ui16_4++;
     }
 
-  menuInitNoSD:
-    LCD_ALERT(PSTR("No SD Found"));
-    devStatus |= DS_NO_SD;
-  menuInitSD:
-    f_mount(NULL, "", 0);
+    ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
   }
-#endif
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+  LCD_WR_NP((const char *)PSTR("Empty Bills:"), 12);
+  LCD_PUT_UINT8X(ui16_1);
+  LCD_refresh();
+  KBD_GETCH;
 
 #if !MENU_USER_ENABLE
   LoginUserId = 1;
   MenuMode = MENU_MSUPER;
 #endif
+}
+
+void
+menuScanF(char *str, uint16_t *ui16)
+{
+  if ((str[0] >= '0') && (str[0] <= '9')) {
+    *ui16 *= 10;
+    *ui16 += str[0]-'0';
+    menuScanF(str+1, ui16);
+  }
 }
 
 uint16_t
@@ -899,7 +889,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   it.unused_find_best_match = 1;
   ui16_1 = menuItemFind(str, str, &it, prev);
   if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) {
-    sscanf((char *)str, "%d", &ui16_1);
+    SSCANF((char *)str, &ui16_1);
     //printf("id is %d", ui16_1);
     if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
       ee24xx_read_bytes(menuItemAddr((ui16_1-1)), (void *)&it, ITEM_SIZEOF);
@@ -935,16 +925,18 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
  */
 typedef uint16_t itemIdxs_t[ITEM_SUBIDX_NAME];
 
+// Not unit tested
 uint8_t
 menuBilling(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
-  uint16_t ui16_1, ui16_2;
-  uint32_t ui32_1, ui32_2, ui32_3;
+  uint16_t ui16_1, ui16_2, ui16_3;
+  uint32_t ui32_1, ui32_2;
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
 
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
   memset((void *)sl, 0, SALE_SIZEOF);
+  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
 
   /* memory requirements */
   //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
@@ -952,8 +944,6 @@ menuBilling(uint8_t mode)
 
   /* load old bill */
   if (mode & MENU_MODITEM) {
-#if FF_ENABLE
-    UINT ret_val;
     /* assume we have error */
     ui8_4 = 0;
 
@@ -966,71 +956,35 @@ menuBilling(uint8_t mode)
       arg1.valid = MENU_ITEM_DATE;
     }
 
-    /* */
-    memset(&FS, 0, sizeof(FS));
-    memset(&Fil, 0, sizeof(Fil));
-    f_mount(&FS, ".", 1);
-    strcpy_P((char *)bufSS, (const char *)SD_BILLING_FILE);
-    if (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ)) {
-      LCD_ALERT(PSTR("File open error"));
-      f_mount(NULL, "", 0);
-      return MENU_RET_NOTAGAIN;
-    }
-
-    /* If version doesn't match, escape... */
-    ui32_2 = f_size(&Fil);
-    if (0 == ui32_2) {
-      LCD_ALERT(PSTR("No Bills"));
-      goto menuModBillReturn;
-    }
-    f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
-    assert(2 == ret_val);
-    ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
-    ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
-    if (GIT_HASH_CRC != ui16_1) {
-      LCD_ALERT(PSTR("Old Format"));
-      goto menuModBillReturn;
-    }
-    if (0 != ((ui32_2-4) % SIZEOF_1BILL)) {
-      LCD_ALERT(PSTR("Corrupted File"));
-      goto menuModBillReturn;
-    }
-    assert( ui32_2 >= (SIZEOF_1BILL+4) );
-
-    /* iterate records */
-    ui32_3 = -1;
-    for (ui32_1=ui32_2-SIZEOF_1BILL-2, ui8_1=0; ; ui32_1-=SIZEOF_1BILL) {
-      f_lseek(&Fil, ui32_1);
-      f_read(&Fil, (void *)sl, SALE_SIZEOF, &ret_val);
-      assert(sizeof(struct sale) == ret_val);
+    /* iterate through all records */
+    ui16_2 = ui16_3;
+    for (ui8_1=0, ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
+      ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
+      if (ui16_2 == ui16_3) {
+	break;
+      }
+      ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+      if (sl->crc != ~sl->crc_invert) /* not valid bill */
+	continue;
       if ( (sl->info.date_yy == arg1.value.date.year) &&
 	   (sl->info.date_mm == arg1.value.date.month) &&
 	   (sl->info.date_dd == arg1.value.date.day) ) {
 	if ( (MENU_ITEM_ID == arg2.valid) &&
 	     (sl->info.bill_id == arg2.value.integer.i16) ) {
-	  ui32_3 = ui32_1;
+	  ui8_1 = 1;
 	  break;
 	} else if (MENU_ITEM_ID != arg2.valid) {
-	  ui32_3 = ui32_1;
 	  break;
 	}
       }
-      //move(0, 0);
-      //printw("info date:%d/%d mm:%d/%d day:%d/%d\n", sl->info.date_yy, arg1.value.date.year, sl->info.date_mm, arg1.value.date.month, sl->info.date_dd, arg1.value.date.day);
-      //printw("loop:%x %x", ui32_1, ui32_3);
-      if (ui32_1 < SIZEOF_1BILL)
-	break;
     }
-
-    /* */
-    if (-1 == ui32_3) {
+    if (! ui8_1) {
       LCD_ALERT(PSTR("Bill Not Found"));
       goto menuModBillReturn;
+    } else {
+      //move(0, 0);
+      //printw("info date:%d/%d mm:%d/%d day:%d/%d\n", sl->info.date_yy, arg1.value.date.year, sl->info.date_mm, arg1.value.date.month, sl->info.date_dd, arg1.value.date.day);
     }
-    ui32_1 = ui32_3;
-    f_lseek(&Fil, ui32_1);
-    f_read(&Fil, (void *)sl, SALE_SIZEOF, &ret_val);
-    assert(sizeof(struct sale) == ret_val);
 
     /* Alert User of bill */
     LCD_ALERT("Found Bill..");
@@ -1045,7 +999,7 @@ menuBilling(uint8_t mode)
     for (ui8_5=MAX_ITEMS_IN_BILL, ui8_4=0, ui8_3=0; ui8_5; ) {
       ui8_5--;
 
-      /* valid bill? */
+      /* valid product sold? */
       if (0 == sl->items[ui8_5].quantity)
 	continue;
       ui8_4++;
@@ -1082,13 +1036,19 @@ menuBilling(uint8_t mode)
     ui8_4 = 0xFF;
 
   menuModBillReturn:
-    if (Fil.fs)
-      f_close(&Fil);
-    if (0 != FS.fs_type)
-      f_mount(NULL, "", 0);
     if (0xFF != ui8_4)
-#endif
       return MENU_RET_NOTAGAIN;
+  } else {
+    /* Prepare location to store.... */
+    ee24xx_read_bytes(ui16_3, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    if (sl->crc == ~sl->crc_invert) {
+      LCD_CLRLINE(0);
+      LCD_PUT_UINT(sl->info.bill_id);
+      LCD_WR_P(": Amt:");
+      LCD_PUT_UINT(sl->total);
+      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+	return MENU_RET_NOTAGAIN;
+    }
   }
 
   for (ui8_5=0; ;) {
@@ -1311,36 +1271,36 @@ menuBilling(uint8_t mode)
     return 0;
 
   /* Calculate bill, confirm */
-  ui32_3=0;
+  ui32_1=0;
   sl->t_stax = 0, sl->t_vat = 0, sl->t_discount = 0, sl->total = 0;
   ui32_2 = 0;
   for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
     if ( (0 != sl->items[ui8_3].discount) && (sl->items[ui8_3].cost > sl->items[ui8_3].discount) ) {
-      ui32_3 = sl->items[ui8_3].cost - sl->items[ui8_3].discount;
+      ui32_1 = sl->items[ui8_3].cost - sl->items[ui8_3].discount;
       sl->t_discount += sl->items[ui8_3].discount * sl->items[ui8_3].quantity;
     } else if (sl->items[ui8_3].has_common_discount) {
-      ui32_3 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, ComnDis));
-      ui32_3 <<= 8;
-      ui32_3 |= eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, ComnDis) + 1));
-      if (ui32_3 <= 10000) {
-	ui32_3 = (10000 - ui32_3) * sl->items[ui8_3].cost;
-	ui32_3 /= 100;
-	sl->t_discount += (sl->items[ui8_3].cost - ui32_3) * sl->items[ui8_3].quantity;
+      ui32_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, ComnDis));
+      ui32_1 <<= 8;
+      ui32_1 |= eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, ComnDis) + 1));
+      if (ui32_1 <= 10000) {
+	ui32_1 = (10000 - ui32_1) * sl->items[ui8_3].cost;
+	ui32_1 /= 100;
+	sl->t_discount += (sl->items[ui8_3].cost - ui32_1) * sl->items[ui8_3].quantity;
       } else {
-	ui32_3 = sl->items[ui8_3].cost;
+	ui32_1 = sl->items[ui8_3].cost;
 	LCD_ALERT(PSTR("Err: ComnDis > 100%"));
       }
     } else
-      ui32_3 = sl->items[ui8_3].cost;
+      ui32_1 = sl->items[ui8_3].cost;
 
-    ui32_3 *= sl->items[ui8_3].quantity;
-    sl->total += ui32_3;
+    ui32_1 *= sl->items[ui8_3].quantity;
+    sl->total += ui32_1;
 
     if (sl->items[ui8_3].has_serv_tax) {
       ui32_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, ServTax));
       ui32_2 <<= 8;
       ui32_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, ServTax) + 1);
-      ui32_2 *= ui32_3;
+      ui32_2 *= ui32_1;
       ui32_2 /= 100;
       sl->t_stax += ui32_2;
       sl->total  += ui32_2;
@@ -1349,7 +1309,7 @@ menuBilling(uint8_t mode)
       ui32_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*sl->items[ui8_3].vat_sel));
       ui32_2 <<= 8;
       ui32_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*sl->items[ui8_3].vat_sel) + 1);
-      ui32_2 *= ui32_3;
+      ui32_2 *= ui32_1;
       ui32_2 /= 100;
       sl->t_vat += ui32_2;
       sl->total  += ui32_2;
@@ -1382,111 +1342,19 @@ menuBilling(uint8_t mode)
     eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.bill_id);
   }
 
-#if FF_ENABLE
-  /* Save the bill to SD */
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    UINT ret_val;
-    memset(&FS, 0, sizeof(FS));
-    memset(&Fil, 0, sizeof(Fil));
-    //  change_sd(0); /* FIXME: */
-    f_mount(&FS, "", 0);		/* Give a work area to the default drive */
-    strcpy_P((char *)bufSS, (const char *)BillFileName);
-    if (f_open(&Fil, (char *)bufSS, FA_READ|FA_WRITE|FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
-      do {
-	/* Move to end of the file to append data */
-	ui32_2 = f_size(&Fil);
-	if (mode & MENU_MODITEM) {
-	  f_lseek(&Fil, ui32_1);
-	} else if (0 != ui32_2) {    /* file is old */
-	  //printw("ui32_2:%d sizeof_1bill:%d", ui32_2, SIZEOF_1BILL);
-	  assert( 4 == (ui32_2 % SIZEOF_1BILL) );
-	  /* If version doesn't match, escape... */
-	  f_lseek(&Fil, 0);
-	  f_read(&Fil, bufSS, 2, &ret_val);
-	  assert(2 == ret_val);
-	  ui16_2 = bufSS[0]; ui16_2 <<= 8; ui16_2 |= bufSS[1];
-	  if (GIT_HASH_CRC != ui16_2) {
-	    LCD_ALERT(PSTR("Del old files"));
-	    break;
-	  }
-	  /* */
-	  f_lseek(&Fil, ui32_2-2);
-	  f_read(&Fil, bufSS, 2, &ret_val);
-	  assert(2 == ret_val);
-	  ui16_2 = bufSS[0]; ui16_2 <<= 8; ui16_2 |= bufSS[1];
-	  f_lseek(&Fil, ui32_2-2);
-	} else { /* new file, set it up ... */
-	  f_lseek(&Fil, 0);
-	  ui16_2 = 0;
-	  ui16_2 = _crc16_update(ui16_2, (GIT_HASH_CRC>>8)&0xFF);
-	  ui16_2 = _crc16_update(ui16_2, GIT_HASH_CRC&0xFF);
-	  bufSS[0] = (GIT_HASH_CRC>>8)&0xFF;
-	  bufSS[1] = GIT_HASH_CRC&0xFF;
-	  f_write(&Fil, (void *)bufSS, 2, &ret_val);
-	  assert(2 == ret_val);
-	}
+  /* now save the data */
+  for (ui16_1=0, ui16_2=0; ui16_1<SALE_DATA_SIZEOF; ui16_1++)
+    ui16_2 = _crc16_update(ui16_2, ((uint8_t *)sl)[ui16_1]);
+  sl->crc = ui16_2;
+  ee24xx_write_bytes(ui16_3, (uint8_t *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
 
-	/* now save the data */
-	f_write(&Fil, (void *)sl, SALE_SIZEOF-ITEM_SIZEOF, &ret_val);
-	assert((SALE_SIZEOF-ITEM_SIZEOF) == ret_val);
-	for (ui8_4=0; ui8_4<(SALE_SIZEOF-ITEM_SIZEOF); ui8_4++)
-	  ui16_2 = _crc16_update(ui16_2, ((uint8_t *)sl)[ui8_4]);
-	/* save item */
-	for (ui8_4=0; ui8_4<ui8_5; ui8_4++) {
-	  ee24xx_read_bytes(sl->items[ui8_4].ep_item_ptr, (void *)&(sl->it[0]), ITEM_SIZEOF);
-	  f_write(&Fil, &(sl->it[0]), ITEM_SIZEOF, &ret_val);
-	  for (ui8_3=0; ui8_3<ITEM_SIZEOF; ui8_3++)
-	    ui16_2 = _crc16_update(ui16_2, ((uint8_t *)&(sl->it[0]))[ui8_3]);
-	  assert(ITEM_SIZEOF == ret_val);
-	}
-	memset((void *)&(sl->it[0]), 0, ITEM_SIZEOF);
-	for (; ui8_4<MAX_ITEMS_IN_BILL; ui8_4++) {
-	  f_write(&Fil, &(sl->it[0]), ITEM_SIZEOF, &ret_val);
-	  assert(ITEM_SIZEOF == ret_val);
-	  for (ui8_3=0; ui8_3<ITEM_SIZEOF; ui8_3++)
-	    ui16_2 = _crc16_update(ui16_2, 0);
-	}
-	/* recompute CRC */
-	if (mode & MENU_MODITEM) {
-	  f_lseek(&Fil, 0);
-	  ui16_2 = 0;
-	  for (ui32_3=0; ui32_3<(ui32_2-2); ) {
-	    f_read(&Fil, bufSS,
-		   ((ui32_2-2-ui32_3) < BUFSS_SIZE) ? (ui32_2-2-ui32_3) : BUFSS_SIZE, &ret_val);
-	    for (ui16_1=0; ui16_1<ret_val; ui16_1++)
-	      ui16_2 = _crc16_update(ui16_2, bufSS[ui16_1]);
-	    ui32_3 += ret_val;
-	  }
-	  assert(ui32_3 == (ui32_2-2));
-	  f_lseek(&Fil, ui32_2-2);
-	}
-	/* */
-	bufSS[0] = ui16_2>>8;
-	bufSS[1] = ui16_2;
-	f_write(&Fil, bufSS, 2, &ret_val);
-	assert(2 == ret_val);
-	LCD_ALERT(PSTR("Bill Saved"));
-      } while (0);
-      /* */
-      f_close(&Fil);
-    } else {
-      LCD_ALERT(PSTR("Can't save bill"));
-    }
-    f_mount(NULL, "", 0);
-  }
-#endif
+  /* */
+  LCD_ALERT(PSTR("Bill Saved"));
 
   /* Now print the bill */
   menuPrnBill(sl, menuPrnBillEE24xxHelper);
 
   return 0;
-}
-
-// Not unit tested
-void
-menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index)
-{
-  ee24xx_read_bytes(item_id, (void *)it, ITEM_SIZEOF);
 }
 
 uint8_t
@@ -1923,17 +1791,33 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 void
 menuPrintTestPage(uint8_t mode)
 {
-#if MENU_DIAG_FUNC
+#if MENU_DIAG_FUNC && MENU_PRINTER_ENABLE
   PRINTER_PRINT_TEST_PAGE;
 #endif
+}
+
+void
+menuPrnD(uint32_t var)
+{
+  if (var>9)
+    menuPrnD(var/10);
+  PRINTER_PRINT('0'+(var%10));
+}
+
+void
+menuPrnF(uint32_t var)
+{
+  menuPrnD(var/100);
+  PRINTER_PRINT('.');
+  menuPrnD(var%100);
 }
 
 // Not unit tested
 void
 menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 {
+#if MENU_PRINTER_ENABLE
   uint8_t ui8_1, ui8_2, ui8_3;
-  uint8_t prnBuf[256];
 
   /* Shop name */
   PRINTER_FONT_ENLARGE(2);
@@ -1974,12 +1858,12 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
     PRINTER_PRINT(ui8_3);
   }
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_dd); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_mm); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(prnBuf, "%4d", 1980+sl->info.date_yy); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(prnBuf, "%2d", sl->info.time_hh); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_mm); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_ss); PRINTER_PRINT('\n');
+  PRINTER_PRINT_2D(1+sl->info.date_dd); PRINTER_PRINT('/');
+  PRINTER_PRINT_2D(1+sl->info.date_mm); PRINTER_PRINT('/');
+  PRINTER_PRINT_4D(1980+sl->info.date_yy); PRINTER_PRINT(' ');
+  PRINTER_PRINT_2D(sl->info.time_hh); PRINTER_PRINT(':');
+  PRINTER_PRINT_2D(sl->info.time_mm); PRINTER_PRINT(':');
+  PRINTER_PRINT_2D(sl->info.time_ss); PRINTER_PRINT('\n');
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
@@ -1991,21 +1875,35 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
     }
     PRINTER_PSTR(PSTR("Sl. Item  Nos  Price Disc Tax \n"));
     PRINTER_PSTR(PSTR("------------------------------\n"));
-    PRINTER_SPRINTF(prnBuf, "%2u. ", (unsigned int)(ui8_1+1));
+    PRINTER_PRINT_2D((unsigned int)(ui8_1+1));
+    PRINTER_PRINT('.'); PRINTER_PRINT(' ');
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
-    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].cost);
-    PRINTER_SPRINTF(prnBuf, "(-%4u)", (unsigned int)sl->items[ui8_1].discount);
-    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].quantity);
-    PRINTER_SPRINTF(prnBuf, " %6u\n", (unsigned int)sl->items[ui8_1].cost * sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].cost);
+    PRINTER_PRINT('('); PRINTER_PRINT('-');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].discount);
+    PRINTER_PRINT(')'); PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].cost * sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
   }
 
   /* Total */
   PRINTER_FONT_ENLARGE(2);
-  PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", (double)sl->t_discount);
-  PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", (double)sl->t_vat);
-  PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", (double)sl->t_stax);
-  PRINTER_SPRINTF(prnBuf, "Bill Total (Rs): %.2f\n", (double)sl->total);
+  PRINTER_PSTR(PSTR("Total Discount : "));
+  PRINTER_PRINT_F(sl->t_discount);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Total VAT      : "));
+  PRINTER_PRINT_F(sl->t_vat);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Total Serv Tax : "));
+  PRINTER_PRINT_F(sl->t_stax);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Bill Total (Rs): "));
+  PRINTER_PRINT_F(sl->total);
+  PRINTER_PRINT('\n');
 
   /* Footer */
   ui8_2 = 0;
@@ -2019,6 +1917,7 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
   }
+#endif
 }
 
 // Not unit tested
@@ -2125,95 +2024,60 @@ menuBillReports(uint8_t mode)
 uint8_t
 menuShowBill(uint8_t mode)
 {
-#if FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  UINT  ret_val;
   uint8_t  ui8_1;
-  uint16_t ui16_1, ui16_2, ui16_3;
-  uint32_t ui32_1, ui32_2;
+  uint16_t ui16_2, ui16_3;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
   /* */
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-  f_mount(&FS, ".", 1);
-  strcpy_P((char *)bufSS, (const char *)SD_BILLING_FILE);
-  if (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ)) {
-    LCD_ALERT(PSTR("File open error"));
-    f_mount(NULL, "", 0);
-    return MENU_RET_NOTAGAIN;
-  }
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
+  ui8_1 = 0; /* go prev */
+  while (ui16_2) {
 
-  /* If version doesn't match, escape... */
-  f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
-  assert(2 == ret_val);
-  ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
-  ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
-  if (GIT_HASH_CRC != ui16_1) {
-    LCD_ALERT(PSTR("Old Format"));
-    goto menuShowBillReturn;
-  }
-  ui32_2 = f_size(&Fil);
-  if (0 == ui32_2) {
-    LCD_ALERT(PSTR("No Bills"));
-    goto menuShowBillReturn;
-  }
-  if (0 != ((ui32_2-4) % SIZEOF_1BILL)) {
-    LCD_ALERT(PSTR("Corrupted File"));
-    goto menuShowBillReturn;
-  }
-  assert( ui32_2 >= (SIZEOF_1BILL+4) );
-  ui16_2 = ui32_2 / SIZEOF_1BILL; /* num bills */
-
-  for (ui32_1=ui32_2-2-SIZEOF_1BILL, ui8_1=0; ; ) {
-    /* iterate records */
-    for (ui16_3=0; ;) {
-      /* Display this item */
-      f_lseek(&Fil, ui32_1);
-      f_read(&Fil, (void *)sl, SALE_SIZEOF-ITEM_SIZEOF, &ret_val);
-      assert((SALE_SIZEOF-ITEM_SIZEOF) == ret_val);
-      ui16_3++;
-
-      if (ui16_3 > ui16_2) { /* couldn't find goto last bill */
-	LCD_ALERT(PSTR("No Bill"));
-	ui32_1=ui32_2-2-SIZEOF_1BILL;
+    for (ui16_3=ui16_2; ui16_3; ) {
+      /* take prev record */
+      ui16_3 = (0 == ui8_1) ? EEPROM_PREV_SALE_RECORD(ui16_3) :
+	EEPROM_NEXT_SALE_RECORD(ui16_3);
+      if (ui16_3 == ui16_2) { /* end of records */
 	ui16_3 = 0;
+	break;
+      }
+      ee24xx_read_bytes(ui16_3, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+      if (sl->crc != ~sl->crc_invert) {
 	continue;
-      } else if ((0 == (ui8_1&1)) && (ui32_1>SIZEOF_1BILL)) { /* prev */
-	ui32_1 -= SIZEOF_1BILL;
-      } else if ((1 == (ui8_1&1)) && ((ui32_1+SIZEOF_1BILL)<(ui32_2-SIZEOF_1BILL))) { /* next */
-	ui32_1 += SIZEOF_1BILL;
-      } else { /* not found, change direction */
-	ui8_1 ^= 1;
       }
 
       if ((MENU_ITEM_DATE != arg1.valid) && (MENU_ITEM_ID != arg2.valid)) {
-	ui16_3 = 0;
+	/* user wants any bill */
 	break;
       } else if ((MENU_ITEM_DATE == arg1.valid) && (MENU_ITEM_ID == arg2.valid)) {
 	if ( (sl->info.date_yy == arg1.value.date.year) &&
 	     (sl->info.date_mm == arg1.value.date.month) &&
 	     (sl->info.date_dd == arg1.value.date.day) &&
 	     (sl->info.bill_id == arg2.value.integer.i32) ) {
-	  ui16_3 = 0;
+	  /* user wants this date's/id bill */
 	  break;
 	}
       } else if (MENU_ITEM_ID == arg2.valid) {
 	if (sl->info.bill_id == arg2.value.integer.i32) {
-	  ui16_3 = 0;
+	  /* user provided bill id */
 	  break;
 	}
       } else { /* should be MENU_ITEM_DATE == arg1.valid */
 	if ( (sl->info.date_yy == arg1.value.date.year) &&
 	     (sl->info.date_mm == arg1.value.date.month) &&
 	     (sl->info.date_dd == arg1.value.date.day) ) {
-	  ui16_3 = 0;
+	  /* user provided date */
 	  break;
 	}
       }
+    }
+
+    if (0 == ui16_3) {
+      ui16_3 = ui16_2; /* bill not found */
+      ee24xx_read_bytes(ui16_3, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    } else {
+      assert (sl->crc == ~sl->crc_invert);
+      ui16_2 = ui16_3; /* next base */
     }
 
     /* Display bill */
@@ -2239,44 +2103,37 @@ menuShowBill(uint8_t mode)
     if (ASCII_ENTER == keyHitData.KbdData) {
       /* keep direction */
     } else if (ASCII_PRNSCRN == keyHitData.KbdData) {
-      f_lseek(&Fil, ui32_1+SALE_SIZEOF-ITEM_SIZEOF);
-      menuPrnBill(sl, menuPrnBillSDHelper);
+      menuPrnBill(sl, menuPrnBillEE24xxHelper);
     } else if ((ASCII_LEFT == keyHitData.KbdData) || (ASCII_UP == keyHitData.KbdData)) {
       ui8_1 = 0;
     } else if ((ASCII_RIGHT == keyHitData.KbdData) || (ASCII_DOWN == keyHitData.KbdData)) {
       ui8_1 = 1;
     } else if (ASCII_ESCAPE == keyHitData.KbdData) {
+      ui16_2 = 0;
+      break;
+    } else if (ASCII_DEL == keyHitData.KbdData) {
+      /* Delete bill here */
+      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+	return MENU_RET_NOTAGAIN;
+      sl->crc_invert = (0 != sl->crc) ? 0xFFFF : 0;
+      if (ui8_1) { /* delete bill */
+	ee24xx_write_bytes(ui16_2, (void *)sl, 2);
+      }
       break;
     }
   }
 
   /* */
- menuShowBillReturn:
-  if (Fil.fs)
-    f_close(&Fil);
-  if (0 != FS.fs_type)
-    f_mount(NULL, "", 0);
-#endif
   return MENU_RET_NOTAGAIN;
 }
 
-#if FF_ENABLE
-// Not unit tested
 void
-menuPrnBillSDHelper(uint16_t item_id, struct item *it, uint16_t it_index)
+menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index)
 {
-  UINT ret_val;
-  uint32_t it0_loc = f_tell(&Fil);
-
-  /* Got to the id */
-  f_lseek(&Fil, it0_loc+(it_index*ITEM_SIZEOF));
-  f_read(&Fil, (void *) it, ITEM_SIZEOF, &ret_val);
-  assert(ITEM_SIZEOF == ret_val);
-
-  /* leave at the same place you came */
-  f_lseek(&Fil, it0_loc);
-}
+#if MENU_PRINTER_ENABLE
+  ee24xx_read_bytes(item_id, (void *)it, SALE_DATA_EXP_ITEMS_SIZEOF);
 #endif
+}
 
 #if MENU_SETTING_ENABLE
 const struct setting_vars SettingVars[] PROGMEM = { SETTING_VAR_TABLE };
@@ -2301,7 +2158,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
 
   menuGetOpt(quest, &arg1, MENU_ITEM_STR, NULL);
 #ifndef UNIT_TEST
-  if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
 
@@ -2328,7 +2185,7 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
-  if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
 
@@ -2351,7 +2208,7 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
-  if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
 
@@ -2374,7 +2231,7 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
-  if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
 
@@ -2398,7 +2255,7 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
-  if (menuGetYesNo((const uint8_t *)PSTR("Confirm?"), 8))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
 
@@ -2516,27 +2373,58 @@ menuSettingSet(uint8_t mode)
 uint8_t
 menuDelAllBill(uint8_t mode)
 {
-#if MENU_DELBILL && FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  uint8_t *ui8_1p = (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  uint8_t ui8_1;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
-  /* init */
-  strcpy_P((char *)ui8_1p, (const char *)BillFileName);
+#if MENU_DELBILL
+  ui16_1 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
 
-  /* */
-  memset(&FS, 0, sizeof(FS));
-  f_mount(&FS, ".", 1);
-  if (FR_OK == f_unlink((char *)ui8_1p)) {
-    LCD_CLRLINE(LCD_MAX_ROW-1);
-    LCD_WR_NP((const char *)PSTR(SD_BILLING_FILE " Del'd"), sizeof(SD_BILLING_FILE)+sizeof(" Del'd"));
-    _delay_ms(1000);
+  /* memory requirements */
+  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
+  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
+
+  /* input validity */
+  if ((MENU_ITEM_DATE != arg1.valid) && (MENU_ITEM_ID != arg2.valid)) {
+    /* delete all bills */
+    ui8_1 = 0x80;
   }
 
-  /* */
-  f_mount(NULL, "", 0);
+  /* iterate through all records */
+  ui16_2 = ui16_1;
+  for (ui16_4=0, ui16_3=0; ui16_3<EEPROM_SALE_MAX_BILLS; ui16_3++, ui8_1 &= ~0x3) {
+    ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
+
+    ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    if (sl->crc != ~sl->crc_invert) /* not valid bill */
+      continue;
+    if ( (MENU_ITEM_DATE == arg1.valid) &&
+	 (sl->info.date_yy == arg1.value.date.year) &&
+	 (sl->info.date_mm == arg1.value.date.month) &&
+	 (sl->info.date_dd == arg1.value.date.day) ) {
+      ui8_1 |= 1;
+    } else if ( (MENU_ITEM_ID == arg2.valid) &&
+		(sl->info.bill_id == arg2.value.integer.i16) ) {
+      ui8_1 |= 2;
+    }
+    if (MENU_NOCONFIRM == (mode & MENU_MODEMASK)) {
+      sl->crc_invert = (0 != sl->crc) ? 0xFFFF : 0;
+      if (ui8_1) { /* delete bill */
+	ee24xx_write_bytes(ui16_2, (void *)sl, 2);
+      }
+    } else { /* first pass */
+      ui16_4++;
+    }
+  }
+
+  if (MENU_NOCONFIRM != (mode & MENU_MODEMASK)) {
+    LCD_CLRLINE(0);
+    LCD_WR_NP((const char *)PSTR("Items : "), 13);
+    LCD_PUT_UINT(ui16_4);
+    if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+      menuDelAllBill(mode|MENU_NOCONFIRM);
+  }
+
 #endif
 
   return MENU_RET_NOTAGAIN;
@@ -3057,327 +2945,4 @@ menuMainStart:
 
   /* Forever stuck in this maze.. can't ever get out */
   goto menuMainStart;
-}
-
-uint8_t
-menuSDLoadItem(uint8_t mode)
-{
-#if FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  UINT  ret_size, ui1;
-  uint16_t ui16_1;
-  uint8_t ui8_1;
-
-  /* */
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-  f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
-    LCD_ALERT(PSTR("File open error"));
-    goto menuSDLoadItemExit;
-  }
-
-  /* check version string */
-  if (0 == f_size(&Fil)) {
-    LCD_ALERT(PSTR("File size error"));
-    goto menuSDLoadItemExit;
-  } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
-    LCD_ALERT(PSTR("File1 error"));
-    goto menuSDLoadItemExit;
-  } else if (GIT_HASH_SMALL_LEN != ret_size) {
-    LCD_ALERT(PSTR("File2 error "));
-    goto menuSDLoadItemExit;
-  }
-  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
-    if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
-      LCD_ALERT(PSTR("Item VerMismatch"));
-      goto menuSDLoadItemExit;
-    }
-  }
-
-  /* Mark all other items as deleted : (0==id) */
-  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-    /* id 0 is invalid */
-    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), NULL, BUFSS_SIZE);
-  }
-
-  /* Check for crc in file */
-  assert(FR_OK == f_lseek(&Fil, 0));
-  bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
-  ui8_1 = 0, ui16_1 = 0;
-  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
-    if (0 == ret_size) break;
-    if (0 != ui16_1) { /* skip first time */
-      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
-      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-1]);
-    }
-    for (ui1=0; ui1<(ret_size-2); ui1++) {
-      ui16_1 = _crc16_update(ui16_1, bufSS[ui1]);
-    }
-    bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
-    bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
-    ui8_1 = (ret_size + ui8_1) % ITEM_SIZEOF;
-  }
-  ret_size = bufSS[BUFSS_SIZE-2];
-  ret_size <<= 8;
-  ret_size |= bufSS[BUFSS_SIZE-1];
-  if ((0 == ui16_1) || (ui16_1 != ret_size) || (9 != ui8_1)) {
-    //printf("ui16_1:%x ret_size:%x, ui8_1:%d\n", ui16_1, ret_size, ui8_1);
-    LCD_ALERT_16N(PSTR("File3 error "), ui16_1);
-    goto menuSDLoadItemExit;
-  }
-
-  /* init indexes with 0s */
-  ee24xx_write_bytes((ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2), NULL, EEPROM_MAX_ADDRESS-ITEM_MAX_ADDR+1);
-
-  /* */
-  assert(FR_OK == f_lseek(&Fil, GIT_HASH_SMALL_LEN));
-  struct item *it = (void *)bufSS;
-  while (FR_OK == f_read(&Fil, bufSS, ITEM_SIZEOF, &ret_size)) {
-    if (ITEM_SIZEOF != ret_size) break; /* reached last */
-    if (0 == it->id) continue;
-    ui16_1 = menuItemAddr(it->id-1);
-    menuIndexItem(it);
-    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
-  }
-  assert(2 == ret_size); /* crc would be pending */
-
-  /* when all goes well */
-  LCD_ALERT(PSTR("Item Loaded.."));
-
- menuSDLoadItemExit:
-  /* */
-  f_mount(NULL, "", 0);
-#endif
-
-  return MENU_RET_NOERROR;
-}
-
-uint8_t
-menuSDSaveItem(uint8_t mode)
-{
-#if MENU_SDSAVE_EN && FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  UINT  ret_size;
-  uint16_t ui16_1, ui16_2, signature;
-  struct item *it = (void *)bufSS;
-  uint8_t ui8_1;
-
-  /* init */
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-
-  /* */
-  f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_ITEM_FILE ".out", FA_WRITE)) {
-    LCD_ALERT(PSTR("File open error"));
-    goto menuSDSaveItemExit;
-  }
-
-  /* Add version string */
-  strncpy_P((char *)bufSS, PSTR(GIT_HASH_SMALL), GIT_HASH_SMALL_LEN);
-  signature = 0;
-  f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
-  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
-    signature = _crc16_update(signature, bufSS[ui8_1]);
-  assert(GIT_HASH_SMALL_LEN == ret_size);
-
-  /* */
-  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
-    /* fix name, prod_code to uc */
-    for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
-      it->name[ui8_1] = toupper(it->name[ui8_1]);
-    }
-    for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
-      it->prod_code[ui8_1] = toupper(it->prod_code[ui8_1]);
-    }
-
-    /* */
-    if ((0 != it->id) && (! it->is_disabled)) {
-      for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2+=ret_size) {
-	f_write(&Fil, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
-      }
-      for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++) {
-	signature = _crc16_update(signature, bufSS[ui8_1]);
-      }
-    }
-  }
-  bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
-  f_write(&Fil, bufSS, 2, &ret_size);
-  assert(2 == ret_size);
-
-  /* when all goes well */
-  LCD_ALERT(PSTR("Item Saved.."));
-
- menuSDSaveItemExit:
-  /* */
-  f_mount(NULL, "", 0);
-#endif
-
-  return MENU_RET_NOERROR;
-}
-
-uint8_t
-menuSDLoadSettings(uint8_t mode)
-{
-#if FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  UINT  ret_size;
-  uint16_t ui16_1;
-  uint8_t ui8_1;
-  uint8_t serial_no[SERIAL_NO_MAX];
-
-  /* init */
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-
-  /* */
-  f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_READ)) {
-    LCD_ALERT(PSTR("File open error"));
-    goto menuSDLoadSettingsExit;
-  }
-
-  /* check version string */
-  if (0 == f_size(&Fil)) {
-    LCD_ALERT(PSTR("File size error"));
-    goto menuSDLoadSettingsExit;
-  } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
-    LCD_ALERT(PSTR("File error"));
-    goto menuSDLoadSettingsExit;
-  } else if (GIT_HASH_SMALL_LEN != ret_size) {
-    LCD_ALERT(PSTR("File error "));
-    goto menuSDLoadSettingsExit;
-  }
-  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
-    if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
-      LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_FILEERR*MENU_PROMPT_LEN));
-      goto menuSDLoadSettingsExit;
-    }
-  }
-
-  /* save serial number for updating later */
-  for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
-    serial_no[ui8_1] = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1);
-
-  /* Check for crc in file */
-  bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
-  ui16_1 = 0;
-  assert(FR_OK == f_lseek(&Fil, 0));
-  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
-    if (0 == ret_size) break;
-    if (0 != ui16_1) { /* skip first time */
-      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
-      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-1]);
-    }
-    for (ui8_1=0; ui8_1<(ret_size-2); ui8_1++) {
-      ui16_1 = _crc16_update(ui16_1, bufSS[ui8_1]);
-    }
-    bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
-    bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
-  }
-  ret_size = bufSS[BUFSS_SIZE-2];
-  ret_size <<= 8;
-  ret_size |= bufSS[BUFSS_SIZE-1];
-  if ((0 == ui16_1) || (ui16_1 != ret_size)) {
-    //printf("ui16_1:%x ret_size:%x\n", ui16_1, ret_size);
-    LCD_ALERT_16N(PSTR("File error "), ui16_1);
-    goto menuSDLoadSettingsExit;
-  }
-
-  /* */
-  assert(FR_OK == f_lseek(&Fil, 0));
-  ui16_1 = 0;
-  assert(FR_OK == f_lseek(&Fil, GIT_HASH_SMALL_LEN));
-  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE, &ret_size)) {
-    if (0 == ret_size) break; /* reached last */
-    eeprom_update_block((const void *)bufSS, (void *)ui16_1, ret_size);
-    ui16_1 += ret_size;
-  }
-  assert((EP_STORE_LAYOUT_SIZEOF+2) == ui16_1); /* crc would be pending */
-
-  /* restore serial number */
-  for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
-    eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, serial_no[ui8_1]);
-  
-  /* when all goes well */
-  LCD_ALERT(PSTR("Settings Loaded.."));
-
- menuSDLoadSettingsExit:
-  /* */
-  f_close(&Fil);
-  f_mount(NULL, "", 0);
-#endif
-
-  return MENU_RET_NOERROR;
-}
-
-uint8_t
-menuSDSaveSettings(uint8_t mode)
-{
-#if MENU_SDSAVE_EN && FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (DS_NO_SD&devStatus)) ) {
-    LCD_ALERT(SKIP_INFO_PSTR);
-    return 0;
-  }
-  UINT  ret_size;
-  uint16_t ui16_1, ui16_2, ui16_3, signature;
-  uint8_t ui8_1;
-
-  /* init */
-  signature = 0;
-  memset(&FS, 0, sizeof(FS));
-  memset(&Fil, 0, sizeof(Fil));
-
-  /* */
-  f_mount(&FS, ".", 1);
-  if (FR_OK != f_open(&Fil, SD_SETTINGS_FILE, FA_WRITE)) {
-    LCD_ALERT(PSTR("File open error"));
-    goto menuSDSaveSettingsExit;
-  }
-
-  /* Add version string */
-  strncpy_P((char *)bufSS, PSTR(GIT_HASH_SMALL), GIT_HASH_SMALL_LEN);
-  f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
-  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
-    signature = _crc16_update(signature, bufSS[ui8_1]);
-  assert(GIT_HASH_SMALL_LEN == ret_size);
-
-  /* */
-  for (ui16_1=0; ui16_1<EP_STORE_LAYOUT_SIZEOF; ui16_1+=ui16_3) {
-    ui16_3 = ((EP_STORE_LAYOUT_SIZEOF-ui16_1) >= BUFSS_SIZE) ?
-      BUFSS_SIZE : (EP_STORE_LAYOUT_SIZEOF-ui16_1);
-    eeprom_read_block((void *)bufSS, (const void *)ui16_1, ui16_3);
-    f_write(&Fil, bufSS, ui16_3, &ret_size);
-    assert(ret_size == ui16_3);
-    for (ui16_2=0; ui16_2<ui16_3; ui16_2++) {
-      signature = _crc16_update(signature, bufSS[ui16_2]);
-    }
-  }
-  assert(ui16_1 == EP_STORE_LAYOUT_SIZEOF);
-  bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
-  f_write(&Fil, bufSS, 2, &ret_size);
-  assert(2 == ret_size);
-
-  /* when all goes well */
-  LCD_ALERT(PSTR("Settings Saved.."));
-
- menuSDSaveSettingsExit:
-  /* */
-  f_mount(NULL, "", 0);
-#endif
-
-  return MENU_RET_NOERROR;
 }

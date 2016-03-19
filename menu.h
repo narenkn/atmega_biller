@@ -99,8 +99,7 @@ typedef struct {
 #define MENU_HIER_BILLING    1
 #define MENU_HIER_SETTINGS   2
 #define MENU_HIER_REPORTS    3
-#define MENU_HIER_SD         4
-#define MENU_HIER_MAX        4
+#define MENU_HIER_MAX        3
 #define MENU_HIER_NAME_SIZE  7
 #define MENU_HIER_NAMES      "Billing" \
                              "Setting" \
@@ -140,7 +139,7 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_MTAX) MENU_NAME("Tax Report  ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER) MENU_NAME("Del All Bill") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+    ARG1(MENU_PR_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Mod Setting ") COL_JOIN MENU_FUNC(menuSettingSet) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MVALIDATE) MENU_NAME("Change Passw") COL_JOIN MENU_FUNC(menuSetPasswd) COL_JOIN \
@@ -152,15 +151,7 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL) MENU_NAME("RunDiagnostc") COL_JOIN MENU_FUNC(menuRunDiag) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Reset2Factry") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Items  ") COL_JOIN MENU_FUNC(menuSDLoadItem) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Export Items") COL_JOIN MENU_FUNC(menuSDSaveItem) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Setting") COL_JOIN MENU_FUNC(menuSDLoadSettings) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SD) MENU_MODE(MENU_MSUPER) MENU_NAME("Expt Setting") COL_JOIN MENU_FUNC(menuSDSaveSettings) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) 
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
 
 extern uint8_t menu_error;
 extern uint8_t bufSS[BUFSS_SIZE];
@@ -181,6 +172,10 @@ void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
+void menuScanF(char *str, uint16_t *ui16);
+#define SSCANF(str_p, ui16_p) \
+  *(ui16_p) = 0;	      \
+  menuScanF(str_p, ui16_p)
 
 /* User routines*/
 uint8_t menuSetPasswd(uint8_t mode);
@@ -201,10 +196,9 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 uint8_t menuBilling(uint8_t mode);
 uint8_t menuShowBill(uint8_t mode);
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
-#if FF_ENABLE
-void menuPrnBillSDHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
-#endif
-void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // Unverified
+void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index);
+void menuPrnD(uint32_t var);
+void menuPrnF(uint32_t var);
 void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
 
 /* User option routines */
@@ -221,12 +215,6 @@ uint8_t menuSettingSet(uint8_t mode);
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
 uint8_t menuDelAllBill(uint8_t mode); // Unverified
-
-/* SD routines */
-uint8_t menuSDLoadItem(uint8_t mode); // Unverified
-uint8_t menuSDLoadSettings(uint8_t mode); // Unverified
-uint8_t menuSDSaveItem(uint8_t mode); // Unverified
-uint8_t menuSDSaveSettings(uint8_t mode); // Unverified
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode);

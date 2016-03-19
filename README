@@ -58,3 +58,8 @@ FIXME:
 42. LEFT takes back. We introduced ESCAPE, so that needs to be factored in!
 43. Number of bill should be rechecked on every bill item. On reset, it needs to be initialized.
 44. In Atmega128p device use CLKPR register to scale down clock frequency if necessary
+
+Atmega32 Product:
+1. Change to storing bill in EEPROM
+2. When bill read from memory, check both CRC & (CRC==~INVERT_CRC) for checking validity.
+3. menuDelAllBill : implement optional date & id
