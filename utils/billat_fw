@@ -264,6 +264,8 @@ class Atmega1284p:
     return 0;
 
   def Reset(self):
+    ##
+    self.p.PortOut(self.cnt_reg, 0x0);
     ## Simple delay to release the port
     self.def_val = 0x0;
     for i in range(8):
@@ -276,10 +278,11 @@ class Atmega1284p:
     self.RawOut(0x0);
 
   def Release(self):
+    self.def_val = 0x0;
     self.RawOut(0x0);
     self.def_val = 0xFF;
     self.RawOut(0xFF);
-    self.p.PortOut(self.cnt_reg, 0x0);
+    self.p.PortOut(self.cnt_reg, 0xFF);
 
   def __init__(self, dr):
     self.error = 0;
@@ -339,28 +342,40 @@ class Atmega1284p:
       self.Out(0xA0);
       self.Out(0x0);
       self.Out(options.flb);
+      print ".",;
       ## Just wait for some time
-      for j in range(3000):
-        for k in range(3000):
-          l = k*k;
+      while True:
+        self.Out(0xF0);
+        self.Out(0x0);
+        self.Out(0x0);
+        in_val = self.Out(0x0);
+        if (0 == (in_val & 1)): break;
       ## Write high byte
       self.Out(0xAC);
       self.Out(0xA8);
       self.Out(0x0);
       self.Out(options.fhb);
+      print ".",;
       ## Just wait for some time
-      for j in range(3000):
-        for k in range(3000):
-          l = k*k;
+      while True:
+        self.Out(0xF0);
+        self.Out(0x0);
+        self.Out(0x0);
+        in_val = self.Out(0x0);
+        if (0 == (in_val & 1)): break;
       ## Write extended byte
       self.Out(0xAC);
       self.Out(0xA4);
       self.Out(0x0);
       self.Out(options.feb);
+      print ".",;
       ## Just wait for some time
-      for j in range(3000):
-        for k in range(3000):
-          l = k*k;
+      while True:
+        self.Out(0xF0);
+        self.Out(0x0);
+        self.Out(0x0);
+        in_val = self.Out(0x0);
+        if (0 == (in_val & 1)): break;
       ## Read back & verify : low byte
       self.Out(0x50);
       self.Out(0x0);
@@ -369,6 +384,8 @@ class Atmega1284p:
       if options.flb != in_val:
         self.error += 1;
         print "Failed (0x%x Vs 0x%x)" % (options.flb, in_val);
+      else:
+        print ".",;
       ## Read back & verify : high byte
       self.Out(0x58);
       self.Out(0x08);
@@ -377,6 +394,8 @@ class Atmega1284p:
       if options.fhb != in_val:
         self.error += 1;
         print "Failed (0x%x Vs 0x%x)" % (options.fhb, in_val);
+      else:
+        print ".",;
       ## Read back & verify : extended byte
       self.Out(0x50);
       self.Out(0x08);
@@ -385,53 +404,61 @@ class Atmega1284p:
       if options.feb != in_val:
         self.error += 1;
         print "Failed (0x%x Vs 0x%x)" % (options.feb, in_val);
+      else:
+        print ".",;
       ## Final check for errors
       if self.error:
         print "Failed";
       else:
-        print "Wrote %x:%x Done" % (options.fhb, options.flb);
+        print "Wrote %x:%x:%x Done" % (options.feb, options.fhb, options.flb);
       return;
-##    ## 5. Chip erase
-##    self.Out(0xAC);
-##    self.Out(0x80);
-##    self.Out(0x00);
-##    self.Out(0x00);
-##    for j in range(1000):
-##      range(j);
+    ## 5. Chip erase
+    self.Out(0xAC);
+    self.Out(0x80);
+    self.Out(0x00);
+    self.Out(0x00);
+    for j in range(1000):
+      range(j);
+    ## Load extended address byte
+    self.Out(0x4D);
+    self.Out(0x0);
+    self.Out(0x0);
+    self.Out(0x0);
     ## 6. Program sector by sector
     print "Info: Writing & Checking",;
     for i in range(self.NUM_PAGES):
       if None != self.pages[i]:
-        ## Load extended address byte
-        self.Out(0x4D);
-        self.Out(0x0);
-        self.Out((i>>8)&1)
-        self.Out(0x0);
         ## Start page programming
         print ".",;
 	for j in range(0, self.PAGE_SIZE, 2):
+          addr = (i<<7)|(j>>1);
           self.Out(0x40);
           self.Out(0x0);
-          self.Out(j&0xFF);
+          self.Out(addr&0xFF);
           self.Out(self.pages[i][j]);
           self.Out(0x48);
           self.Out(0x0);
-          self.Out(j&0xFF);
+          self.Out(addr&0xFF);
           self.Out(self.pages[i][j+1]);
         ## Initiate write of page
         self.Out(0x4C);
-        self.Out(i&0xFF);
-        self.Out(0x0);
+        self.Out((i>>1)&0xFF);
+        self.Out((i<<7)&0xFF);
         self.Out(0x0);
         ## Just wait for some time
-        for j in range(3000):
-          for k in range(3000):
-            l = k*k;
+        while True:
+          self.Out(0xF0);
+          self.Out(0x0);
+          self.Out(0x0);
+          in_val = self.Out(0x0);
+          if (0 == (in_val & 1)): break;
+    for i in range(self.NUM_PAGES):
+      if None != self.pages[i]:
         ## 7. Read each byte and verify write
         error = False;
 	for j in range(0, self.PAGE_SIZE, 2):
           ## Read Low byte
-          addr = (i<<8)|(j>>0);
+          addr = (i<<7)|(j>>1);
           self.Out(0x20);
           self.Out((addr>>8)&0xFF);
           self.Out(addr&0xFF);
@@ -476,11 +503,12 @@ class Atmega1284p:
         print ".",;
         self.Out(0xC0); self.Out(0x00); self.Out(i); self.Out(ord(options.serial_no[i]));
         ## Just wait for some time
-        for j in range(100):
-          self.Out(0xA0);
-          self.Out(0x00);
-          self.Out(i);
+        while True:
+          self.Out(0xF0);
           self.Out(0x0);
+          self.Out(0x0);
+          in_val = self.Out(0x0);
+          if (0 == (in_val & 1)): break;
       for i in range(16):
         print ".",;
         self.Out(0xA0); self.Out(0x00); self.Out(i); in_val = self.Out(0);
@@ -585,7 +613,7 @@ if "__main__" == __name__:
       options.fhb = 0x99 | 0x40; ## Disable JTAG
       options.feb = 0xFC;
     elif 'atmega1284p' == options.mcu:
-      options.flb = 0x62;
+      options.flb = 0x62 | 0x80;
       options.fhb = 0x99 | 0x40; ## Disable JTAG
       options.feb = 0xFF;
 
