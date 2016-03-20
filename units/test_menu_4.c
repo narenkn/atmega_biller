@@ -1,7 +1,6 @@
 #include "test_common.c"
 
-/* test item add/ modify/ save
- */
+/* test item add/ modify/ save */
 
 /* place to store items */
 struct item all_items[ITEM_MAX];

@@ -17,6 +17,8 @@ uint8_t *test_key[NUM_TEST_KEY_ARR];
 #define KBD_KEY_TIMES(N)   ((N-1)<<4)
 #define KBD_KEY(N)                  N
 
+uint8_t KbdInTypeErrors = 1;
+
 /* This should be kept in sync with original kbd.c */
 const uint8_t keyChars[] = {
   /* KCHAR_ROWS x KCHAR_COLS */
@@ -84,7 +86,11 @@ KbdGetCh(void)
     return;
   }
 
-  if ((ASCII_ENTER==test_key[0][test_key_idx]) || (ASCII_LEFT==test_key[0][test_key_idx]) || (ASCII_RIGHT==test_key[0][test_key_idx])) {
+  /* Certain times do not introduce typing errors */
+  if ((0 == KbdInTypeErrors) ||
+      (ASCII_ENTER==test_key[0][test_key_idx]) ||
+      (ASCII_LEFT==test_key[0][test_key_idx]) ||
+      (ASCII_RIGHT==test_key[0][test_key_idx])) {
     keyHitData.KbdData = test_key[0][test_key_idx];
     keyHitData.KbdDataAvail = 1;
     test_key_idx++;

@@ -194,9 +194,11 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified
-uint8_t menuShowBill(uint8_t mode); // unverified
+uint8_t menuShowBill(uint8_t mode);
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
 void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index);
+void menuLcdD(uint32_t var);
+void menuLcdF(uint32_t var);
 void menuPrnD(uint32_t var);
 void menuPrnF(uint32_t var);
 void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
@@ -214,7 +216,7 @@ uint8_t menuSettingSet(uint8_t mode);
 
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
-uint8_t menuDelAllBill(uint8_t mode); // Unverified
+uint8_t menuDelAllBill(uint8_t mode);
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode);

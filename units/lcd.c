@@ -212,8 +212,8 @@ LCD_wrchar(uint8_t ch)
   lcd_y++;
   lcd_buf_p[0] = ch; lcd_buf_p++;
 
-  wrefresh(win);
   assert(lcd_y <= LCD_MAX_COL);
+  wrefresh(win);
 }
 
 void
@@ -229,5 +229,4 @@ LCD_PUT_UINT(uint32_t val)
     LCD_PUT_UINT(val);
 
   LCD_PUTCH(ui8_1);
-  lcd_buf_p[0] = ui8_1; lcd_buf_p++;
 }

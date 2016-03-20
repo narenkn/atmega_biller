@@ -34,5 +34,5 @@ billingInit(void)
 {
   assert(14 == sizeof(struct sale_info));
   assert(14 == sizeof(struct sale_item));
-  assert(SALE_DATA_SIZEOF >= (sizeof(struct sale)-ITEM_SIZEOF));
+  assert(SALE_DATA_EXP_ITEMS_SIZEOF >= (sizeof(struct sale)-ITEM_SIZEOF));
 }

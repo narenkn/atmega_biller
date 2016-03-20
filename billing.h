@@ -55,7 +55,6 @@ struct sale {
 
 /* constants */
 #define SALE_SIZEOF       sizeof(struct sale)
-#define SALE_DATA_SIZEOF  (sizeof(struct sale)-ITEM_SIZEOF)
 #define SIZEOF_1BILL      (SALE_SIZEOF-ITEM_SIZEOF+(ITEM_SIZEOF*MAX_ITEMS_IN_BILL))
 #define SALE_DATA_EXP_ITEMS_SIZEOF  (sizeof(struct sale)-ITEM_SIZEOF)
 
@@ -71,7 +70,7 @@ void billingInit(void);
    If address stored in 16-bits
    4*64KB == 256KBytes == 2^^18, so SALE should be 4 byte aligned.
  */
-#define SALE_DATA_SIZEOF_NORM    (SALE_DATA_SIZEOF>>2)
+#define SALE_DATA_SIZEOF_NORM    (SALE_DATA_EXP_ITEMS_SIZEOF>>2)
 #define EEPROM_SALE_START_ADDR   (ITEM_MAX_ADDR>>2)
 #define EEPROM_BILL_ADDR(N)      (EEPROM_SALE_START_ADDR+	\
 				  (SALE_DATA_SIZEOF_NORM*N))

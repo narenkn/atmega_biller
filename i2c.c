@@ -518,8 +518,6 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 {
   uint16_t rv, total;
 
-  assert(0 == (len%4));
-
   total = 0;
   do {
 #if DEBUG
