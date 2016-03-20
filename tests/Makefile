@@ -6,8 +6,8 @@
 
 ## General Flags
 PROJECT = 
-#MCU = atmega32
-MCU = atmega1284p
+MCU = atmega32
+#MCU = atmega1284p
 CC = avr-gcc
 
 ## Options common to compile, link and assembly rules

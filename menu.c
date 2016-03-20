@@ -849,8 +849,8 @@ menuInit()
     ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
   }
   LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const char *)PSTR("Empty Bills:"), 12);
-  LCD_PUT_UINT(ui16_3);
+  menuLcdD(ui16_3);
+  LCD_WR_NP((const char *)PSTR(" Free"), 5);
   LCD_refresh();
   KBD_GETCH;
 
@@ -969,7 +969,7 @@ menuBilling(uint8_t mode)
 	LCD_ALERT("Found Bill..");
 	LCD_CLRLINE(0);
 	LCD_PUT_UINT(sl->info.bill_id);
-	LCD_WR_P(": Amt:");
+	LCD_WR_NP(PSTR(": Amt:"), 6);
 	LCD_PUT_UINT(sl->total);
 	if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
 	  goto menuModBillReturn;
@@ -1046,7 +1046,7 @@ menuBilling(uint8_t mode)
     if (0xFFFF == (sl->crc ^ sl->crc_invert)) { /* valid bill */
       LCD_CLRLINE(0);
       LCD_PUT_UINT(sl->info.bill_id);
-      LCD_WR_P(": Amt:");
+      LCD_WR_NP(PSTR(": Amt:"), 6);
       LCD_PUT_UINT(sl->total);
       if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
 	return MENU_RET_NOTAGAIN;
@@ -1159,7 +1159,7 @@ menuBilling(uint8_t mode)
       if (ASCII_ENTER == keyHitData.KbdData) { /* accept */
 	ui8_5++;
 	LCD_CLRLINE(0);
-	LCD_WR_P(PSTR("Added to bill!"));
+	LCD_WR_NP(PSTR("Added to bill!"), 14);
       } else if ( (ASCII_UP == keyHitData.KbdData) ||
 		  (ASCII_RIGHT == keyHitData.KbdData) ) { /* override */
 	/* add default values from item data */
