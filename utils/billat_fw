@@ -555,8 +555,6 @@ if "__main__" == __name__:
     if 'atmega32' == options.mcu:
       dev = Atmega32(options.lpt_addr);
     elif 'atmega1284p' == options.mcu:
-      options.flb = 0x62
-      options.fhb = 0x99
       dev = Atmega1284p(options.lpt_addr);
 
   ##
@@ -588,9 +586,13 @@ if "__main__" == __name__:
 
   ##
   if options.defaults:
-    options.flb = 0xE1;
-    options.fhb = 0x99 | 0x40; ## Disable JTAG
     print "Using default fuse values";
+    if 'atmega32' == options.mcu:
+      options.flb = 0xE4;
+      options.fhb = 0x99 | 0x40; ## Disable JTAG
+    elif 'atmega1284p' == options.mcu:
+      options.flb = 0x62
+      options.fhb = 0x99
 
   ## Process file
   any_page_valid = False;
