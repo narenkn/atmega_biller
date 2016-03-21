@@ -550,13 +550,6 @@ if "__main__" == __name__:
                   help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
 
-  ##
-  if options.release_bus:
-    print "Causing reset & releasing the bus";
-    dev.Reset();
-    dev.Release();
-    exit(dev.error);
-
   ## modify certain default values
   if (0xE4 == options.flb) and (0xC9 == options.fhb):
     if 'atmega32' == options.mcu:
@@ -565,6 +558,13 @@ if "__main__" == __name__:
       options.flb = 0x62
       options.fhb = 0x99
       dev = Atmega1284p(options.lpt_addr);
+
+  ##
+  if options.release_bus:
+    print "Causing reset & releasing the bus";
+    dev.Reset();
+    dev.Release();
+    exit(dev.error);
 
   ##
   dev.pages = [None]*dev.NUM_PAGES;
