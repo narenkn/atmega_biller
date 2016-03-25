@@ -32,7 +32,11 @@
 void
 billingInit(void)
 {
-  assert(14 == sizeof(struct sale_info));
-  assert(14 == sizeof(struct sale_item));
+#if MENU_USER_ENABLE
+  assert(16 == sizeof(struct sale_info));
+#else
+  assert((16-EPS_MAX_UNAME) == sizeof(struct sale_info));
+#endif
+  assert(13 == sizeof(struct sale_item));
   assert(SALE_DATA_EXP_ITEMS_SIZEOF >= (sizeof(struct sale)-ITEM_SIZEOF));
 }

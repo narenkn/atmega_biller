@@ -781,7 +781,11 @@ menuInit()
   MenuMode = MENU_MRESET;
 
   /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
+#if UNICODE_ENABLE
+  assert((40+16) == ITEM_SIZEOF);
+#else
   assert(40 == ITEM_SIZEOF);
+#endif
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
@@ -1327,8 +1331,10 @@ menuBilling(uint8_t mode)
   sl->info.time_hh = ((ui32_2>>FAT_HOUR_OFFSET)&FAT_HOUR_MASK);
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
+#if MENU_USER_ENABLE
   for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
     sl->info.user[ui8_2] = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
+#endif
 
   /* Restart numbering if another day!! */
   if (0 == (mode & MENU_MODITEM)) {
@@ -1876,11 +1882,13 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
   PRINTER_PRINT('u'); PRINTER_PRINT('s'); PRINTER_PRINT('e');
   PRINTER_PRINT('r'); PRINTER_PRINT(':');
+#if MENU_USER_ENABLE
   for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
     ui8_3 = sl->info.user[ui8_1];
     assert ('\n' != ui8_3);
     PRINTER_PRINT(ui8_3);
   }
+#endif
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
   PRINTER_PRINT_2D(1+sl->info.date_dd); PRINTER_PRINT('/');
   PRINTER_PRINT_2D(1+sl->info.date_mm); PRINTER_PRINT('/');

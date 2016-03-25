@@ -26,7 +26,13 @@ void expect_else_assert(const char *s, const char *f, const uint32_t l);
     while (1) {}			       \
   }
 #else
-#define  assert(X)  while (!(X)) {}
+#define  assert(X)				\
+  if (!(X)) {					\
+    LCD_CLRLINE(1);				\
+    LCD_PUT_UINT(__LINE__);			\
+    LCD_refresh();				\
+    while (1) {}				\
+  }
 #endif
 
 #define ERROR(msg) { /*FIXME: flash error message*/ }

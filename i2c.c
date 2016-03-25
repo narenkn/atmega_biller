@@ -41,12 +41,18 @@ void
 i2c_init(void)
 {
 #if 1
-  TWCR= 0x00; //disable twi
-  TWBR= 0x12; //set bit rate
-  TWSR= 0x00; //set prescale
-  //TWCR= 0x44; //enable twi
+#if F_CPU <= 1000000UL
+  /*
+   * Note [4]
+   * Slow system clock, double Baud rate to improve rate error.
+   */
+  UCSRA = _BV(U2X);
+  UBRR = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
+#else
+  UBRR = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
 #endif
-#if 0
+  UCSRB = _BV(TXEN);		/* tx enable */
+
   /* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescaler = 1 */
 #if defined(TWPS0)
   /* has prescaler (mega128 & newer) */
@@ -58,6 +64,13 @@ i2c_init(void)
 #else
   TWBR = (F_CPU / 100000UL - 16) / 2;
 #endif
+
+#else
+
+  TWCR= 0x00; //disable twi
+  TWBR= 0x12; //set bit rate
+  TWSR= 0x00; //set prescale
+  //TWCR= 0x44; //enable twi
 #endif
 }
 
@@ -215,7 +228,7 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 #else
   /* 16-bit address devices need only TWI Device Address */
   sla = TWI_SLA_24CXX | (((eeaddr >> 14) & 0x03) << 1);
-  eeaddr <<= 2; eeaddr &= ~0x3;
+  eeaddr <<= 2; /* supports 4 devices & 4-byte aligned addr */
 #endif
 
   /*
@@ -355,15 +368,15 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
       goto error;
     }
   }
-
- error:
-  rv = -1;
-
- quit:
+  quit:
   /* Note [14] */
   TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN); /* send stop condition */
 
   return rv;
+
+  error:
+  rv = -1;
+  goto quit;
 }
 
 /*
@@ -390,7 +403,7 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 {
   uint8_t sla, n = 0;
   uint16_t rv = 0;
-  uint16_t endaddr;
+  uint32_t endaddr;
 
 #ifndef WORD_ADDRESS_16BIT
   /* patch high bits of EEPROM address into SLA */
@@ -398,13 +411,14 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 #else
   /* 16-bit address devices need only TWI Device Address */
   sla = TWI_SLA_24CXX | (((eeaddr >> 14) & 0x03) << 1);
-  eeaddr <<= 2; eeaddr &= ~0x3;
+  eeaddr <<= 2; /* supports 4 devices & 4-byte aligned addr */
 #endif
 
-  if (eeaddr + len <= (eeaddr | (EEPROM_PAGE_SIZE - 1)))
-    endaddr = eeaddr + len;
+  endaddr = eeaddr;
+  if ( (endaddr + len) <= (endaddr | (EEPROM_PAGE_SIZE - 1)) )
+    endaddr = endaddr + len;
   else
-    endaddr = (eeaddr | (EEPROM_PAGE_SIZE - 1)) + 1;
+    endaddr = (endaddr | (EEPROM_PAGE_SIZE - 1)) + 1;
   len = endaddr - eeaddr;
 
  restart:
@@ -498,14 +512,14 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
       goto error;
     }
   }
-
- error:
-  rv = -1;
-
- quit:
+  quit:
   TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN); /* send stop condition */
 
   return rv;
+
+  error:
+  rv = -1;
+  goto quit;
 }
 
 /*
@@ -530,7 +544,7 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 #endif
     if (rv == -1)
       return -1;
-    eeaddr += rv;
+    eeaddr += (rv>>2);
     len -= rv;
     buf += rv;
     total += rv;
