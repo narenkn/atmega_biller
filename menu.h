@@ -103,8 +103,7 @@ typedef struct {
 #define MENU_HIER_NAME_SIZE  7
 #define MENU_HIER_NAMES      "Billing" \
                              "Setting" \
-                             "Reports" \
-                             "SD Card"
+                             "Reports"
 
 #define SETTING_VAR_NAME_LEN    9
 struct setting_vars {

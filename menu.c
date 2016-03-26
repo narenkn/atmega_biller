@@ -254,6 +254,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 	LCD_cmd(LCD_CMD_DEC_CUR);
       }
       break;
+#if 0
     case ASCII_LF:
     case ASCII_ENTER:
       break;
@@ -267,17 +268,20 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_DEFINED:
     case ASCII_F2:
       break;
+#endif
     default:
-      prev_helper = 0; /* start searching from first */
-      buf[buf_idx] = keyHitData.KbdData;
-      /* Don't overflow buffer */
-      if (MENU_ITEM_STR == item_type) {
-	if (buf_idx < arg->value.str.len) {
-	  buf_idx++;
-	}
-      } else {
-	if (buf_idx < (LCD_MAX_COL-1)) {
-	  buf_idx++;
+      if (isprint(keyHitData.KbdData)) {
+	prev_helper = 0; /* start searching from first */
+	buf[buf_idx] = keyHitData.KbdData;
+	/* Don't overflow buffer */
+	if (MENU_ITEM_STR == item_type) {
+	  if (buf_idx < arg->value.str.len) {
+	    buf_idx++;
+	  }
+	} else {
+	  if (buf_idx < (LCD_MAX_COL-1)) {
+	    buf_idx++;
+	  }
 	}
       }
     }
@@ -318,32 +322,30 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       /* Date */
       val = 0;
       if (MENU_ITEM_DATE == item_type) {
-	for (ui16_1=0; ui16_1<2; ui16_1++) {
-	  val *= 10;
-	  val += buf[0] - '0';
-	  buf++;
-	}
-	if ((0 == val) || (val > 31)) menu_error++;
+	val |= (buf[0] - '0') & 0x3; /* max: 3 */
+	val <<= 4;
+	val |= (buf[1] - '0') % 10; /* max: 9 */
+	if ((0 == val) || (val > 0x31)) menu_error++;
 	arg->value.date.day = val;
+	buf += 2;
       }
       /* Month */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if ((0 == val) || (val > 12)) menu_error++;
+      val |= (buf[0] - '0') & 0x1; /* max: 1 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 13; /* max: 2 */
+      if ((0 == val) || (val > 0x12)) menu_error++;
       arg->value.date.month = val;
+      buf += 2;
       /* Year */
       val = 0;
-      for (ui16_1=0; ui16_1<4; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val < 2014) menu_error++;
-      arg->value.date.year = val-1980;
+      buf += 2;
+      val |= (buf[0] - '0') & 0x3; /* max: 3 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 10; /* max: 9 */
+      buf += 2;
+      if (val < 0x16) menu_error++;
+      arg->value.date.year = val;
     }
   } else if (MENU_ITEM_TIME == item_type) {
     /* format HHMM */
@@ -355,21 +357,19 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     if (0 == menu_error) {
       /* Hour */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val>23) menu_error++;
+      val |= (buf[0] - '0') % 3; /* max: 2 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 4; /* max: 3 */
+      buf += 2;
+      if (val>0x23) menu_error++;
       arg->value.time.hour = val;
       /* Mins */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val > 59) menu_error++;
+      val |= (buf[0] - '0') % 7; /* max: 6 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 10; /* max: 10 */
+      buf += 2;
+      if (val > 0x59) menu_error++;
       arg->value.time.min = val;
     }
   } else if (MENU_ITEM_STR == item_type) {
@@ -481,8 +481,10 @@ menuFactorySettings(uint8_t mode)
   assert(MENU_MSUPER == MenuMode);
 
   /* confirm before proceeding */
-  ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
-  if (0 != ui8_1) return 0;
+  if (0 == (mode & MENU_NOCONFIRM)) {
+    ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
+    if (0 != ui8_1) return 0;
+  }
 
   /* date, time */
 #ifdef UNIT_TEST
@@ -493,8 +495,8 @@ menuFactorySettings(uint8_t mode)
   if (0 == ui8_1) {
     menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
     menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
-  } else {
-    arg1.value.date.year = 2015-1980;
+  } else { /* BCD format */
+    arg1.value.date.year = 0x15;
     arg1.value.date.month = 1;
     arg1.value.date.day = 1;
     arg1.valid = MENU_ITEM_DATE;
@@ -808,8 +810,24 @@ menuInit()
   /* Used to find if we are looping multiple times */
   ui8_2 = 0;
 
-  /* Identify capability of device from serial number */
- menuInitIdentifyDevice:
+  /* Identify capability of device from serial number
+     if byte0-4 of internal EEPROM is FAC7, then do factory
+     reset and copy serial number
+   */
+  uint32_t ui32_1;
+  for (ui8_1=0, ui32_1=0; ui8_1<4; ui8_1++) {
+    ui32_1 <<= 8;
+    ui32_1 |= eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
+  }
+  if (0xFAC7051A == ui32_1) { /* do factory setting */
+    /* Serial # doesn't exist, load from addr 0 */
+    for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
+      ui8_1--;
+      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
+      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
+			 ui8_2);
+    }
+  }
   ui16_1 = 0;
   for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
     ui16_1 = _crc16_update(ui16_1, eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
@@ -818,25 +836,17 @@ menuInit()
   ui16_2 <<= 8;
   ui16_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
   /* the CRC needs to be in the printable char set */
-  if ( ((0 == ui8_2) && (ui16_2 != ui16_1)) || (0 == ui16_1) ) {
-    /* Serial # doesn't exist, load from addr 0 */
-    for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
-      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
-      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
-			 ui8_2);
-    }
-
-    MenuMode = MENU_MSUPER;
-    menuFactorySettings(MenuMode);
-
-    ui8_2 = 1;
-    goto menuInitIdentifyDevice;
-  } else if (ui16_2 == ui16_1) {
+  if (ui16_2 == ui16_1) {
     ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
     devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
       ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
     devStatus |= DS_DEV_INVALID;
+  }
+
+  if (0xFAC7051A == ui32_1) {
+    MenuMode = MENU_MSUPER;
+    menuFactorySettings(MenuMode | MENU_NOCONFIRM);
   }
 
   /* Report # of bills that could be made */
@@ -856,7 +866,7 @@ menuInit()
   menuLcdD(ui16_3);
   LCD_WR_NP((const char *)PSTR(" Free"), 5);
   LCD_refresh();
-  KBD_GETCH;
+  _delay_ms(1000);
 
 #if !MENU_USER_ENABLE
   LoginUserId = 1;
@@ -1815,7 +1825,7 @@ menuLcdD(uint32_t var)
 {
   if (var>9)
     menuLcdD(var/10);
-  LCD_PUTCH('0'+(var%10));
+  LCD_PUTCH(('0'+(var%10)));
 }
 
 void

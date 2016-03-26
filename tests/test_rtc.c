@@ -24,7 +24,7 @@ main(void)
 
   _delay_ms(1000);
 
-  timerDateSet(0x5, 0x5, 0x14);
+  timerDateSet(0x14, 0x5, 0x5);
   timerTimeSet(0x1, 0x53);
 
   for (ui1=0; ; ui1++) {
@@ -43,14 +43,14 @@ main(void)
     LCD_PUTCH(('0'+(ymd[2]&0xF)));
     LCD_refresh();
     timerTimeGet(hms);
-    LCD_PUTCH(('0'+((hms[0]>>4)&0xF)));
-    LCD_PUTCH(('0'+(hms[0]&0xF)));
+    LCD_PUTCH(('0'+((hms[2]>>4)&0xF)));
+    LCD_PUTCH(('0'+(hms[2]&0xF)));
     LCD_PUTCH(':');
     LCD_PUTCH(('0'+((hms[1]>>4)&0xF)));
     LCD_PUTCH(('0'+(hms[1]&0xF)));
     LCD_PUTCH(':');
-    LCD_PUTCH(('0'+((hms[2]>>4)&0xF)));
-    LCD_PUTCH(('0'+(hms[2]&0xF)));
+    LCD_PUTCH(('0'+((hms[0]>>4)&0xF)));
+    LCD_PUTCH(('0'+(hms[0]&0xF)));
     _delay_ms(1000);
   }
 

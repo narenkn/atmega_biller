@@ -40,7 +40,7 @@
 void
 i2c_init(void)
 {
-#if 1
+#if 0
 #if F_CPU <= 1000000UL
   /*
    * Note [4]
@@ -74,6 +74,7 @@ i2c_init(void)
 #endif
 }
 
+#if  DS1307
 
 //*************************************************
 //Function to start i2c communication
@@ -195,6 +196,16 @@ i2c_stop(void)
 {
   TWCR =  (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);	  //Transmit STOP condition
 }  
+#else
+
+volatile uint8_t rtc_sec;
+volatile uint8_t rtc_min;
+volatile uint8_t rtc_hour;
+volatile uint8_t rtc_date;
+volatile uint8_t rtc_month;
+volatile uint8_t rtc_year;
+
+#endif
 
 /*
  * Note [7]

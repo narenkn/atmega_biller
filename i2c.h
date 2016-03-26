@@ -25,8 +25,8 @@
 #define TIMER_ADDR_MONTH           5
 #define TIMER_ADDR_YEAR            6
 
-#ifdef  DS1307
-#define timerDateSet(year, month, date) \
+#if  DS1307
+#define timerDateSet(year, month, date)			\
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
   i2c_sendData(TIMER_ADDR_DATE);			\
@@ -41,9 +41,9 @@
   i2c_sendData(TIMER_ADDR_DATE); /* date, month, yr */	\
   i2c_repeatStart();					\
   i2c_sendAddress(TIMER_CTRL_READ);			\
-  ymd[2] = i2c_receiveData_ACK();			\
+  ymd[0] = i2c_receiveData_ACK();			\
   ymd[1] = i2c_receiveData_ACK();			\
-  ymd[0] = i2c_receiveData_NACK();			\
+  ymd[2] = i2c_receiveData_NACK();			\
   i2c_stop();						\
   ymd[2] = (((ymd[2]>>4) & 0x0F)*10) + (ymd[2]&0x0F);	\
   ymd[1] = (((ymd[1]>>4) & 0x0F)*10) + (ymd[1]&0x0F);	\
@@ -53,7 +53,7 @@
   i2c_start();						\
   i2c_sendAddress(TIMER_CTRL_WRITE);			\
   i2c_sendData(TIMER_ADDR_SEC);				\
-  i2c_sendData(0);					\
+  i2c_sendData(0x0);					\
   i2c_sendData(min);					\
   i2c_sendData(hour);					\
   i2c_stop()
@@ -64,14 +64,21 @@
   i2c_sendData(TIMER_ADDR_SEC); /* sec, min, hr */	\
   i2c_repeatStart();					\
   i2c_sendAddress(TIMER_CTRL_READ);			\
-  hms[2] = i2c_receiveData_ACK();			\
+  hms[0] = i2c_receiveData_ACK();			\
   hms[1] = i2c_receiveData_ACK();			\
-  hms[0] = i2c_receiveData_NACK();			\
+  hms[2] = i2c_receiveData_NACK();			\
   i2c_stop();						\
   hms[2] = (((hms[2]>>4) & 0x0F)*10) + (hms[2]&0x0F);	\
   hms[1] = (((hms[1]>>4) & 0x0F)*10) + (hms[1]&0x0F);	\
   hms[0] = (((hms[0]>>4) & 0x0F)*10) + (hms[0]&0x0F)
 
+uint8_t  i2c_start(void);
+uint8_t  i2c_repeatStart(void);
+uint8_t  i2c_sendAddress(uint8_t);
+uint8_t  i2c_sendData(uint8_t);
+uint8_t  i2c_receiveData_ACK(void);
+uint8_t  i2c_receiveData_NACK(void);
+void     i2c_stop(void);
 
 #else /* 32KHz RTC implemented */
 
@@ -93,30 +100,29 @@ extern volatile uint8_t rtc_year;
   rtc_month = month%12;				\
   rtc_date = date%31
 
-#define timerDateGet(ymd)			\
-  ymd[2] = rtc_year;				\
-  ymd[1] = rtc_month;				\
-  ymd[0] = rtc_date
+#define timerDateGet(ymd)				\
+  ymd[2] = rtc_year;					\
+  ymd[1] = rtc_month;					\
+  ymd[0] = rtc_date;					\
+  ymd[2] = (((ymd[2]>>4) & 0x0F)*10) + (ymd[2]&0x0F);	\
+  ymd[1] = (((ymd[1]>>4) & 0x0F)*10) + (ymd[1]&0x0F);	\
+  ymd[0] = (((ymd[0]>>4) & 0x0F)*10) + (ymd[0]&0x0F)
 
 #define timerTimeSet(hour, min)			\
   rtc_hour = hour;				\
   rtc_min = min
 
-#define timerTimeGet(hms)			\
-  hms[2] = rtc_hour;				\
-  hms[1] = rtc_min;				\
-  hms[0] = rtc_sec
+#define timerTimeGet(hms)				\
+  hms[2] = rtc_hour;					\
+  hms[1] = rtc_min;					\
+  hms[0] = rtc_sec;					\
+  hms[2] = (((hms[2]>>4) & 0x0F)*10) + (hms[2]&0x0F);	\
+  hms[1] = (((hms[1]>>4) & 0x0F)*10) + (hms[1]&0x0F);	\
+  hms[0] = (((hms[0]>>4) & 0x0F)*10) + (hms[0]&0x0F)
 
 #endif
 
 void     i2c_init(void);
-uint8_t  i2c_start(void);
-uint8_t  i2c_repeatStart(void);
-uint8_t  i2c_sendAddress(uint8_t);
-uint8_t  i2c_sendData(uint8_t);
-uint8_t  i2c_receiveData_ACK(void);
-uint8_t  i2c_receiveData_NACK(void);
-void     i2c_stop(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 uint16_t ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);

@@ -140,10 +140,14 @@ main(void)
   } else {
     /* hardware issues found ....
      FIXME: ASK and run factory tests */
+    LCD_CLRLINE(0);
+    LCD_WR_NP((const char *)PSTR("Device Error"), 12);
+    LCD_refresh();
+    _delay_ms(5000);
   }
 
   /* reach here and you could never get out */
-  LCD_CLRSCR;
+  LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const char *)PSTR("Power Off Now"), 13);
   LCD_refresh();
   while (1) {
