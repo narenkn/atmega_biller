@@ -28,25 +28,8 @@
 volatile uint8_t eeprom_setting0 = 0, eeprom_setting1 = 0;
 
 void
-eeprom_setting2ram()
-{
-  uint8_t ui8_1;
-
-  /* init */
-  eeprom_setting0 = eeprom_setting1 = 0;
-
-  ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
-  if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
-  else EEPROM_SETTING0_ON(BUZZER);
-}
-
-void
 main_init(void)
 {
-  /* For Fat32 */
-  DDRB  |= 0xB2;
-  PORTB |= 0xF2;
-
   /* For Buzzer */
   DDRD |= 0x80;
   BUZZER_OFF;
@@ -61,7 +44,9 @@ main_init(void)
 //  TIMSK |= (1 << TOIE2);
 
   /* */
-  eeprom_setting2ram();
+  uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
+  if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
+  else EEPROM_SETTING0_ON(BUZZER);
 
   /* clear display buffer */
   LCD_CLRSCR;
@@ -110,7 +95,7 @@ main(void)
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Welcome..."), 10);
   LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const char *)PSTR("  Initializing.."), 1);
+  LCD_WR_NP((const char *)PSTR("  Initializing.."), 16);
   LCD_refresh();
   _delay_ms(500);
 
@@ -140,10 +125,14 @@ main(void)
   } else {
     /* hardware issues found ....
      FIXME: ASK and run factory tests */
+    LCD_CLRLINE(0);
+    LCD_WR_NP((const char *)PSTR("Device Error"), 12);
+    LCD_refresh();
+    _delay_ms(5000);
   }
 
   /* reach here and you could never get out */
-  LCD_CLRSCR;
+  LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const char *)PSTR("Power Off Now"), 13);
   LCD_refresh();
   while (1) {

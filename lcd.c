@@ -56,7 +56,7 @@ LCD_init(void)
 #endif
 
   /*  Function set: 2 Line, 8-bit, 5x7 dots */
-  for (ui8_1=1; ui8_1; ui8_1++) {
+  for (ui8_1=1; ui8_1<5; ui8_1++) {
     LCD_cmd(LCD_CMD_2LINE_5x7);
     _delay_us(100);
   }
@@ -67,13 +67,15 @@ LCD_init(void)
   _delay_ms(100);
 
   /* Clear LCD */
-  for (ui8_1=1; ui8_1; ui8_1++)
+  for (ui8_1=1; ui8_1<3; ui8_1++) {
     LCD_cmd(LCD_CMD_CLRSCR);
+  }
   _delay_ms(100);
 
   /* Entry mode, auto increment with no shift */
-  for (ui8_1=1; ui8_1; ui8_1++)
+  for (ui8_1=1; ui8_1<3; ui8_1++) {
     LCD_cmd(LCD_CMD_INC_CUR);
+  }
   _delay_ms(100);
 }
 
@@ -85,8 +87,9 @@ LCD_CLRLINE(uint8_t n)
   /* which line */
   n = (n&1) ? LCD_CMD_CUR_20 : LCD_CMD_CUR_10;
   LCD_cmd(n);
-  for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++)
+  for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
     LCD_PUTCH(' ');
+  }
   LCD_cmd(n);
 }
 

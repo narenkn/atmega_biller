@@ -162,6 +162,7 @@ class Atmega32:
     ## 6. Program sector by sector
     print "Info: Writing & Checking",;
     for i in range(self.NUM_PAGES):
+##    if 0:
       if None != self.pages[i]:
         print ".",;
 	for j in range(0, self.PAGE_SIZE, 2):
@@ -223,18 +224,66 @@ class Atmega32:
     ## 9. Write serial number
     if options.program_serial_no:
       print "Info: Writing serial number...",;
+      self.Out(0xC0); self.Out(0x00); self.Out(0x0); self.Out(0xFA);
+      print ".",;
+      ## Just wait for some time
+      for j in range(100):
+        self.Out(0xA0);
+        self.Out(0x00);
+        self.Out(0x0);
+        self.Out(0x0);
+      self.Out(0xC0); self.Out(0x00); self.Out(0x1); self.Out(0xC7);
+      print ".",;
+      ## Just wait for some time
+      for j in range(100):
+        self.Out(0xA0);
+        self.Out(0x00);
+        self.Out(0x1);
+        self.Out(0x0);
+      self.Out(0xC0); self.Out(0x00); self.Out(0x2); self.Out(0x05);
+      print ".",;
+      ## Just wait for some time
+      for j in range(100):
+        self.Out(0xA0);
+        self.Out(0x00);
+        self.Out(0x2);
+        self.Out(0x0);
+      self.Out(0xC0); self.Out(0x00); self.Out(0x3); self.Out(0x1A);
+      print ".",;
+      ## Just wait for some time
+      for j in range(100):
+        self.Out(0xA0);
+        self.Out(0x00);
+        self.Out(0x3);
+        self.Out(0x0);
       for i in range(16):
         print ".",;
-        self.Out(0xC0); self.Out(0x00); self.Out(i); self.Out(ord(options.serial_no[i]));
+        self.Out(0xC0); self.Out(0x00); self.Out(i+4); self.Out(ord(options.serial_no[i]));
         ## Just wait for some time
         for j in range(100):
           self.Out(0xA0);
           self.Out(0x00);
-          self.Out(i);
+          self.Out(i+4);
           self.Out(0x0);
+      self.Out(0xA0); self.Out(0x00); self.Out(0x0); in_val = self.Out(0);
+      if (0xFA != in_val):
+        print "x",;
+        self.error += 1;
+      self.Out(0xA0); self.Out(0x00); self.Out(0x1); in_val = self.Out(0);
+      if (0xC7 != in_val):
+        print "x",;
+        self.error += 1;
+      self.Out(0xA0); self.Out(0x00); self.Out(0x2); in_val = self.Out(0);
+      if (0x05 != in_val):
+        print "x",;
+        self.error += 1;
+      self.Out(0xA0); self.Out(0x00); self.Out(0x3); in_val = self.Out(0);
+      if (0x1A != in_val):
+        print "x",;
+        self.error += 1;
       for i in range(16):
         print ".",;
-        self.Out(0xA0); self.Out(0x00); self.Out(i); in_val = self.Out(0);
+        self.Out(0xA0); self.Out(0x00); self.Out(i+4); in_val = self.Out(0);
         if (ord(options.serial_no[i]) != in_val):
           print " : Serial # Failed (idx:%d Exp:0x%x Obt:0x%x)" % (i, ord(options.serial_no[i]), in_val&0xFF);
           self.error += 1;
@@ -546,9 +595,16 @@ if "__main__" == __name__:
                   help=SUPPRESS_HELP);
   parser.add_option("", "--mcu", dest="mcu", default="atmega32",
                   help=SUPPRESS_HELP); ## atmega1284p
-  parser.add_option("", "--device_id", dest="device_id", default="1k",
+  parser.add_option("", "--device_id", dest="device_id", default="01",
                   help=SUPPRESS_HELP);
   (options, args) = parser.parse_args()
+
+  ## modify certain default values
+  if (0xE4 == options.flb) and (0xC9 == options.fhb):
+    if 'atmega32' == options.mcu:
+      dev = Atmega32(options.lpt_addr);
+    elif 'atmega1284p' == options.mcu:
+      dev = Atmega1284p(options.lpt_addr);
 
   ##
   if options.release_bus:
@@ -556,15 +612,6 @@ if "__main__" == __name__:
     dev.Reset();
     dev.Release();
     exit(dev.error);
-
-  ## modify certain default values
-  if (0xE4 == options.flb) and (0xC9 == options.fhb):
-    if 'atmega32' == options.mcu:
-      dev = Atmega32(options.lpt_addr);
-    elif 'atmega1284p' == options.mcu:
-      options.flb = 0x62
-      options.fhb = 0x99
-      dev = Atmega1284p(options.lpt_addr);
 
   ##
   dev.pages = [None]*dev.NUM_PAGES;
@@ -588,9 +635,13 @@ if "__main__" == __name__:
 
   ##
   if options.defaults:
-    options.flb = 0xE1;
-    options.fhb = 0x99 | 0x40; ## Disable JTAG
     print "Using default fuse values";
+    if 'atmega32' == options.mcu:
+      options.flb = 0xE4;
+      options.fhb = 0x99 | 0x40; ## Disable JTAG
+    elif 'atmega1284p' == options.mcu:
+      options.flb = 0x62
+      options.fhb = 0x99
 
   ## Process file
   any_page_valid = False;

@@ -4,7 +4,8 @@
 #include <avr/interrupt.h>
 #include "uart.h"
 
-float uartWeight, uartInDecimal;
+uint32_t uartWeight, uartCode;
+uint8_t  uartDecimalPlace;
 
 //**************************************************
 //UART initialize
@@ -53,7 +54,7 @@ uartInit(void)
   UCSRB |= (1 << RXCIE);
 
   /* init */
-  uartInDecimal = 0;
+  uartDecimalPlace = 0;
   uartWeight = 0;
 }
 
@@ -66,20 +67,22 @@ uartSelect(uint8_t uid)
 ISR(USART_RXC_vect)
 {
   uint8_t ReceivedByte;
+
+  if (0 != uartDecimalPlace)
+    uartDecimalPlace ++;
+
   ReceivedByte = UDR;
+  uartCode <<= 8; uartCode |= ReceivedByte;
+
+  /* */
   if ( ('\n' == ReceivedByte) || ('\r' == ReceivedByte) ) {
     uartWeight = 0;
-    uartInDecimal = 0;
+    uartDecimalPlace = 0;
   } else if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
-    if (0 == uartInDecimal) {
-      uartWeight *= 10;
-      uartWeight += ReceivedByte-'0';
-    } else {
-      uartWeight += uartInDecimal * (ReceivedByte-'0');
-      uartInDecimal /= 10;
-    }
+    uartWeight *= 10;
+    uartWeight += ReceivedByte-'0';
   } else if ('.' == ReceivedByte)
-    uartInDecimal = 0.1;
+    uartDecimalPlace = 1;
 }
 
 //**************************************************

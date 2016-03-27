@@ -251,14 +251,18 @@ class item:
     }
   variables = {
     'uint32_t' : {
-      'id': ['', 4, TYPE_UINT32],
       'cost':['', 4, TYPE_UINT32],
       'discount':['', 4, TYPE_UINT32],
+      },
+    'uint16_t' : {
+      'id': ['', 2, TYPE_UINT16],
       },
     'uint8_t'  : {
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
       'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
-      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
+##      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
+      'unused_crc':['', 1, TYPE_UINT8],
+      'unused_crc_invert':['', 1, TYPE_UINT8],
       'has_serv_tax':[':1', 0.1, TYPE_BIT],
       'has_common_discount':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
@@ -286,6 +290,7 @@ class ep_store_layout:
   consts = {
     'HEADER_SZ_MAX' : 32*4,
     'SHOP_NAME_SZ_MAX' : 16*2,
+    'COMPANY_NAME_MAX' : 16,
     'FOOTER_SZ_MAX' : 32*2,
     'SERIAL_NO_MAX' : 16,
     'SCRATCH_MAX' : 16,
@@ -318,6 +323,7 @@ class ep_store_layout:
       'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
       'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*2, TYPE_STRING],
+      'unused_comp_name' : ['[COMPANY_NAME_MAX]', 16, TYPE_STRING],
       'b_head' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
       'b_foot' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
       'key_buzz':['', 1, TYPE_UINT8],
@@ -420,12 +426,11 @@ if "__main__" == __name__:
     print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n\n"
-    print "#define ITEM_MAX %d\n" % (options.device_id<<10)
+    print "#define ITEM_MAX %d\n" % (options.device_id*800)
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)
     ds.menu_var_table(ep)
-    print "#define ITEM_MAX_ADDR (ITEM_MAX * ITEM_SIZEOF)\n"
     print "\n\n#endif"
     error += ds.error
   elif options.to_dat:

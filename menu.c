@@ -192,7 +192,6 @@ const uint8_t SKIP_INFO_PSTR[] PROGMEM = "Skip Operation";
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
-static uint8_t LoginUserId = 0; /* 0 is invalid */
 uint8_t devStatus = 0;   /* 0 is no err */
 
 /* Diagnosis */
@@ -251,7 +250,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       if (buf_idx) {
 	buf_idx--;
 	buf[buf_idx] = ' ';
-	LCD_cmd(LCD_CMD_DEC_CUR);
       }
       break;
     case ASCII_LF:
@@ -268,16 +266,18 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_F2:
       break;
     default:
-      prev_helper = 0; /* start searching from first */
-      buf[buf_idx] = keyHitData.KbdData;
-      /* Don't overflow buffer */
-      if (MENU_ITEM_STR == item_type) {
-	if (buf_idx < arg->value.str.len) {
-	  buf_idx++;
-	}
-      } else {
-	if (buf_idx < (LCD_MAX_COL-1)) {
-	  buf_idx++;
+      if (isprint(keyHitData.KbdData)) {
+	prev_helper = 0; /* start searching from first */
+	buf[buf_idx] = keyHitData.KbdData;
+	/* Don't overflow buffer */
+	if (MENU_ITEM_STR == item_type) {
+	  if (buf_idx < arg->value.str.len) {
+	    buf_idx++;
+	  }
+	} else {
+	  if (buf_idx < (LCD_MAX_COL-1)) {
+	    buf_idx++;
+	  }
 	}
       }
     }
@@ -318,32 +318,30 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       /* Date */
       val = 0;
       if (MENU_ITEM_DATE == item_type) {
-	for (ui16_1=0; ui16_1<2; ui16_1++) {
-	  val *= 10;
-	  val += buf[0] - '0';
-	  buf++;
-	}
-	if ((0 == val) || (val > 31)) menu_error++;
+	val |= (buf[0] - '0') & 0x3; /* max: 3 */
+	val <<= 4;
+	val |= (buf[1] - '0') % 10; /* max: 9 */
+	if ((0 == val) || (val > 0x31)) menu_error++;
 	arg->value.date.day = val;
+	buf += 2;
       }
       /* Month */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if ((0 == val) || (val > 12)) menu_error++;
+      val |= (buf[0] - '0') & 0x1; /* max: 1 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 13; /* max: 2 */
+      if ((0 == val) || (val > 0x12)) menu_error++;
       arg->value.date.month = val;
+      buf += 2;
       /* Year */
       val = 0;
-      for (ui16_1=0; ui16_1<4; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val < 2014) menu_error++;
-      arg->value.date.year = val-1980;
+      buf += 2;
+      val |= (buf[0] - '0') & 0x3; /* max: 3 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 10; /* max: 9 */
+      buf += 2;
+      if (val < 0x16) menu_error++;
+      arg->value.date.year = val;
     }
   } else if (MENU_ITEM_TIME == item_type) {
     /* format HHMM */
@@ -355,21 +353,19 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     if (0 == menu_error) {
       /* Hour */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val>23) menu_error++;
+      val |= (buf[0] - '0') % 3; /* max: 2 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 4; /* max: 3 */
+      buf += 2;
+      if (val>0x23) menu_error++;
       arg->value.time.hour = val;
       /* Mins */
       val = 0;
-      for (ui16_1=0; ui16_1<2; ui16_1++) {
-	val *= 10;
-	val += buf[0] - '0';
-	buf++;
-      }
-      if (val > 59) menu_error++;
+      val |= (buf[0] - '0') % 7; /* max: 6 */
+      val <<= 4;
+      val |= (buf[1] - '0') % 10; /* max: 10 */
+      buf += 2;
+      if (val > 0x59) menu_error++;
       arg->value.time.min = val;
     }
   } else if (MENU_ITEM_STR == item_type) {
@@ -475,14 +471,16 @@ eeprom_update_byte_NP(uint16_t addr, const char *pstr, uint8_t size)
 uint8_t
 menuFactorySettings(uint8_t mode)
 {
-  uint8_t ui8_1;
-  uint16_t ui16_1;
+  uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5, ui8_6;
+  uint16_t ui16_1, ui16_2;
 
   assert(MENU_MSUPER == MenuMode);
 
   /* confirm before proceeding */
-  ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
-  if (0 != ui8_1) return 0;
+  if (0 == (mode & MENU_NOCONFIRM)) {
+    ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
+    if (0 != ui8_1) return 0;
+  }
 
   /* date, time */
 #ifdef UNIT_TEST
@@ -493,8 +491,8 @@ menuFactorySettings(uint8_t mode)
   if (0 == ui8_1) {
     menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
     menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
-  } else {
-    arg1.value.date.year = 2015-1980;
+  } else { /* BCD format */
+    arg1.value.date.year = 0x15;
     arg1.value.date.month = 1;
     arg1.value.date.day = 1;
     arg1.valid = MENU_ITEM_DATE;
@@ -529,13 +527,31 @@ menuFactorySettings(uint8_t mode)
 		     bufSS[ui16_1]);
   LCD_PUTCH('.'); LCD_refresh();
 
-  /* Mark all items as deleted : (0==id) */
-  for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
-    bufSS[ui8_1] = 0;
-  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-       ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
-    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
-		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
+  /* Re-scan and restore all items */
+  struct item *it = bufSS;
+  for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
+	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
+    ee24xx_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
+    for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++)
+      ui8_2 = _crc8_ccitt_update(ui8_2, bufSS[ui8_1]);
+    if ((ui8_2 == bufSS[ITEM_SIZEOF-1]) &&
+	((~ui8_2) == bufSS[ITEM_SIZEOF-2])) {
+      /* valid item, update lookup */
+      for (ui8_1=0, ui8_2=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+	if ((' ' == it->name[ui8_1]) && (0 != ui8_1))
+	  ui8_4 = ui8_2;
+	ui8_2 = _crc8_ccitt_update(ui8_2, it->name[ui8_1]);
+	if (2 == ui8_1)
+	  ui8_5 = ui8_2;
+      }
+      for (ui8_1=0, ui8_3=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
+	ui8_3 = _crc8_ccitt_update(ui8_3, it->prod_code[ui8_1]);
+    } else {
+      ui8_2 = ui8_3 = ui8_4 = ui8_5 = 0xFF;
+    }
+    bufSS[0] = ui8_3; bufSS[1] = ui8_2;
+    bufSS[2] = ui8_4; bufSS[3] = ui8_5;
+    ee24xx_write_bytes(itemIdxAddr(ui16_1+1), bufSS, 4);
   }
   LCD_PUTCH('.'); LCD_refresh();
 
@@ -557,35 +573,6 @@ menuFactorySettings(uint8_t mode)
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
   LCD_PUTCH('.'); LCD_refresh();
 
-  /* user names & passwd needs to be reset */
-  eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users),
-			PSTR("admin   "), EPS_MAX_UNAME);
-  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
-    eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1),
-			  PSTR("user    "), EPS_MAX_UNAME);
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1)+4), ((ui8_1>9)?'A'-10:'0')+ui8_1);
-  }
-  ui16_1 = 0;
-  ui16_1 = _crc16_update(ui16_1, 'a');
-  ui16_1 = _crc16_update(ui16_1, 'd');
-  ui16_1 = _crc16_update(ui16_1, 'm');
-  ui16_1 = _crc16_update(ui16_1, 'i');
-  ui16_1 = _crc16_update(ui16_1, 'n');
-  for (ui8_1=0; ui8_1<(EPS_MAX_UNAME-5); ui8_1++)
-    ui16_1 = _crc16_update(ui16_1, ' ');
-  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds), ui16_1);
-  LCD_PUTCH('.'); LCD_refresh();
-  ui16_1 = 0;
-  ui16_1 = _crc16_update(ui16_1, '1');
-  ui16_1 = _crc16_update(ui16_1, '2');
-  ui16_1 = _crc16_update(ui16_1, '3');
-  for (ui8_1=0; ui8_1<(EPS_MAX_UNAME-3); ui8_1++)
-    ui16_1 = _crc16_update(ui16_1, ' ');
-  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
-    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_1)), ui16_1);
-  }
-  LCD_PUTCH('.'); LCD_refresh();
-
   /* All numerical data */
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, RndOff), 50);
 
@@ -594,183 +581,10 @@ menuFactorySettings(uint8_t mode)
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_next_billaddr), EEPROM_SALE_START_ADDR);
   LCD_PUTCH('.'); LCD_refresh();
 
-  /* At the end, log out the user */
-  menuUserLogout(mode|MENU_NOCONFIRM);
+  /* At the end */
   LCD_CLRSCR; LCD_refresh();
 
   return 0;
-}
-
-#if 0
-uint8_t
-menuUnimplemented(uint32_t line)
-{
-  LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const char *)PSTR("unimplemented "), 14);
-  LCD_PUT_UINT8X(line);
-  LCD_refresh();
-}
-#endif
-
-/* Set others passwd : only admin can do this
-   arg1 : user name
-   arg2 : passwd
- */
-uint8_t
-menuSetUserPasswd(uint8_t mode)
-{
-#if MENU_USER_ENABLE
-  uint8_t ui8_1, ui8_2, ui8_3;
-  uint16_t ui16_1;
-  assert(MENU_MSUPER == MenuMode);
-
-  /* where to replace it ? */
-  for (ui8_2=0, ui16_1=offsetof(struct ep_store_layout, unused_users)+EPS_MAX_UNAME;
-       ui8_2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui8_2++, ui16_1++ ) {
-    bufSS[(LCD_MAX_COL*3)+ui8_2] = eeprom_read_byte((uint8_t *)ui16_1);
-  }
-  ui8_2 = menuGetChoice((const uint8_t *)PSTR("Replace?"), bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS) + 1;
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
-    LCD_ALERT(PSTR("Aborting!"));
-    return 0;
-  }
-
-  /* Check user name is unique before accepting */
-  for (ui8_3=1; ui8_3<=EPS_MAX_USERS; ui8_3++) {
-    if (ui8_2 == ui8_3) continue; /* skip choosen name */
-    ui16_1 = offsetof(struct ep_store_layout, unused_users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
-    for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
-      if (arg1.value.str.sptr[ui8_1] != eeprom_read_byte((uint8_t *)ui16_1+ui8_1))
-	break;
-    }
-    if (ui8_1>=EPS_MAX_UNAME) {
-      LCD_ALERT(PSTR("Err:User Exists"));
-      return 0;
-    }
-  }
-
-  /* modify at will */
-  for (ui8_3=0, ui16_1=offsetof(struct ep_store_layout, unused_users)+(ui8_2*EPS_MAX_UNAME);
-       ui8_3<EPS_MAX_UNAME; ui8_3++, ui16_1++) {
-    eeprom_update_byte((uint8_t *)(ui16_1), arg1.value.str.sptr[ui8_3]);
-  }
-  for (ui8_3=0, ui16_1=0; ui8_3<EPS_MAX_UNAME; ui8_3++) {
-    ui16_1 = _crc16_update(ui16_1, arg2.value.str.sptr[ui8_3]);
-  }
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_2)), ui16_1);
-#endif
-
-  return 0;
-}
-
-/* Set my password, arg1 is old passwd, arg2 is new passwd */
-uint8_t
-menuSetPasswd(uint8_t mode)
-{
-#if MENU_USER_ENABLE
-  uint16_t crc_old = 0, crc_new = 0;
-  uint8_t ui8_2, ui8_4;
-
-  /* */
-  assert(0 != LoginUserId);
-  assert(LoginUserId <= (EPS_MAX_USERS/*+1*/));
-  assert(MENU_MRESET != MenuMode);
-
-  /* Compute CRC on old password, check */
-  if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
-    assert(MENU_ITEM_STR == arg1.valid);
-    for (ui8_4=0; ui8_4<arg1.value.str.len; ui8_4++) {
-      ui8_2 = (ui8_4<arg1.value.str.len) ? arg1.value.str.sptr[ui8_4] : ' ';
-      crc_old = _crc16_update(crc_old, ui8_2);
-    }
-    //printf(" crc_computed:0x%x\n", crc_old);
-
-    if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds[(LoginUserId-1)])) != crc_old) {
-      LCD_ALERT(PSTR("Passwd Wrong!!"));
-      return 0;
-    }
-  }
-
-  /* update mine only */
-  assert(MENU_ITEM_STR == arg2.valid);
-  for (ui8_4=0; ui8_4<arg2.value.str.len; ui8_4++) {
-    ui8_2 = (ui8_4 < arg2.value.str.len) ? arg2.value.str.sptr[ui8_4] : ' ';
-    crc_new = _crc16_update(crc_new, ui8_2);
-  }
-  //printf("updating crc:0x%x\n", crc_new);
-
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
-  LCD_ALERT(PSTR("Passwd Updated"));
-#endif
-
-  return MENU_RET_NOTAGAIN;
-}
-
-/* Logout an user */
-uint8_t
-menuUserLogout(uint8_t mode)
-{
-#if MENU_USER_ENABLE
-  if ( (mode & MENU_NOCONFIRM) ||
-       (0 == menuGetYesNo((const uint8_t *)PSTR("Logout?"), 7)) ) {
-    LoginUserId = 0;
-    MenuMode = MENU_MRESET;
-  }
-#endif
-  return MENU_RET_NOTAGAIN;
-}
-
-/* Login an user */
-uint8_t
-menuUserLogin(uint8_t mode)
-{
-#if MENU_USER_ENABLE
-  uint16_t crc = 0;
-  uint8_t ui2, ui3, ui4;
-
-  assert(MENU_ITEM_STR == arg1.valid);
-  assert(MENU_ITEM_STR == arg2.valid);
-
-  for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
-    for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
-      ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+(ui2*EPS_MAX_UNAME)+ui3));
-      if (ui4 != arg1.value.str.sptr[ui3]) {
-	break;
-      } else if ((0 == ui3) && (0 == ui2) && (!isgraph(ui4)))
-	break;
-    }
-    if (EPS_MAX_UNAME == ui3)
-      goto menuUserLogin_found;
-  }
-  LCD_ALERT(PSTR("No user"));
-  LoginUserId = 0;
-  return 0;
-
- menuUserLogin_found:
-  assert(ui2 < (EPS_MAX_USERS+1));
-  for (ui4=0; ui4<EPS_MAX_UNAME; ui4++) {
-    ui3 = arg2.value.str.sptr[ui4];
-    /* check isprintable? */
-    if (isprint(ui3)) {
-      crc = _crc16_update(crc, ui3);
-    }
-  }
-
-  if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
-#if 0
-    move(1, 0); printw("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
-#endif
-    LCD_ALERT(PSTR("Wrong Passwd"));
-    LoginUserId = 0;
-    return 0;
-  }
-
-  /* */
-  MenuMode = (0 == ui2) ? MENU_MSUPER : MENU_MNORMAL;
-  LoginUserId = ui2+1;
-#endif
-
-  return MENU_RET_NOTAGAIN;
 }
 
 void
@@ -781,21 +595,16 @@ menuInit()
   MenuMode = MENU_MRESET;
 
   /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
+#if UNICODE_ENABLE
+  assert((40+16) == ITEM_SIZEOF);
+#else
   assert(40 == ITEM_SIZEOF);
+#endif
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
   assert(0 == (ITEM_SIZEOF % (1<<EEPROM_MAX_DEVICES_LOGN2)));
-
-  /* edit eeprom for users[0] = 'admin' */
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+0), 'a');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+1), 'd');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+2), 'm');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+3), 'i');
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+4), 'n');
-  for (ui8_1=5; ui8_1<EPS_MAX_UNAME; ui8_1++)
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+ui8_1), ' ');
 
   /* init global vars */
   devStatus = 0;
@@ -804,8 +613,24 @@ menuInit()
   /* Used to find if we are looping multiple times */
   ui8_2 = 0;
 
-  /* Identify capability of device from serial number */
- menuInitIdentifyDevice:
+  /* Identify capability of device from serial number
+     if byte0-4 of internal EEPROM is FAC7, then do factory
+     reset and copy serial number
+   */
+  uint32_t ui32_1;
+  for (ui8_1=0, ui32_1=0; ui8_1<4; ui8_1++) {
+    ui32_1 <<= 8;
+    ui32_1 |= eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
+  }
+  if (0xFAC7051A == ui32_1) { /* do factory setting */
+    /* Serial # doesn't exist, load from addr 0 */
+    for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
+      ui8_1--;
+      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
+      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
+			 ui8_2);
+    }
+  }
   ui16_1 = 0;
   for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
     ui16_1 = _crc16_update(ui16_1, eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
@@ -814,25 +639,19 @@ menuInit()
   ui16_2 <<= 8;
   ui16_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
   /* the CRC needs to be in the printable char set */
-  if ( ((0 == ui8_2) && (ui16_2 != ui16_1)) || (0 == ui16_1) ) {
-    /* Serial # doesn't exist, load from addr 0 */
-    for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++) {
-      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
-      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
-			 ui8_2);
-    }
-
-    MenuMode = MENU_MSUPER;
-    menuFactorySettings(MenuMode);
-
-    ui8_2 = 1;
-    goto menuInitIdentifyDevice;
-  } else if (ui16_2 == ui16_1) {
+  if (ui16_2 == ui16_1) {
     ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
     devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
       ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
     devStatus |= DS_DEV_INVALID;
+    return;
+  }
+
+  /* Now apply factory setting */
+  if (0xFAC7051A == ui32_1) {
+    MenuMode = MENU_MSUPER;
+    menuFactorySettings(MenuMode | MENU_NOCONFIRM);
   }
 
   /* Report # of bills that could be made */
@@ -852,12 +671,9 @@ menuInit()
   menuLcdD(ui16_3);
   LCD_WR_NP((const char *)PSTR(" Free"), 5);
   LCD_refresh();
-  KBD_GETCH;
+  _delay_ms(1000);
 
-#if !MENU_USER_ENABLE
-  LoginUserId = 1;
   MenuMode = MENU_MSUPER;
-#endif
 }
 
 void
@@ -917,7 +733,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   Medical purpose, max of 20K items :
     So, need 20K*2*2 = 80K bytes : (2 == ITEM_SUBIDX_NAME)
  */
-typedef uint16_t itemIdxs_t[ITEM_SUBIDX_NAME];
+typedef uint8_t itemIdxs_t[ITEM_SUBIDX_NAME];
 
 uint8_t
 menuBilling(uint8_t mode)
@@ -999,7 +815,7 @@ menuBilling(uint8_t mode)
       /* */
       ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
       if ((0 == sl->it[0].id) || (sl->it[0].is_disabled)) {
-	LCD_ALERT_16N(PSTR("No Item: "), menuItemId(sl->items[ui8_5].ep_item_ptr)+1);
+	LCD_ALERT_16N(PSTR("No Item: "), itemId(sl->items[ui8_5].ep_item_ptr));
 	ui8_3++;
 	ui8_4--;
 	/* Delete item */
@@ -1327,8 +1143,6 @@ menuBilling(uint8_t mode)
   sl->info.time_hh = ((ui32_2>>FAT_HOUR_OFFSET)&FAT_HOUR_MASK);
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
-  for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
-    sl->info.user[ui8_2] = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
   /* Restart numbering if another day!! */
   if (0 == (mode & MENU_MODITEM)) {
@@ -1809,7 +1623,7 @@ menuLcdD(uint32_t var)
 {
   if (var>9)
     menuLcdD(var/10);
-  LCD_PUTCH('0'+(var%10));
+  LCD_PUTCH(('0'+(var%10)));
 }
 
 void
@@ -1867,19 +1681,11 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 
   PRINTER_JUSTIFY(PRINTER_JLEFT);
 
-  /* Caption, user, Date */
+  /* Caption, Date */
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, caption)+ui8_1));
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
-  }
-  PRINTER_PRINT(' '); PRINTER_PRINT(' ');
-  PRINTER_PRINT('u'); PRINTER_PRINT('s'); PRINTER_PRINT('e');
-  PRINTER_PRINT('r'); PRINTER_PRINT(':');
-  for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
-    ui8_3 = sl->info.user[ui8_1];
-    assert ('\n' != ui8_3);
-    PRINTER_PRINT(ui8_3);
   }
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
   PRINTER_PRINT_2D(1+sl->info.date_dd); PRINTER_PRINT('/');

@@ -44,6 +44,7 @@
 # define LCD_CMD_INC_CUR       0x06   /* Increment cursor */
 # define LCD_CMD_DISON_CURON   0x0E   /* Display ON ,Cursor ON */
 # define LCD_CMD_CUR_10        0x80   /* Force cursor to the beginning of 1st line */
+# define LCD_CMD_CUR_MOVL      0x10   /* Move cursor to left one char */
 # define LCD_CMD_CUR_20        0xC0   /* Force cursor to the beginning of 2nd line */
 # define LCD_ACT_LINE2         0x3C   /* Activate second line */
 
