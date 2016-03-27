@@ -62,6 +62,18 @@ struct sale {
 
 void billingInit(void);
 
+/* Manage items in EEPROM */
+#define itemAddr(id) (((uint16_t)ITEM_SIZEOF>>2)*(id-1))
+#define itemId(addr) ({					\
+      uint16_t _ret, _ret1=addr;			\
+      for (_ret=1; _ret1 > ((ITEM_MAX*ITEM_SIZEOF)>>2);	\
+	   _ret++, _ret1-=ITEM_SIZEOF);			\
+      _ret;						\
+    })
+#define ITEM_MAX_ADDR ((ITEM_MAX*(ITEM_SIZEOF+4))>>2)
+#define ITEM_IDX_START ((ITEM_SIZEOF>>2)*(ITEM_MAX))
+#define itemIdxAddr(id) (ITEM_IDX_START+id-1)
+
 /* Biggest device that can be connected to Board/rev0 is 4*24C512
    which is 4*64KBytes = 128KBytes
    * item's size is 56 bytes. Max items 1024. So need 56Kbytes.
@@ -73,7 +85,7 @@ void billingInit(void);
    4*64KB == 256KBytes == 2^^18, so SALE should be 4 byte aligned.
  */
 #define SALE_DATA_SIZEOF_NORM    (SALE_DATA_EXP_ITEMS_SIZEOF>>2)
-#define EEPROM_SALE_START_ADDR   (ITEM_MAX_ADDR>>2)
+#define EEPROM_SALE_START_ADDR   ITEM_MAX_ADDR
 #define EEPROM_BILL_ADDR(N)      (EEPROM_SALE_START_ADDR+	\
 				  (SALE_DATA_SIZEOF_NORM*N))
 #define EEPROM_SALE_END_APPROX_ADDR		\
