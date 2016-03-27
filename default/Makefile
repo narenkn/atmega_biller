@@ -168,7 +168,8 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
 ## Our defines
-CFLAGS += -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=336 -DDS1307=0 -DITEM_SUBIDX_NAME=4
+CFLAGS += -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=336 -DDS1307=0
+CFLAGS += -DITEM_SUBIDX_NAME=4           # 4 lookups
 CFLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
 CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
 CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD

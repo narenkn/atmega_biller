@@ -250,7 +250,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       if (buf_idx) {
 	buf_idx--;
 	buf[buf_idx] = ' ';
-	LCD_cmd(LCD_CMD_DEC_CUR);
       }
       break;
     case ASCII_LF:
@@ -258,7 +257,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       break;
     case ASCII_ESCAPE:
       break;
-#if 0
     case ASCII_RIGHT:
     case ASCII_DOWN:
     case ASCII_PRNSCRN:
@@ -267,7 +265,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_DEFINED:
     case ASCII_F2:
       break;
-#endif
     default:
       if (isprint(keyHitData.KbdData)) {
 	prev_helper = 0; /* start searching from first */
@@ -474,8 +471,8 @@ eeprom_update_byte_NP(uint16_t addr, const char *pstr, uint8_t size)
 uint8_t
 menuFactorySettings(uint8_t mode)
 {
-  uint8_t ui8_1;
-  uint16_t ui16_1;
+  uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5, ui8_6;
+  uint16_t ui16_1, ui16_2;
 
   assert(MENU_MSUPER == MenuMode);
 
@@ -530,13 +527,31 @@ menuFactorySettings(uint8_t mode)
 		     bufSS[ui16_1]);
   LCD_PUTCH('.'); LCD_refresh();
 
-  /* Mark all items as deleted : (0==id) */
-  for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
-    bufSS[ui8_1] = 0;
-  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-       ui16_1 += (ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2) ) {
-    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2),
-		       bufSS+offsetof(struct item, id), EEPROM_MAX_DEVICES_LOGN2);
+  /* Re-scan and restore all items */
+  struct item *it = bufSS;
+  for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
+	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
+    ee24xx_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
+    for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++)
+      ui8_2 = _crc8_ccitt_update(ui8_2, bufSS[ui8_1]);
+    if ((ui8_2 == bufSS[ITEM_SIZEOF-1]) &&
+	((~ui8_2) == bufSS[ITEM_SIZEOF-2])) {
+      /* valid item, update lookup */
+      for (ui8_1=0, ui8_2=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+	if ((' ' == it->name[ui8_1]) && (0 != ui8_1))
+	  ui8_4 = ui8_2;
+	ui8_2 = _crc8_ccitt_update(ui8_2, it->name[ui8_1]);
+	if (2 == ui8_1)
+	  ui8_5 = ui8_2;
+      }
+      for (ui8_1=0, ui8_3=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
+	ui8_3 = _crc8_ccitt_update(ui8_3, it->prod_code[ui8_1]);
+    } else {
+      ui8_2 = ui8_3 = ui8_4 = ui8_5 = 0xFF;
+    }
+    bufSS[0] = ui8_3; bufSS[1] = ui8_2;
+    bufSS[2] = ui8_4; bufSS[3] = ui8_5;
+    ee24xx_write_bytes(itemIdxAddr(ui16_1+1), bufSS, 4);
   }
   LCD_PUTCH('.'); LCD_refresh();
 
@@ -571,17 +586,6 @@ menuFactorySettings(uint8_t mode)
 
   return 0;
 }
-
-#if 0
-uint8_t
-menuUnimplemented(uint32_t line)
-{
-  LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const char *)PSTR("unimplemented "), 14);
-  LCD_PUT_UINT8X(line);
-  LCD_refresh();
-}
-#endif
 
 void
 menuInit()
@@ -641,8 +645,10 @@ menuInit()
       ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
     devStatus |= DS_DEV_INVALID;
+    return;
   }
 
+  /* Now apply factory setting */
   if (0xFAC7051A == ui32_1) {
     MenuMode = MENU_MSUPER;
     menuFactorySettings(MenuMode | MENU_NOCONFIRM);
@@ -727,7 +733,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   Medical purpose, max of 20K items :
     So, need 20K*2*2 = 80K bytes : (2 == ITEM_SUBIDX_NAME)
  */
-typedef uint16_t itemIdxs_t[ITEM_SUBIDX_NAME];
+typedef uint8_t itemIdxs_t[ITEM_SUBIDX_NAME];
 
 uint8_t
 menuBilling(uint8_t mode)
@@ -809,7 +815,7 @@ menuBilling(uint8_t mode)
       /* */
       ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
       if ((0 == sl->it[0].id) || (sl->it[0].is_disabled)) {
-	LCD_ALERT_16N(PSTR("No Item: "), menuItemId(sl->items[ui8_5].ep_item_ptr)+1);
+	LCD_ALERT_16N(PSTR("No Item: "), itemId(sl->items[ui8_5].ep_item_ptr));
 	ui8_3++;
 	ui8_4--;
 	/* Delete item */

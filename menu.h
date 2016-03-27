@@ -171,9 +171,6 @@ void menuScanF(char *str, uint16_t *ui16);
 /* Item routines */
 uint8_t menuAddItem(uint8_t mode);
 uint8_t menuDelItem(uint8_t mode);
-#define menuItemAddr(id) ((id)*((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* id (0 to ITEM_MAX-1) */
-#define menuItemId(addr) ((addr)/((uint16_t)ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) /* */
-#define menuItemIdxOff(id) ((id)*(uint16_t)ITEM_SUBIDX_NAME)
 void menuIndexItem(struct item *it);
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
