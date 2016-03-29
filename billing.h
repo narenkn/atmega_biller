@@ -2,7 +2,7 @@
 #define BILLING_H
 
 #if BUFSS_SIZE < 512
-# define MAX_ITEMS_IN_BILL        16
+# define MAX_ITEMS_IN_BILL        12
 #elif 512 == BUFSS_SIZE
 # define MAX_ITEMS_IN_BILL        45
 #endif
@@ -28,9 +28,6 @@ struct sale_item {
 struct sale_info {
   uint8_t   n_items;
   uint8_t   property;
-#if MENU_USER_ENABLE
-  uint8_t   user[EPS_MAX_UNAME];
-#endif
 
   uint16_t  bill_id;
 
@@ -46,14 +43,14 @@ struct sale_info {
 struct sale {
   uint16_t  crc_invert;                  /*           2 */
   uint16_t  crc;                         /*           2 */
-  struct sale_info info;                 /*        16/8 */
-  struct sale_item items[MAX_ITEMS_IN_BILL];/*16*13=208       45*14 = 630 */
+  struct sale_info info;                 /*           8 */
+  struct sale_item items[MAX_ITEMS_IN_BILL];/*12*13=156       45*14 = 630 */
   uint32_t  t_stax;                      /*           4 */
   uint32_t  t_discount;                  /*           4 */
   uint32_t  t_vat;                       /*           4 */
   uint32_t  total;                       /*           4 */
   struct item      it[1];                /*           0 (not stored) */
-} __attribute__((packed));               /* Tot=244/236               662  */
+} __attribute__((packed));               /* Tot=    184               662 */
 
 /* constants */
 #define SALE_SIZEOF       sizeof(struct sale)
@@ -70,9 +67,7 @@ void billingInit(void);
 	   _ret++, _ret1-=ITEM_SIZEOF);			\
       _ret;						\
     })
-#define ITEM_MAX_ADDR ((ITEM_MAX*(ITEM_SIZEOF+4))>>2)
-#define ITEM_IDX_START ((ITEM_SIZEOF>>2)*(ITEM_MAX))
-#define itemIdxAddr(id) (ITEM_IDX_START+id-1)
+#define ITEM_MAX_ADDR (ITEM_MAX*(ITEM_SIZEOF>>2))
 
 /* Biggest device that can be connected to Board/rev0 is 4*24C512
    which is 4*64KBytes = 128KBytes

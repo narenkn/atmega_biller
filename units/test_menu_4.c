@@ -60,6 +60,7 @@ make_item(struct item *ri1, uint8_t rand_save, uint8_t check_success)
   inp5[2][ui2] = 0;
   INIT_TEST_KEYS(inp5[2]);
 
+#if 0
   /* Uni code */
   ui2 = (rand() % (ITEM_NAME_UNI_BYTEL-1)) + 1;
   for (ui1=0; ui1<ui2; ui1++) {
@@ -70,7 +71,8 @@ make_item(struct item *ri1, uint8_t rand_save, uint8_t check_success)
     ri1->name_unicode[ui2] = ' ';
   }
   INIT_TEST_KEYS(inp2);
-  
+#endif
+
   /* vat */
   ri1->vat_sel = rand() % EPS_MAX_VAT_CHOICE;
   for (ui2=0; ui2<ri1->vat_sel; ui2++) {

@@ -508,7 +508,7 @@ ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
   }
 
   for (; len > 0; len--) {
-    TWDR = ((NULL) == buf) ? 0 : *buf++;
+    TWDR = ((NULL) == buf) ? 0xFF : *buf++;
     TWCR = _BV(TWINT) | _BV(TWEN); /* start transmission */
     while ((TWCR & _BV(TWINT)) == 0) ; /* wait for transmission */
     switch ((twst = TW_STATUS)) {
