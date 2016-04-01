@@ -63,10 +63,14 @@ void billingInit(void);
 #define itemAddr(id) (((uint16_t)ITEM_SIZEOF>>2)*(id-1))
 #define itemId(addr) ({					\
       uint16_t _ret, _ret1=addr;			\
-      for (_ret=1; _ret1 > ((ITEM_MAX*ITEM_SIZEOF)>>2);	\
-	   _ret++, _ret1-=ITEM_SIZEOF);			\
-      _ret;						\
+      for (_ret=1; _ret1 >= (ITEM_SIZEOF>>2);		\
+	   _ret++, _ret1-=(ITEM_SIZEOF>>2));		\
+      (addr < ITEM_MAX_ADDR) ? _ret : ITEM_MAX;		\
     })
+#define itemNxtAddr(addr) \
+  (((addr+(ITEM_SIZEOF>>2))<ITEM_MAX_ADDR) ? (addr+(ITEM_SIZEOF>>2)) : 0)
+#define itemNxtId(id) \
+  ((id<ITEM_MAX) ? id+1 : 1)
 #define ITEM_MAX_ADDR (ITEM_MAX*(ITEM_SIZEOF>>2))
 
 /* Biggest device that can be connected to Board/rev0 is 4*24C512

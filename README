@@ -65,3 +65,4 @@ Atmega32 Product:
 ##3. menuDelAllBill : implement optional date & id
 4. Make items download from computer
 5. Make self diagnosis program
+6. If reached all items in continuous search, break and report no items

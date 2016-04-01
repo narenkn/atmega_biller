@@ -193,13 +193,12 @@ uint8_t devStatus = 0;   /* 0 is no err */
 /* Diagnosis */
 uint16_t diagStatus;
 
-/* indexing
- */
+/* indexing */
 #define ITEM_SUBIDX_NAME 2
-typedef struct {
+typedef struct  __attribute__((packed)) {
   uint8_t crc_name3;
   uint8_t crc_prod_code;
-} itemIdxs_t __attribute__((packed));
+} itemIdxs_t;
 itemIdxs_t      itIdxs[ITEM_MAX];
 uint16_t   numValidItems = 0;
 
@@ -696,22 +695,22 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   struct item it;
   uint16_t ui16_1;
 
-  if (0 == strlen) return 0;
+  if (0 == strlen) return 1;
 
   LCD_CLRLINE(0);
 
   it.unused_find_best_match = 1;
   ui16_1 = menuItemFind(str, str, &it, prev);
-  if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) {
+  if (ui16_1>ITEM_MAX) { /* not found */
     SSCANF((char *)str, &ui16_1);
     //printf("id is %d", ui16_1);
     if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
       ee24xx_read_bytes(itemAddr((ui16_1-1)), (void *)&it, ITEM_SIZEOF);
-    } else
-      return 0;
+    } else {
+      LCD_WR_P(PSTR("No match"));
+      return 1;
+    }
   }
-  if ( (0 == it.id) || (it.id > ITEM_MAX) )
-    return 0;
 
   /* found item */
   LCD_PUT_UINT(it.id);
@@ -1189,7 +1188,7 @@ menuAddItem(uint8_t mode)
 	 (arg1.value.integer.i16 > ITEM_MAX) )
       goto menuItemInvalidArg;
     it->id = arg1.value.integer.i16;
-  } else if (numValidItems == ITEM_MAX) {
+  } else if (numValidItems >= ITEM_MAX) {
     LCD_ALERT(PSTR("Items Mem Full.."));
     return MENU_RET_NOTAGAIN;
   } else {
@@ -1201,25 +1200,26 @@ menuAddItem(uint8_t mode)
     ui16_2 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed));
     for (ui16_3=0; ui16_3<ITEM_MAX; ui16_3++) {
       ui16_2++; ui16_2 = (ui16_2<=ITEM_MAX) ? ui16_2 : 1; /* next id */
-      if (0x0 !=
-	  (itIdxs[ui16_2-1].crc_name3 ^ itIdxs[ui16_2-1].crc_prod_code)) {
-	/* found space */
+      if ( (0xFF == itIdxs[ui16_2-1].crc_name3) &&
+	   (0xFF == itIdxs[ui16_2-1].crc_prod_code) ) {
 	ui16_1 = itemAddr(ui16_2);
-	it->id = ui16_2;
-	//printf("Storing at id :%d @0x%x\n", it->id, ui16_1);
-	break;
+	ee24xx_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+(ITEM_SIZEOF>>2)-1, 4);
+	if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
+	  /* found space */
+	  it->id = ui16_2;
+	  break;
+	}
       }
     }
     if ( ui16_3 >= ITEM_MAX ) {
       LCD_ALERT(PSTR("Items full"));
       return MENU_RET_NOTAGAIN;
     }
-  } else {
-    ui16_2 = it->id;
-    ui16_1 = itemAddr(it->id);
   }
-  assert (ui16_1 == itemAddr(it->id));
+  ui16_2 = it->id;
+  ui16_1 = itemAddr(it->id);
   ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+  it->id = ui16_2;
   it->is_disabled = 1;
   /* Store last used id in eeprom & seed it next time */
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed), ui16_2);
@@ -1338,12 +1338,26 @@ menuAddItem(uint8_t mode)
 
   /* only valid items needs to be buffered */
   menuIndexItem(it);
-  numValidItems = (mode & MENU_MODITEM) ? numValidItems+1 : numValidItems;
+  numValidItems = (0 == (mode & MENU_MODITEM)) ? numValidItems+1 : numValidItems;
   assert(numValidItems <= ITEM_MAX);
 
   /* Now save item */
   ui8_3 = ee24xx_write_bytes(ui16_1, bufSS_ptr, ITEM_SIZEOF);
   assert(ITEM_SIZEOF == ui8_3);
+
+  /* index item */
+  uint8_t cn, cpc, cn3;
+  for (ui8_1=0, cn=cn3=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+    cn = _crc_ibutton_update(cn, it->name[ui8_1]);
+    if (2 == ui8_1)
+      cn3 = cn;
+  }
+  for (ui8_1=0, cpc=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+    cpc = _crc_ibutton_update(cpc, it->prod_code[ui8_1]);
+  }
+  itIdxs[it->id-1].crc_prod_code = cpc;
+  itIdxs[it->id-1].crc_name3 = cn3;
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
 
   /* Give +ve report */
   LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
@@ -1408,7 +1422,6 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   uint8_t  ufbm = it->unused_find_best_match;
 
   /* upcase inputs & calculate signature */
-  assert( (NULL != name) || (NULL != prod_code) );
   if (NULL != name) {
     for (ui8_1=0, cn=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
       name[ui8_1] = toupper(name[ui8_1]);
@@ -1424,32 +1437,41 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   }
 
   /* indices */
-  idx = (idx>0) && (idx<=ITEM_MAX) ? idx : 0;
+  idx = (idx>0) && (idx<=ITEM_MAX) ? idx : 1;
   for (ui16_1=0; ui16_1<ITEM_MAX; ui16_1++,
 	 idx = ((idx+1)>ITEM_MAX) ? 1 : idx+1) {
     if ( (0xFF == itIdxs[idx-1].crc_prod_code) &&
 	 (0xFF == itIdxs[idx-1].crc_name3) )
       continue;
-    if ( (itIdxs[idx-1].crc_prod_code != cpc) &&
-	 (itIdxs[idx-1].crc_name3 != cn3) &&
-	 (eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1) != cn) )
-      continue;
-    if ( (itIdxs[idx-1].crc_prod_code != cpc) &&
-	 (eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1) != cn) ) {
-      if ((itIdxs[idx-1].crc_name3 == cn3) && (0 == ufbm))
+    if (NULL == name) {
+      if (NULL == prod_code)
+	return idx;
+      else if (itIdxs[idx-1].crc_prod_code != cpc)
+	continue;
+    } else { /* NULL != name */
+      if ( (itIdxs[idx-1].crc_name3 == cn3) && (1 == ufbm) )
+	;
+      else if ( (NULL != prod_code) &&
+		(itIdxs[idx-1].crc_prod_code != cpc) &&
+		(eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1) != cn) )
+	continue;
+      else if ( (NULL == prod_code) &&
+		(eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1) != cn) )
 	continue;
     }
     ui16_2 = itemAddr(idx);
     ee24xx_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
+    if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
+      continue;
     if ((NULL != name) && (NULL != prod_code)) {
       if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) &&
 	   (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL)) )
 	return idx;
-    } else if (NULL != prod_code) {
-      if (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL))
-	return idx;
     } else if (NULL != name) {
       if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) )
+	return idx;
+    } else if (NULL != prod_code) {
+      if (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL))
 	return idx;
     }
   }
@@ -1478,16 +1500,17 @@ menuDelItem(uint8_t mode)
   /* find address for the id */
   ui16_1 = arg1.value.integer.i16;
   ui16_2 = itemAddr(ui16_1);
-  ee24xx_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
+  ee24xx_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+  //  ee24xx_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
   if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     return MENU_RET_NOTAGAIN;
-  assert(ui16_1 == it->id);
 
   /* delete */
-  assert(numValidItems > 0);
+  assert(numValidItems > 0); 
   itIdxs[ui16_1-1].crc_name3 = 0xFF,
     itIdxs[ui16_1-1].crc_prod_code = 0xFF;
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
+  ee24xx_write_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, NULL, 4);
   numValidItems--;
 #endif
 
@@ -2214,6 +2237,7 @@ menuRunDiag(uint8_t mode)
     menuPrnBill(&sl, menuPrnBillEE24xxHelper);
   }
 
+#if 0
   /* Verify unused EEPROM spaces : Write/readback */
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diagnosis Mem1"), 14);
@@ -2232,6 +2256,7 @@ menuRunDiag(uint8_t mode)
       break;
   }
   diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_MEM1 : 0;
+#endif
 
   /* Verify 24c512 */
   LCD_CLRSCR;
@@ -2581,6 +2606,9 @@ menuMainStart:
 #else
 	  menuRet |= ((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
 #endif
+	} else {
+	  LCD_ALERT(PSTR("Invalid Device"));
+	  return;
 	}
 #endif
       }

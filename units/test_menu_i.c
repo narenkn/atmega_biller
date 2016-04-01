@@ -40,7 +40,7 @@ test_init3()
 {
   /* login */
   MenuMode = MENU_MSUPER;
-  LoginUserId = 1;
+  devStatus ^= DS_DEV_INVALID;
 
   /* time */
   time_t t = time(NULL);

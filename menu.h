@@ -169,10 +169,10 @@ void menuScanF(char *str, uint16_t *ui16);
   menuScanF(str_p, ui16_p)
 
 /* Item routines */
-uint8_t menuAddItem(uint8_t mode); // not unit tested
-uint8_t menuDelItem(uint8_t mode); // not unit tested
-void menuIndexItem(struct item *it); // not unit tested
-uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx); // not unit tested
+uint8_t menuAddItem(uint8_t mode);
+uint8_t menuDelItem(uint8_t mode);
+void menuIndexItem(struct item *it);
+uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified
