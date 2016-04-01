@@ -227,6 +227,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   buf_idx = 0;
 
   /* Assume it is a string, then typecast it */
+  uint8_t loop_in = 1;
   do {
     prev_helper = helper ? (*helper)(buf, buf_idx, prev_helper) : prev_helper;
     /* Ask a question */
@@ -248,6 +249,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     KBD_RESET_KEY;
     KBD_GETCH;
 
+    move (0, 0);
+    printw("Got key:%x", keyHitData.KbdData);
     switch (keyHitData.KbdData) {
     case ASCII_BACKSPACE:
     case ASCII_LEFT:
@@ -261,7 +264,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_ENTER:
       break;
     case ASCII_ESCAPE:
-      break;
     case ASCII_RIGHT:
     case ASCII_DOWN:
     case ASCII_PRNSCRN:
@@ -269,6 +271,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     case ASCII_UNDEF:
     case ASCII_DEFINED:
     case ASCII_F2:
+      loop_in = 0;
       break;
     default:
       prev_helper = 0; /* start searching from first */
@@ -284,7 +287,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 	}
       }
     }
-  } while (keyHitData.KbdData != ASCII_ENTER);
+  } while (loop_in && (keyHitData.KbdData != ASCII_ENTER));
 
   menu_error = 1;
   if (ASCII_ESCAPE == keyHitData.KbdData)
