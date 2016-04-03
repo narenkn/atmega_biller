@@ -1,4 +1,6 @@
 #include "assert.h"
+#include "string.h"
+#include "ctype.h"
 
 #define  EXPECT_FIFO_SZ  8
 char* expect_assert[EXPECT_FIFO_SZ];

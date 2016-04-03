@@ -70,6 +70,38 @@ main(void)
     }
   }
 
+  /* test menuGetOpt::MENU_ITEM_STR : 0 size
+     If user just escapes or hits-enter with 0 len
+     then it has to be marked MENU_ITEM_NONE
+   */
+  for (loop=0; loop<1; loop++) {
+    size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;
+    for (ui1=0; ui1<size; ui1++) {
+      if (0 == (rand() % 3))
+	inp[ui1] = ASCII_ENTER;
+      else
+	inp[ui1] = ASCII_ESCAPE;
+    }
+    inp[size] = 0;
+    INIT_TEST_KEYS(inp);
+    KBD_RESET_KEY;
+    arg1.value.str.sptr = bufSS;
+    arg1.value.str.len = size;
+    menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR, NULL);
+    assert(0 == strncmp("Prompt 1?", &(lcd_buf[1][0]), 9));
+    if (0 != strncmp("Prompt 1?", &(lcd_buf[1][0]), 9)) {
+#ifdef DEBUG
+      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
+	putchar(lcd_buf[0][ui1]);
+      putchar('\n');
+      for (ui1=0; ui1<LCD_MAX_COL; ui1++)
+	putchar(lcd_buf[LCD_MAX_ROW-1][ui1]);
+      putchar('\n');
+#endif
+    }
+    assert(MENU_ITEM_NONE == arg1.valid);
+  }
+
   /* test menuGetOpt::MENU_ITEM_ID */
   for (loop=0; loop<1000; loop++) {
     //    printf("loop:%d\n", loop);
@@ -95,7 +127,7 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_DATE */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<0; loop++) {
     uint8_t date, month, year;
     date = 1 + (rand() % 28);
     month = 1 + (rand() % 12);
@@ -104,11 +136,12 @@ main(void)
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE, NULL);
+    assert(MENU_ITEM_DATE == arg1.valid);
     if ( (date != arg1.value.date.day) || (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
-      printf("date:%d org:%d\n", arg1.value.date.day, date);
-      printf("month:%d org:%d\n", arg1.value.date.month, month);
-      printf("year:%d org:%d\n", arg1.value.date.year, year);
+      printf("date:%x org:%d\n", arg1.value.date.day, date);
+      printf("month:%x org:%d\n", arg1.value.date.month, month);
+      printf("year:%x org:%d\n", arg1.value.date.year, year);
     }
     assert(date == arg1.value.date.day);
     assert(month == arg1.value.date.month);
@@ -116,7 +149,7 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_MONTH */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<0; loop++) {
     uint8_t month, year;
     month = 1 + (rand() % 12);
     year = rand() % 100;
@@ -134,7 +167,7 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_TIME */
-  for (loop=0; loop<1000; loop++) {
+  for (loop=0; loop<0; loop++) {
     uint8_t hour, min;
     hour = rand() % 24;
     min = rand() % 60;

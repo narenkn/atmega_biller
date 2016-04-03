@@ -32,7 +32,7 @@
 void
 billingInit(void)
 {
-  assert(6 == sizeof(struct sale_info));
+  assert(8 == sizeof(struct sale_info));
   assert(13 == sizeof(struct sale_item));
   assert(0 == (sizeof(struct item) & 0x3)); /* 4 byte aligned */
   assert(SALE_DATA_EXP_ITEMS_SIZEOF >= (sizeof(struct sale)-ITEM_SIZEOF));

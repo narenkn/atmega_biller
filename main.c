@@ -119,7 +119,7 @@ main(void)
     menuMain();
   } else if (devStatus & DS_DEV_INVALID) {
     LCD_CLRLINE(0);
-    LCD_WR_NP((const char *)PSTR("Invalid Prod Key"), 15);
+    LCD_WR_P((void *)PSTR("Invalid Prod Key"));
     LCD_refresh();
     _delay_ms(5000);
   } else {

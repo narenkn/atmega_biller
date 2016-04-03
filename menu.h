@@ -45,14 +45,13 @@
 #define MENU_PR_NONE         0
 #define MENU_PR_ID           1
 #define MENU_PR_NAME         2
-#define MENU_PR_OLDPASS      3
-#define MENU_PR_PASS         4
-#define MENU_PR_MONTH        5
-#define MENU_PR_TIME         6
-#define MENU_PR_DATE         7
-#define MENU_PR_FROM_DATE    8
-#define MENU_PR_TO_DATE      9
-#define MENU_PR_FLOAT       10
+#define MENU_PR_PASS         3
+#define MENU_PR_MONTH        4
+#define MENU_PR_TIME         5
+#define MENU_PR_DATE         6
+#define MENU_PR_FROM_DATE    7
+#define MENU_PR_TO_DATE      8
+#define MENU_PR_FLOAT        9
 
 typedef struct {
   union {

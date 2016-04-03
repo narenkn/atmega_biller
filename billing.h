@@ -53,9 +53,9 @@ struct sale {
 } __attribute__((packed));               /* Tot=    184               662 */
 
 /* constants */
-#define SALE_SIZEOF       sizeof(struct sale)
+#define SALE_SIZEOF       sizeof(struct sale) /* 184+13=197 */
 #define SIZEOF_1BILL      (SALE_SIZEOF-ITEM_SIZEOF+(ITEM_SIZEOF*MAX_ITEMS_IN_BILL))
-#define SALE_DATA_EXP_ITEMS_SIZEOF  (sizeof(struct sale)-ITEM_SIZEOF)
+#define SALE_DATA_EXP_ITEMS_SIZEOF  (SALE_SIZEOF-ITEM_SIZEOF)
 
 void billingInit(void);
 

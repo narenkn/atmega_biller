@@ -190,3 +190,44 @@ LCD_PUT_UINT(uint32_t val)
 
   LCD_PUTCH(ui8_1);
 }
+
+void
+lcd_alert(const char *str)
+{
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+  for (uint8_t ui1_t=0; str; ui1_t++) {
+    uint8_t ui2_t = pgm_read_byte(str+ui1_t);
+    if (0 == ui2_t) break;
+    LCD_PUTCH(ui2_t);
+  }
+  LCD_refresh();
+}
+
+void
+lcd_alert_n(const char *str, uint32_t n)
+{
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+for (uint8_t ui1_t=0; (str) && (ui1_t < 10); ui1_t++) {
+    uint8_t ui2_t = pgm_read_byte(str+ui1_t);
+    if (0 == ui2_t) break;
+    LCD_PUTCH(ui2_t);
+  }
+lcdD(n);
+  LCD_refresh();
+}
+
+void
+lcdD(uint32_t var)
+{
+  if (var>9)
+    lcdD(var/10);
+  LCD_PUTCH(('0'+(var%10)));
+}
+
+void
+lcdFd(uint32_t var)
+{
+  lcdD(var/100);
+  LCD_PUTCH('.');
+  lcdD(var%100);
+}

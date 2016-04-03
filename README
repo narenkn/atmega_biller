@@ -66,3 +66,5 @@ Atmega32 Product:
 4. Make items download from computer
 5. Make self diagnosis program
 ##6. If reached all items in continuous search, break and report no items
+7. Fix units/test_menu_2 (few loops 0)
+8.

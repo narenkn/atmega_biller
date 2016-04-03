@@ -144,21 +144,20 @@ void LCD_PUT_UINT8X(uint8_t ch);
 void LCD_PUT_UINT16X(uint16_t ch);
 void LCD_PUT_UINT(uint32_t val);
 
-#define LCD_PUTCH   LCD_wrchar
+#define LCD_PUTCH      LCD_wrchar
+#define LCD_ALERT(S)      do {			\
+  lcd_alert(S);					\
+  } while (0)
+#define LCD_ALERT_N(S, N)  do {			\
+  lcd_alert_n(S, N);				\
+  KBD_GETCH;					\
+  } while (0)
 
-#define LCD_ALERT(str)				\
-  LCD_CLRLINE(0);				\
-  LCD_WR_P((const char *)str);		\
-  LCD_refresh();				\
-  KBD_GETCH
+void lcd_alert(const char *str);
+void lcd_alert_n(const char *str, uint32_t n);
 
-#define LCD_ALERT_16N(str, n)			\
-  LCD_CLRLINE(0);				\
-  LCD_WR_P((const char *)str);		\
-  LCD_PUT_UINT16X(n);				\
-  LCD_refresh();				\
-  KBD_GETCH
-
-extern void LCD_init(void);
+void LCD_init(void);
+void lcdD(uint32_t var);
+void lcdFd(uint32_t var);
 
 #endif
