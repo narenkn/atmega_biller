@@ -12,6 +12,7 @@
 #include <avr/sleep.h>
 #include <util/twi.h>
 #include <avr/sleep.h>
+#include <avr/wdt.h>
 
 #include "ep_ds.h"
 #include "version.h"
@@ -388,6 +389,12 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   }
   //move(0, 30); printw("GetOpot:'%s' err:%d", buf, menu_error);
 }
+
+#define soft_reset()        \
+  do {			    \
+    wdt_enable(WDTO_15MS);  \
+    for(;;) { }		    \
+  } while(0)
 
 const uint8_t menu_str2[] PROGMEM = "Yes\0No ";
 

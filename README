@@ -66,3 +66,13 @@ Atmega32 Product:
 4. Make items download from computer
 5. Make self diagnosis program
 ##6. If reached all items in continuous search, break and report no items
+7. Check for serial # at destination before overwriting it. Never should serial # be erased from system: even on a factory reset
+8. CPU operations
+   * Read/Write EEPROM (??) - low priority
+   * Read/Write 24CXX (Items) : CSV to image & send it
+   * Query Device serial # (??) - low priority
+   * Validate software revision before taking control
+   * Take control of Device: Reset on exit
+9. Use as a printer
+10. 
+
