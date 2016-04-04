@@ -203,6 +203,13 @@ typedef struct  __attribute__((packed)) {
 itemIdxs_t      itIdxs[ITEM_MAX];
 uint16_t   numValidItems = 0;
 
+/* Found issue with memset */
+#define menuMemset(S, c, N) do {			\
+    for (uint16_t _ui16_1=0; _ui16_1<N; _ui16_1++) {	\
+      ((uint8_t *)S)[_ui16_1] = c;				\
+    }							\
+  } while (0)
+
 /* Helper routine to obtain input from user */
 void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper)
@@ -250,8 +257,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     KBD_RESET_KEY;
     KBD_GETCH;
 
-    move (0, 0);
-    printw("Got key:%x", keyHitData.KbdData);
     switch (keyHitData.KbdData) {
     case ASCII_BACKSPACE:
     case ASCII_LEFT:
@@ -343,7 +348,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       /* Year */
       val = 0;
       buf += 2;
-      val |= (buf[0] - '0') & 0x3; /* max: 3 */
+      val |= (buf[0] - '0') & 0xF; /* max: 3 */
       val <<= 4;
       val |= (buf[1] - '0') % 10; /* max: 9 */
       buf += 2;
@@ -595,9 +600,6 @@ menuInit()
   devStatus = 0;
   diagStatus = 0;
 
-  /* Used to find if we are looping multiple times */
-  ui8_2 = 0;
-
   /* Identify capability of device from serial number
      if byte0-4 of internal EEPROM is FAC7, then do factory
      reset and copy serial number
@@ -607,17 +609,8 @@ menuInit()
     ui32_1 <<= 8;
     ui32_1 |= eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
   }
-  if (0xFAC7051A == ui32_1) { /* do factory setting */
-    /* Serial # doesn't exist, load from addr 0 */
-    for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
-      ui8_1--;
-      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
-      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
-			 ui8_2);
-    }
-  }
-  ui16_1 = 0;
-  for (ui8_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
+ menuReCheckSerialNo:
+  for (ui8_1=0, ui16_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
     ui16_1 = _crc16_update(ui16_1, eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
   }
   ui16_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
@@ -630,7 +623,19 @@ menuInit()
       ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
   } else {
     devStatus |= DS_DEV_INVALID;
-    return;
+  }
+  if ((devStatus & DS_DEV_INVALID) &&
+      (0xFAC7051A == ui32_1)) { /* do factory setting */
+    /* Serial # doesn't exist, load from addr 0 */
+    for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
+      ui8_1--;
+      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
+      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
+			 ui8_2);
+    }
+    goto menuReCheckSerialNo;
+  } else if (devStatus & DS_DEV_INVALID) {
+    return; /* Invalid device */
   }
 
   /* Now apply factory setting */
@@ -641,7 +646,7 @@ menuInit()
 
   /* Report # of bills that could be made */
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
-  memset((void *)sl, 0, SALE_SIZEOF);
+  menuMemset((void *)sl, 0, SALE_SIZEOF);
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
   for (ui16_1=0, ui16_3=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
     ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
@@ -652,11 +657,10 @@ menuInit()
 
     ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
   }
-  LCD_CLRLINE(LCD_MAX_ROW-1);
-  menuLcdD(ui16_3);
-  LCD_WR_NP((const char *)PSTR(" Free"), 5);
+  LCD_CLRLINE(0);
+  lcdD(ui16_3);
+  LCD_WR_NP((const char *)PSTR(" Bill Free"), 10);
   LCD_refresh();
-  _delay_ms(1000);
 
   /* Re-scan and index all items */
   struct item *it = (void *)bufSS;
@@ -685,6 +689,7 @@ menuInit()
       }
     }
   }
+  LCD_ALERT_N((const char *)PSTR("#Items:"), numValidItems);
 
   MenuMode = MENU_MSUPER;
 }
@@ -715,7 +720,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
     SSCANF((char *)str, &ui16_1);
     //printf("id is %d", ui16_1);
     if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
-      ee24xx_read_bytes(itemAddr((ui16_1-1)), (void *)&it, ITEM_SIZEOF);
+      ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
     } else {
       LCD_WR_P(PSTR("No match"));
       return 1;
@@ -741,7 +746,6 @@ menuBilling(uint8_t mode)
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
 
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
-  memset((void *)sl, 0, SALE_SIZEOF);
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
   if ((ui16_3 < EEPROM_SALE_START_ADDR) || (ui16_3 > EEPROM_SALE_END_ADDR)) {
     ui16_3 = EEPROM_SALE_START_ADDR;
@@ -812,7 +816,7 @@ menuBilling(uint8_t mode)
       /* */
       ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
       if ((0 == sl->it[0].id) || (sl->it[0].is_disabled)) {
-	LCD_ALERT_16N(PSTR("No Item: "), itemId(sl->items[ui8_5].ep_item_ptr));
+	LCD_ALERT_N(PSTR("No Item: "), itemId(sl->items[ui8_5].ep_item_ptr));
 	ui8_3++;
 	ui8_4--;
 	/* Delete item */
@@ -844,7 +848,7 @@ menuBilling(uint8_t mode)
       goto menuModBillReturn;
     }
     if (0 != ui8_3) {
-      LCD_ALERT_16N(PSTR("# removed:"), ui8_3);
+      LCD_ALERT_N(PSTR("# removed:"), ui8_3);
       if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
 	goto menuModBillReturn;
     }
@@ -864,6 +868,7 @@ menuBilling(uint8_t mode)
       if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
 	return MENU_RET_NOTAGAIN;
     }
+    menuMemset((void *)sl, 0, SALE_SIZEOF);
   }
 
   for (ui8_5=0; ;) {
@@ -916,9 +921,9 @@ menuBilling(uint8_t mode)
 
     /* Find item */
     assert( (ui16_2 > 0) && (ui16_2 <= ITEM_MAX) );
-    ee24xx_read_bytes(itemAddr(ui16_2-1), (uint8_t *)sl->it, ITEM_SIZEOF);
+    ee24xx_read_bytes(itemAddr(ui16_2), (uint8_t *)sl->it, ITEM_SIZEOF);
     if ( (0 == sl->it[0].id) || (sl->it[0].is_disabled) ) {
-      LCD_CLRLINE(LCD_MAX_ROW-1);
+      LCD_CLRLINE(0);
       LCD_WR_NP((const char *)PSTR("Invalid Item"), 12);
       _delay_ms(1000);
       continue; /* match not found */
@@ -933,7 +938,7 @@ menuBilling(uint8_t mode)
     //LCD_PUT_UINT(sl->it[0].cost);
 
     /* common inputs */
-    sl->items[ui8_5].ep_item_ptr = itemAddr(ui16_2-1);
+    sl->items[ui8_5].ep_item_ptr = itemAddr(ui16_2);
     sl->items[ui8_5].cost = sl->it[0].cost;
     sl->items[ui8_5].discount = sl->it[0].discount;
     sl->items[ui8_5].has_serv_tax = sl->it[0].has_serv_tax;
@@ -1070,9 +1075,12 @@ menuBilling(uint8_t mode)
 
  menuBillingBill:
   /* Why would somebody make a 0 item bill? */
-  for (ui8_5=0; sl->items[ui8_5].quantity>0; ui8_5++) ;
+  for (ui8_3=0, ui8_5=0; ui8_3<MAX_ITEMS_IN_BILL; ui8_3++) {
+    if (sl->items[ui8_5].quantity > 0)
+      ui8_5++;
+  }
   if (0 == ui8_5) {
-    LCD_CLRLINE(1);
+    LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_ALERT(PSTR("No bill items"));
     return MENU_RET_NOTAGAIN;
   }
@@ -1370,7 +1378,7 @@ menuAddItem(uint8_t mode)
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
 
   /* Give +ve report */
-  LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
+  LCD_ALERT((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
 #endif
 
   return MENU_RET_NOTAGAIN;
@@ -1504,7 +1512,7 @@ menuDelItem(uint8_t mode)
   }
 
   /* Give +ve report */
-  LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
+  LCD_ALERT((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
   _delay_ms(500);
 
   /* find address for the id */
@@ -1533,22 +1541,6 @@ menuPrintTestPage(uint8_t mode)
 #if MENU_DIAG_FUNC && MENU_PRINTER_ENABLE
   PRINTER_PRINT_TEST_PAGE;
 #endif
-}
-
-void
-menuLcdD(uint32_t var)
-{
-  if (var>9)
-    menuLcdD(var/10);
-  LCD_PUTCH(('0'+(var%10)));
-}
-
-void
-menuLcdF(uint32_t var)
-{
-  menuLcdD(var/100);
-  LCD_PUTCH('.');
-  menuLcdD(var%100);
 }
 
 void
@@ -1713,8 +1705,8 @@ menuBillReports(uint8_t mode)
   /* */
   if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
     UINT  ret_val;
-    memset(&FS, 0, sizeof(FS));
-    memset(&Fil, 0, sizeof(Fil));
+    menuMemset(&FS, 0, sizeof(FS));
+    menuMemset(&Fil, 0, sizeof(Fil));
     f_mount(&FS, ".", 1);
     if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
       LCD_ALERT(PSTR("File open error"));
@@ -1728,7 +1720,7 @@ menuBillReports(uint8_t mode)
     ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
     ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
     if (GIT_HASH_CRC != ui16_1) {
-      LCD_ALERT((const uint8_t *)menu_str1+(MENU_STR1_IDX_FILEERR*MENU_PROMPT_LEN));
+      LCD_ALERT((const char *)menu_str1+(MENU_STR1_IDX_FILEERR*MENU_PROMPT_LEN));
       f_mount(NULL, "", 0);
       return 0;
     }
@@ -1830,14 +1822,14 @@ menuShowBill(uint8_t mode)
     /* Display bill */
     LCD_CLRLINE(0);
     LCD_PUTCH('#');
-    menuLcdD(sl->info.bill_id);
+    lcdD(sl->info.bill_id);
     LCD_PUTCH(' ');
     LCD_PUTCH('R'); LCD_PUTCH('s');
-    menuLcdF(sl->total);
+    lcdFd(sl->total);
     LCD_CLRLINE(LCD_MAX_ROW-1);
-    menuLcdD(sl->info.date_dd);
+    lcdD(sl->info.date_dd);
     LCD_PUTCH('/');
-    menuLcdD(sl->info.date_mm);
+    lcdD(sl->info.date_mm);
     LCD_WR_P(PSTR(" EscPrnDel"));
 
     /* according to user's wish */

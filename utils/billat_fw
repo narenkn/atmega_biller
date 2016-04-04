@@ -153,12 +153,13 @@ class Atmega32:
         print "Wrote %x:%x Done" % (options.fhb, options.flb);
       return;
     ## 5. Chip erase
-    self.Out(0xAC);
-    self.Out(0x80);
-    self.Out(0x00);
-    self.Out(0x00);
-    for j in range(10000):
-      range(j);
+    if not options.program_serial_no:
+      self.Out(0xAC);
+      self.Out(0x80);
+      self.Out(0x00);
+      self.Out(0x00);
+      for j in range(10000):
+        range(j);
     ## 6. Program sector by sector
     print "Info: Writing & Checking",;
     for i in range(self.NUM_PAGES):
@@ -611,6 +612,7 @@ if "__main__" == __name__:
     print "Causing reset & releasing the bus";
     dev.Reset();
     dev.Release();
+    raw_input("Press Enter to continue...");
     exit(dev.error);
 
   ##
@@ -698,4 +700,5 @@ if "__main__" == __name__:
   else:
     print "No valid programming found in hex file";
 
+  raw_input("Press Enter to continue...");
   exit (dev.error);

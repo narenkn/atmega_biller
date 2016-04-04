@@ -74,5 +74,5 @@ Atmega32 Product:
    * Validate software revision before taking control
    * Take control of Device: Reset on exit
 9. Use as a printer
-10. 
-
+10. Fix units/test_menu_2 (few loops 0)
+11.
