@@ -74,7 +74,8 @@ main(void)
      If user just escapes or hits-enter with 0 len
      then it has to be marked MENU_ITEM_NONE
    */
-  for (loop=0; loop<1; loop++) {
+  for (loop=0; loop<1000; loop++) {
+    RESET_TEST_KEYS;
     size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;
     for (ui1=0; ui1<size; ui1++) {
       if (0 == (rand() % 3))
@@ -104,6 +105,7 @@ main(void)
 
   /* test menuGetOpt::MENU_ITEM_ID */
   for (loop=0; loop<1000; loop++) {
+    RESET_TEST_KEYS;
     //    printf("loop:%d\n", loop);
     uint32_t r1 = rand() & 0xFFFFFF, r2;
     uint8_t  s[16], ui2;

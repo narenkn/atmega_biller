@@ -210,6 +210,10 @@ uint16_t   numValidItems = 0;
     }							\
   } while (0)
 
+#define MENU_GET_OPT(Q, A, T, H) do {		\
+    menuGetOpt(Q, A, T, H);			\
+  } while (T != (A)->valid)
+
 /* Helper routine to obtain input from user */
 void
 menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper)
@@ -220,6 +224,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   uint8_t sbuf[LCD_MAX_COL], *buf;
 
   if (MENU_ITEM_NONE == opt) return;
+  arg->valid = MENU_ITEM_NONE;
 
   /* init */
   if (MENU_ITEM_STR == item_type) {
@@ -507,8 +512,8 @@ menuFactorySettings(uint8_t mode)
   ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Set Date/Time?"), 11);
 #endif
   if (0 == ui8_1) {
-    menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
-    menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
+    MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+    MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
   } else { /* BCD format */
     arg1.value.date.year = 0x15;
     arg1.value.date.month = 1;
@@ -591,6 +596,7 @@ menuInit()
   assert(40 == ITEM_SIZEOF);
 #endif
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
+  assert ((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
@@ -635,7 +641,9 @@ menuInit()
     }
     goto menuReCheckSerialNo;
   } else if (devStatus & DS_DEV_INVALID) {
+#ifndef UNIT_TEST
     return; /* Invalid device */
+#endif
   }
 
   /* Now apply factory setting */
@@ -721,12 +729,14 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
     //printf("id is %d", ui16_1);
     if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
       ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
-    } else {
-      LCD_WR_P(PSTR("No match"));
-      return 1;
+      if (0xFF == (it.unused_crc ^ it.unused_crc_invert))
+	goto menuItemGetOptHelperFound;
     }
+    LCD_WR_P(PSTR("No match"));
+    return 1;
   }
 
+ menuItemGetOptHelperFound:
   /* found item */
   LCD_PUT_UINT(it.id);
   LCD_PUTCH(':');
@@ -1000,7 +1010,7 @@ menuBilling(uint8_t mode)
 	LCD_PUT_UINT(sl->items[ui8_5].discount);
 	arg2.valid = MENU_ITEM_NONE;
 	menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
-	if (MENU_ITEM_NONE == arg2.valid)
+	if (MENU_ITEM_FLOAT == arg2.valid)
 	  sl->items[ui8_5].discount = arg2.value.integer.i16;
 
 	/* override has_serv_tax */
@@ -1891,7 +1901,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
   }
   LCD_WR_N(arg1.value.str.sptr, LCD_MAX_COL-4);
 
-  menuGetOpt(quest, &arg1, MENU_ITEM_STR, NULL);
+  MENU_GET_OPT(quest, &arg1, MENU_ITEM_STR, NULL);
 #ifndef UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
@@ -1918,7 +1928,7 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
   LCD_PUT_UINT(val);
 
   arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
+  MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
@@ -1941,7 +1951,7 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
   LCD_PUT_UINT(val);
 
   arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
+  MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
@@ -1964,7 +1974,7 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
   LCD_PUT_UINT(val);
 
   arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
+  MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
@@ -1988,7 +1998,7 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
   LCD_PUT_UINT(ui8_1);
 
   arg1.valid = MENU_ITEM_NONE;
-  menuGetOpt(quest, &arg1, MENU_ITEM_ID, NULL);
+  MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #ifndef UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
@@ -2015,7 +2025,7 @@ menuSetDateTime(uint8_t mode)
   LCD_PUT_UINT(ui8_a[0]);
   LCD_PUT_UINT(ui8_a[1]);
   LCD_PUT_UINT(ui8_a[2]+1980);
-  menuGetOpt(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
   if (MENU_ITEM_DATE == arg1.valid) {
     timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
   }
@@ -2025,7 +2035,7 @@ menuSetDateTime(uint8_t mode)
   LCD_WR_P(PSTR("Old:"));
   LCD_PUT_UINT(ui8_a[0]);
   LCD_PUT_UINT(ui8_a[1]);
-  menuGetOpt(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_PR_TIME, NULL);
+  MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_PR_TIME, NULL);
   if (MENU_ITEM_TIME == arg2.valid) {
     timerTimeSet(arg2.value.time.hour, arg2.value.time.min);
   }

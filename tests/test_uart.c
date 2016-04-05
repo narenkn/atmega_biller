@@ -4,6 +4,7 @@
 #include <util/twi.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <ctype.h>
 
 #include "lcd.c"
 #include "uart.c"
@@ -25,16 +26,22 @@ main()
 
   uint8_t ui1, ui2;
   while (1) {
-    for (ui1=0; ui1<26; ui1++) {
-//      ui2 = receiveByte();
+    LCD_CLRLINE(0);
+    for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
+      ui2 = uartReceiveByte();
 
-      LCD_CLRLINE(1);
-      LCD_PUTCH(('a'+ui1));
-//      LCD_PUTCH(ui2);
-      LCD_refresh();
-      uartTransmitByte('a'+ui1);
-      uartTransmitByte('\r');
-      uartTransmitByte('\n');
+      if (isgraph(ui2)) {
+	LCD_PUTCH(ui2);
+	LCD_refresh();
+      } else {
+	LCD_PUTCH('N');
+	LCD_PUTCH('a');
+	LCD_PUTCH('C');
+	ui1 += 2;
+      }
+//      uartTransmitByte('a'+ui1);
+//      uartTransmitByte('\r');
+//      uartTransmitByte('\n');
       _delay_ms(1000);
     }
   }
