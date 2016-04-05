@@ -551,7 +551,7 @@ menuFactorySettings(uint8_t mode)
   LCD_PUTCH('.'); LCD_refresh();
 
   /* index to start searching for empty item */
-  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed), 1);
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed), 0);
 
   /* */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, shop_name),
@@ -725,17 +725,20 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   LCD_CLRLINE(0);
 
   it.unused_find_best_match = 1;
-  ui16_1 = menuItemFind(str, str, &it, prev);
-  if (ui16_1>ITEM_MAX) { /* not found */
-    SSCANF((char *)str, &ui16_1);
-    //printf("id is %d", ui16_1);
-    if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
-      ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
-      if (0xFF == (it.unused_crc ^ it.unused_crc_invert))
-	goto menuItemGetOptHelperFound;
+  ui16_1 = menuItemFind(str, NULL, &it, prev);
+  if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
+    ui16_1 = menuItemFind(NULL, str, &it, prev);
+    if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
+      SSCANF((char *)str, &ui16_1);
+      //printf("id is %d", ui16_1);
+      if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
+	ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
+	if (0xFF == (it.unused_crc ^ it.unused_crc_invert))
+	  goto menuItemGetOptHelperFound;
+      }
+      LCD_WR_P(PSTR("No match"));
+      return 1;
     }
-    LCD_WR_P(PSTR("No match"));
-    return 1;
   }
 
  menuItemGetOptHelperFound:
@@ -977,7 +980,7 @@ menuBilling(uint8_t mode)
       /* Display item for confirmation */
       LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      ee24xx_read_bytes((uint16_t)(((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2))), bufSS, 7);
+      //ee24xx_read_bytes((uint16_t)(((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2))), bufSS, 7);
       LCD_PUT_UINT(sl->items[ui8_5].quantity);
       LCD_PUTCH('=');
       ui16_1 = sl->it[0].cost;
