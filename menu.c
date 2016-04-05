@@ -1498,7 +1498,7 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 	   (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL)) )
 	return idx;
     } else if (NULL != name) {
-      if ( (0 == strncmp((char *)name, (const char *)it->name, ITEM_NAME_BYTEL)) )
+      if ( (0 == strncmp((char *)name, (const char *)it->name, 3)) )
 	return idx;
     } else if (NULL != prod_code) {
       if (0 == strncmp((char *)prod_code, (const char *)(it->prod_code), ITEM_PROD_CODE_BYTEL))

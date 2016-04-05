@@ -19,7 +19,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   for (ui1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
     ri1->name[ui1] = ' ';
   }
-  ui3 = (rand() % (ITEM_NAME_BYTEL-1)) + 1;
+  ui3 = (rand() % (ITEM_NAME_BYTEL>>1)) + (ITEM_NAME_BYTEL>>1);
   for (ui1=0; ui1<ui3; ui1++) {
     inp5[0][ui1] = ' ' + (rand()%('~'-' '));
     ri1->name[ui1] = inp5[0][ui1];
@@ -46,7 +46,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   for (ui1=0; ui1<ITEM_PROD_CODE_BYTEL; ui1++) {
     ri1->prod_code[ui1] = ' ';
   }
-  ui2 = (rand() % (ITEM_PROD_CODE_BYTEL-1)) + 1;
+  ui2 = (rand() % (ITEM_PROD_CODE_BYTEL>>1)) + (ITEM_PROD_CODE_BYTEL>>1);
   for (ui1=0; ui1<ui2; ui1++) {
     ri1->prod_code[ui1] = inp[ui1] = '!' + (rand() % ('~'-'!'));
   }
@@ -278,37 +278,55 @@ main(int argc, char *argv[])
   }
 
   /* find some items */
+  char tname[LCD_MAX_COL];
   for (ui2=0; ui2<6000; ui2++) {
     ui1 = rand() % ITEM_MAX;
     ui1++;
     ee24xx_read_bytes(itemAddr(ui1), (void *)&ri, ITEM_SIZEOF);
+    ui5 = 3 + (rand()&0x3);
+    strncpy(tname, ri.name, ui5);
+    tname[ui5] = 0;
     assert(ui1 == ri.id);
     ui4 = rand() & 3;
+    ui4 = 1;
     if (3 == ui4) {
       ui3 = menuItemFind(ri.name, NULL, &ri1, 0);
     } else if (2 == ui4) {
       ui3 = menuItemFind(NULL, ri.prod_code, &ri1, 0);
+    } else if (1 == ui4) {
+      ri1.unused_find_best_match = 1;
+      ui3 = menuItemFind(tname, NULL, &ri1, 0);
     } else {
       ui3 = menuItemFind(ri.name, ri.prod_code, &ri1, 0);
     }
     assert(((uint16_t)-1) != ui3);
+    //    printf("ui1:%d ui3:%d\n", ui1, ui3);
     if (ui1 != ui3) {
-      ee24xx_read_bytes(itemAddr(ui3), (void *)&ri1, ITEM_SIZEOF);
-      if (3 == ui4) {
-	if (0 != strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL)) {
+      if ((ui3 <= ITEM_MAX) && (ui3>0)) {
+	ee24xx_read_bytes(itemAddr(ui3), (void *)&ri1, ITEM_SIZEOF);
+	if (3 == ui4) {
+	  if (0 != strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL)) {
 
+	    printf("not equal %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
+	  }
+	  assert(0 == strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL));
+	} else if (2 == ui4) {
+	  if (0 != strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL)) {
+	    printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
+	  }
+	  assert(0 == strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL));
+	} else if (1 == ui4) {
+	  if (0 != strncmp(ri.name, ri1.name, 3)) {
+	    printf("not equal name[3] %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
+	  }
+	  assert(0 == strncmp(ri.name, ri1.name, 3));
+	} else {
 	  printf("not equal %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
-	}
-	assert(0 == strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL));
-      } else if (2 == ui4) {
-	if (0 != strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL)) {
 	  printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
+	  printf("ui1:%d found ui3:%d\n", ui1, ui3);
+	  assert(0);
 	}
-	assert(0 == strncmp(ri.prod_code, ri1.prod_code, ITEM_PROD_CODE_BYTEL));
       } else {
-	printf("not equal %d:'%s', %d:'%s'\n", ri.id, ri.name, ri1.id, ri1.name);
-	printf("not equal prod_code %d:'%s', %d:'%s'\n", ri.id, ri.prod_code, ri1.id, ri1.prod_code);
-	printf("ui1:%d found ui3:%d\n", ui1, ui3);
 	assert(0);
       }
     }
