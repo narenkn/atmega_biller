@@ -12,14 +12,19 @@ test_init1()
 {
   uint16_t ui16_1, ui16_2;
 
+  eeprom_update_byte((uint8_t *)0, 0xFA);
+  eeprom_update_byte((uint8_t *)1, 0xC7);
+  eeprom_update_byte((uint8_t *)2, 0x05);
+  eeprom_update_byte((uint8_t *)3, 0x1A);
+  
   for (ui16_1=0, ui16_2=0; ui16_2<13; ui16_2++) {
     ui16_1 = _crc16_update(ui16_1, 'a'+ui16_2);
-    eeprom_update_byte((uint8_t *)ui16_2, 'a'+ui16_2);
+    eeprom_update_byte((uint8_t *)ui16_2+4, 'a'+ui16_2);
   }
   ui16_1 = _crc16_update(ui16_1, '1');
-  eeprom_update_byte((uint8_t *)13, '1');
-  eeprom_update_byte((uint8_t *)14, (ui16_1>>8)&0xFF);
-  eeprom_update_byte((uint8_t *)15, (ui16_1>>0)&0xFF);
+  eeprom_update_byte((uint8_t *)13+4, '1');
+  eeprom_update_byte((uint8_t *)14+4, (ui16_1>>8)&0xFF);
+  eeprom_update_byte((uint8_t *)15+4, (ui16_1>>0)&0xFF);
 }
 
 void

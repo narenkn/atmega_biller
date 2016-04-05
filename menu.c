@@ -615,35 +615,37 @@ menuInit()
     ui32_1 <<= 8;
     ui32_1 |= eeprom_read_byte((uint8_t *)(uint16_t)ui8_1);
   }
- menuReCheckSerialNo:
-  for (ui8_1=0, ui16_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
-    ui16_1 = _crc16_update(ui16_1, eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
-  }
-  ui16_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
-  ui16_2 <<= 8;
-  ui16_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
-  /* the CRC needs to be in the printable char set */
-  if (ui16_2 == ui16_1) {
-    ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
-    devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
-      ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
-  } else {
-    devStatus |= DS_DEV_INVALID;
-  }
-  if ((devStatus & DS_DEV_INVALID) &&
-      (0xFAC7051A == ui32_1)) { /* do factory setting */
-    /* Serial # doesn't exist, load from addr 0 */
-    for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
-      ui8_1--;
-      ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
-      eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
-			 ui8_2);
+  for (uint8_t loopCnt=0; loopCnt<2; loopCnt++) {
+    for (ui8_1=0, ui16_1=0; ui8_1<(SERIAL_NO_MAX-2); ui8_1++) {
+      ui16_1 = _crc16_update(ui16_1, eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1));
     }
-    goto menuReCheckSerialNo;
-  } else if (devStatus & DS_DEV_INVALID) {
+    ui16_2 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-2);
+    ui16_2 <<= 8;
+    ui16_2 |= eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-1);
+    /* the CRC needs to be in the printable char set */
+    if (ui16_2 == ui16_1) {
+      ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
+      devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
+        ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
+    } else {
+      devStatus |= DS_DEV_INVALID;
+    }
+    if ((devStatus & DS_DEV_INVALID) &&
+        (0xFAC7051A == ui32_1)) { /* do factory setting */
+      /* Serial # doesn't exist, load from addr 0 */
+      for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
+        ui8_1--;
+        ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
+        eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
+                           ui8_2);
+      }
+      continue;
+    } else if (devStatus & DS_DEV_INVALID) {
 #ifndef UNIT_TEST
-    return; /* Invalid device */
+      return; /* Invalid device */
 #endif
+    }
+    break;
   }
 
   /* Now apply factory setting */
@@ -903,7 +905,7 @@ menuBilling(uint8_t mode)
       for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
 	if (!isgraph(arg1.value.str.sptr[ui8_1]))
 	  continue;
-	ui8_2 &= isdigit(arg1.value.str.sptr[ui8_1]);
+	ui8_2 &= isdigit(arg1.value.str.sptr[ui8_1]) ? 1 : 0;
 	if (ui8_2) {
 	  ui16_2 *= 10;
 	  ui16_2 += arg1.value.str.sptr[ui8_1] - '0';
