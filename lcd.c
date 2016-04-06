@@ -80,6 +80,12 @@ LCD_init(void)
 }
 
 void
+LCD_PUTCH(uint8_t var)
+{
+  LCD_wrchar(var);
+}
+
+void
 LCD_CLRLINE(uint8_t n)
 {
   uint8_t ui8_1;

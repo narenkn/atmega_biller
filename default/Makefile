@@ -82,7 +82,6 @@ OBJDIR = .
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
 SRC = lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c menu.c main.c
-#SRC += ff.c mmc_avr.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -174,7 +173,7 @@ CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
 CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
 CFLAGS += -DMENU_DELBILL=1               # Delete bill
 CFLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
-CFLAGS += -DMENU_DIAG_FUNC=0             # Diagnosis utils
+CFLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
 CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
 CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
 CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines

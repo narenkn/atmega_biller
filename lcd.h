@@ -125,15 +125,6 @@
 #define LCD_CLRSCR				\
   LCD_CLRLINE(1); LCD_CLRLINE(0)
 
-# define LCD_wrnib(var)				\
-  LCD_PORT(var);				\
-  _delay_us(50);				\
-  LCD_rs_high;					\
-  _delay_us(50);				\
-  LCD_en_high;					\
-  _delay_us(50);				\
-  LCD_en_low
-
 void LCD_CLRLINE(uint8_t line);
 void LCD_WR(char *str);
 void LCD_WR_N(uint8_t *str, uint8_t len);
@@ -143,8 +134,8 @@ void LCD_WR_NP(const char *str, uint8_t len);
 void LCD_PUT_UINT8X(uint8_t ch);
 void LCD_PUT_UINT16X(uint16_t ch);
 void LCD_PUT_UINT(uint32_t val);
+void LCD_PUTCH(uint8_t var);
 
-#define LCD_PUTCH      LCD_wrchar
 #define LCD_ALERT(S)      do {			\
   lcd_alert(S);					\
   } while (0)

@@ -158,7 +158,7 @@ extern uint8_t devStatus;
 
 /* Helper routines */
 typedef uint16_t (*menuGetOptHelper)(uint8_t *str, uint16_t strlen, uint16_t prev);
-void menuInit(void); // Unverified
+void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
@@ -206,18 +206,14 @@ void menuMain(void);
 
 extern  uint16_t         diagStatus;
 #define DIAG_LCD              (1<<0)
-#define DIAG_TFT              (1<<1)
-#define DIAG_DISP_BRIGHT      (1<<2)
-#define DIAG_PRINTER          (1<<3)
-#define DIAG_MEM1             (1<<4)
-#define DIAG_MEM3             (1<<5)
-#define DIAG_TIMER            (1<<6)
-#define DIAG_MEM2             (1<<7)
-#define DIAG_KEYPAD           (1<<8)
-#define DIAG_PS2              (1<<9)
-#define DIAG_WEIGHING_MC      (1<<10)
-#define DIAG_SD               (1<<11)
-#define DIAG_BUZZER           (1<<12)
+#define DIAG_DISP_BRIGHT      (1<<1)
+#define DIAG_PRINTER          (1<<2)
+#define DIAG_MEM1             (1<<3)
+#define DIAG_MEM3             (1<<4)
+#define DIAG_TIMER            (1<<5)
+#define DIAG_KEYPAD           (1<<6)
+#define DIAG_WEIGHING_MC      (1<<7)
+#define DIAG_BUZZER           (1<<8)
 
 #ifndef SD_BILLING_FILE
 #define SD_BILLING_FILE       "billing.dat"

@@ -2189,7 +2189,7 @@ uint8_t
 menuRunDiag(uint8_t mode)
 {
 #if MENU_DIAG_FUNC
-  uint16_t ui16_1, rand_seed;
+  uint16_t ui16_1, ui16_2, rand_seed;
   uint8_t  ui8_1, ui8_2;
 
   /* init */
@@ -2212,21 +2212,6 @@ menuRunDiag(uint8_t mode)
   LCD_refresh();
   _delay_ms(2000);
   diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Can see abcd?"), 13)) ? DIAG_LCD : 0;
-  if (0 == (diagStatus&DIAG_LCD)) {
-    for (ui8_1=0; ui8_1<3; ui8_1++) {
-      BUZZER_ON;
-      _delay_ms(1000);
-      BUZZER_OFF;
-      _delay_ms(1000);
-    }
-    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_DiagStat)), diagStatus);
-    return 0;
-  }
-
-  /* FIXME: Verify TFT */
-  LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Diagnosis TFT"), 13);
-  _delay_ms(1000);
 
   /* FIXME: Adjust LCD/TFT brightness */
   LCD_CLRSCR;
@@ -2247,14 +2232,8 @@ menuRunDiag(uint8_t mode)
     LCD_ALERT(PSTR("Printer OK"));
     diagStatus |= DIAG_PRINTER;
   }
-  /* print default bill */
-  {
-    struct sale sl;
-    /* FIXME: */
-    menuPrnBill(&sl, menuPrnBillEE24xxHelper);
-  }
+  PRINTER_PRINT_TEST_PAGE;
 
-#if 0
   /* Verify unused EEPROM spaces : Write/readback */
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diagnosis Mem1"), 14);
@@ -2266,39 +2245,40 @@ menuRunDiag(uint8_t mode)
     eeprom_update_byte((uint8_t *)ui16_1, ui8_2);
   }
   ui16_1 = offsetof(struct ep_store_layout, unused_scratch);
-  srand(rand_seed);
+  srand(rand_seed); rand_seed++;
   for (ui8_1=0; ui8_1<SCRATCH_MAX; ui8_1++, ui16_1++) {
     ui8_2 = rand();
     if (ui8_2 != eeprom_read_byte((uint8_t *)ui16_1))
       break;
   }
   diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_MEM1 : 0;
-#endif
 
   /* Verify 24c512 */
+#define EEPROM_CHECK_MAX 10
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diagnosis Mem3"), 14);
   _delay_ms(1000);
-  struct item *it = (void *)bufSS;
-  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
-       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
-    if (0 == it->id)
-      break;
+  struct sale *sl= (void *)bufSS;
+  for (ui16_1=0, ui16_2=EEPROM_SALE_END_ADDR, ui8_1=0;
+       (ui16_1<ITEM_MAX) && (ui8_1<EEPROM_CHECK_MAX); ui16_1++) {
+    ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
+    ee24xx_read_bytes(ui16_2, bufSS, 4);
+    if ((rand() & 0x8) &&
+	(0xFF != (sl->crc_invert ^ sl->crc))) {
+      ui8_1++;
+      /* Write read check */
+      srand(rand_seed);
+      for (ui8_2=0; ui8_2<SALE_DATA_EXP_ITEMS_SIZEOF; ui8_2++)
+	bufSS[ui8_2] = rand();
+      ee24xx_write_bytes(ui16_2, bufSS, SALE_DATA_EXP_ITEMS_SIZEOF);
+      ee24xx_read_bytes(ui16_2, bufSS+SALE_DATA_EXP_ITEMS_SIZEOF, SALE_DATA_EXP_ITEMS_SIZEOF);
+      for (ui8_2=0; ui8_2<SALE_DATA_EXP_ITEMS_SIZEOF; ui8_2++)
+	if (bufSS[ui8_2] != bufSS[SALE_DATA_EXP_ITEMS_SIZEOF+ui8_2])
+	  break;
+      diagStatus |= (ui8_2 >= SALE_DATA_EXP_ITEMS_SIZEOF) ? DIAG_MEM3 : 0;
+    }
   }
-  if (0 == it->id) { /* found empty space */
-    srand(rand_seed);
-    for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
-      bufSS[ui8_1] = rand();
-    it->id = 0; /* only that field determines */
-    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
-    for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++)
-      if (rand() != bufSS[ui8_1])
-	break;
-    diagStatus |= (ITEM_SIZEOF == ui8_1) ? DIAG_MEM3 : 0;
-  } else {
-    LCD_ALERT(PSTR("Item Full"));
-  }
+#undef EEPROM_CHECK_MAX
 
   /* Test timer */
   LCD_CLRSCR;
@@ -2332,27 +2312,9 @@ menuRunDiag(uint8_t mode)
     diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Date/Time Corrt?"), 16)) ? DIAG_TIMER : 0;
   }
 
-  /* Verify Flash */
-  LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Diagnosis Mem2"), 14);
-  _delay_ms(1000);
-  srand(rand_seed);
-  for (ui8_1=0; ui8_1<DIAG_FLASHMEM_SIZE; ui8_1++) {
-    ui8_2 = rand();
-    /* FIXME: write flash */
-  }
-  srand(rand_seed);
-  ui16_1 = (uint16_t)&diagFlashMem;
-  for (ui8_1=0; ui8_1<DIAG_FLASHMEM_SIZE; ui8_1++, ui16_1++) {
-    ui8_2 = rand();
-    if (ui8_2 != pgm_read_byte(ui16_1))
-      break;
-  }
-  diagStatus |= (ui8_1 == DIAG_FLASHMEM_SIZE) ? DIAG_MEM2 : 0;
-
   /* Verify Keypad : Ask user to press a key and display it */
   LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Diagnosis Keypad"), 16);
+  LCD_WR_NP((const char *)PSTR("Diag Keypad/PS2 "), 16);
   _delay_ms(1000);
   LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const char *)PSTR("Hit \xDB \xDB to exit"), 16);
@@ -2385,41 +2347,7 @@ menuRunDiag(uint8_t mode)
   }
   diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Keypad work?"), 16)) ? DIAG_KEYPAD : 0;
 
-  /* Verify Keyboard */
-  LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Diagnosis PS2"), 13);
-  _delay_ms(1000);
-  LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_NP((const char *)PSTR("Hit \xDB \xDB to exit"), 16);
-  LCD_refresh();
-  _delay_ms(2000);
-  LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Key Entered..."), 14);
-  for (ui8_2=0; ui8_2<LCD_MAX_COL; ui8_2++)
-    bufSS[ui8_2] = ' ';
-  for (ui8_1=0; ;) {
-    LCD_refresh();
-    KBD_RESET_KEY;
-    KBD_GETCH;
-    if (!isgraph(keyHitData.KbdData)) {
-      ui8_1++;
-      if (ui8_1 >= 2)
-	break;
-    } else {
-      ui8_1 = 0;
-      for (ui8_2=0; ui8_2<(LCD_MAX_COL-1); ui8_2++)
-	bufSS[ui8_2] = bufSS[ui8_2+1];
-      if (isgraph(keyHitData.KbdData)) {
-	bufSS[LCD_MAX_COL-1] = keyHitData.KbdData;
-      } else {
-	bufSS[LCD_MAX_COL-1] = ' ';
-      }
-      LCD_CLRLINE(LCD_MAX_ROW-1);
-      LCD_WR_N(bufSS, LCD_MAX_COL);
-    }
-  }
-  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did PS2 worked?"), 15)) ? DIAG_PS2 : 0;
-
+#if 0
   /* FIXME: Check weighing machine connectivity */
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diag Weighing Mc"), 16);
@@ -2446,29 +2374,6 @@ menuRunDiag(uint8_t mode)
     }
   }
   diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
-
-#if FF_ENABLE
-  if (0 == ((devStatus & DS_DEV_INVALID) | (devStatus & DS_NO_SD))) {
-    /* FIXME: Verify SD card */
-    LCD_CLRSCR;
-    LCD_WR_NP((const char *)PSTR("Diagnosis SD"), 12);
-    _delay_ms(1000);
-    {
-      UINT bw;
-      if (FR_OK == f_mount(&FS, "", 0)) {
-	if (f_open(&Fil, "diag.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
-	  if (FR_OK == f_write(&Fil, "Diag test file creation\r\n", 25, &bw)) {
-	    diagStatus |= (25 == bw) ? DIAG_SD : 0;
-	    f_close(&Fil);
-	  } else {
-	  }
-	} else {
-	}
-	f_mount(NULL, "", 0);
-      } else {
-      }
-    }
-  }
 #endif
 
   /* Verify Buzzer */
@@ -2485,10 +2390,6 @@ menuRunDiag(uint8_t mode)
   /* save status*/
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_DiagStat)), diagStatus);
 
-  /* FIXME : Print the status */
-  LCD_CLRSCR;
-  if (0 != menuGetYesNo((const uint8_t *)PSTR("Print Status?"), 13))
-    return 0;
   /* We can't Diagonise Battery charging, so print sentence */
 #endif
 
