@@ -217,6 +217,12 @@ LCD_wrchar(uint8_t ch)
 }
 
 void
+LCD_PUTCH(uint8_t var)
+{
+  LCD_wrchar(var);
+}
+
+void
 LCD_PUT_UINT(uint32_t val)
 {
   uint8_t ui8_1;
