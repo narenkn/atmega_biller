@@ -1,8 +1,10 @@
 .PHONY: headers clean make_tests run_tests
 
-#NCURSES := /tool/pandora/.package/ncurses-5.7
-NCURSES_INC := $(shell ncurses5-config --includedir)
-NCURSES_LIB := $(shell ncurses5-config --libdir)
+NCURSES := /tool/pandora/.package/ncurses-5.7
+NCURSES_INC := $(NCURSES)/include
+NCURSES_LIB := $(NCURSES)/lib
+#NCURSES_INC := $(shell ncurses6-config --includedir)
+#NCURSES_LIB := $(shell ncurses6-config --libdir)
 CFLAGS  := -g -I. -I.. -DUNIT_TEST -DDEBUG $(CMDLINE_CFLAGS) -I$(NCURSES_INC) -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 CFLAGS += -DLCD_USE_FUNCTIONS=1 -DLCD_DPORT_SIZE=4 -DBUFSS_SIZE=336 -DDS1307 -D__AVR_ATmega32__=1  -std=c99
 CFLAGS += -DMENU_USER_ENABLE=0 -DMENU_SETTING_ENABLE=1 -DMENU_SDSAVE_EN=0 -DMENU_DELBILL=1 -DMENU_ITEM_FUNC=1 -DMENU_DIAG_FUNC=1 -DFF_ENABLE=0 -DUNICODE_ENABLE=0

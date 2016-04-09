@@ -40,10 +40,10 @@ uartInit(void)
 #else
   ui1 = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
 #endif
-  UCSRC = (1 << URSEL) | 0x06;
+  UCSRC = (1 << URSEL) | 0x06 | _BV(USBS);
   UBRRL = ui1;
   UBRRH = ui1 >> 8;
-  UCSRB = _BV(TXEN);		/* tx enable */
+  UCSRB = _BV(TXEN) | _BV(RXEN);		/* rx, tx enable */
 #endif
 
   /* For UART select */
@@ -64,6 +64,13 @@ uartSelect(uint8_t uid)
   PORTD |= (uid & 3) << 5;
 }
 
+#if 1
+volatile uint8_t ReceivedByte;
+ISR(USART_RXC_vect)
+{
+  ReceivedByte = UDR;
+}
+#else
 ISR(USART_RXC_vect)
 {
   uint8_t ReceivedByte;
@@ -84,6 +91,7 @@ ISR(USART_RXC_vect)
   } else if ('.' == ReceivedByte)
     uartDecimalPlace = 1;
 }
+#endif
 
 //**************************************************
 //Function to receive a single byte
