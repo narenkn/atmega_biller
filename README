@@ -70,10 +70,12 @@ Atmega32 Product:
 8. CPU operations
    * Read/Write EEPROM (??) - low priority
    * Read/Write 24CXX (Items) : CSV to image & send it
-   * Query Device serial # (??) - low priority
+   * Validate Device serial # before giving control
    * Validate software revision before taking control
    * Take control of Device: Reset on exit
-9. Use as a printer (??)
+9. Use as a printer (??) 
 10. Fix units/test_menu_2 (few loops 0)
 11. Have soft-reset key combination.
-12. LCD Brightness control
+##12. LCD Brightness control
+13. Check Control, CapsLock, Alt, Shift behaviour from Keyboard
+14. 

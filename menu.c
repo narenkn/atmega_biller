@@ -720,7 +720,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   struct item it;
   uint16_t ui16_1;
 
-  if (0 == strlen) return 1;
+  if (0 == strlen) return 0;
 
   LCD_CLRLINE(0);
 
@@ -737,7 +737,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
 	  goto menuItemGetOptHelperFound;
       }
       LCD_WR_P(PSTR("No match"));
-      return 1;
+      return 0;
     }
   }
 
@@ -946,6 +946,8 @@ menuBilling(uint8_t mode)
 
     /* Display item to be billed */
     LCD_CLRLINE(0);
+    lcdD(ui8_5+1);
+    LCD_PUTCH(' ');
     LCD_PUT_UINT(sl->it[0].id);
     LCD_PUTCH(':');
     LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
@@ -960,11 +962,11 @@ menuBilling(uint8_t mode)
     sl->items[ui8_5].has_common_discount = sl->it[0].has_common_discount;
     sl->items[ui8_5].vat_sel = sl->it[0].vat_sel;
     sl->items[ui8_5].has_vat = sl->it[0].has_vat;
-    do {
-      arg2.valid = MENU_ITEM_NONE;
-      menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
-      sl->items[ui8_5].quantity = arg2.value.integer.i16;
-    } while (MENU_ITEM_NONE == arg2.valid);
+    arg2.valid = MENU_ITEM_NONE;
+    menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
+    if (MENU_ITEM_NONE == arg2.valid) /* start afresh */
+      continue;
+    sl->items[ui8_5].quantity = arg2.value.integer.i16;
 
   menuBillingConfirm:
     /* Enable edit of earlier added item  */

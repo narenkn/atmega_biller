@@ -129,25 +129,30 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_DATE */
-  for (loop=0; loop<0; loop++) {
+  for (loop=0; loop<10; loop++) {
     uint8_t date, month, year;
     date = 1 + (rand() % 28);
     month = 1 + (rand() % 12);
     year = rand() % 100;
-    sprintf(inp, "%02d%02d%04d", date, month, 1980+year);
+    sprintf(inp, "%02d%02d%04d", date, month, year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE, NULL);
     assert(MENU_ITEM_DATE == arg1.valid);
-    if ( (date != arg1.value.date.day) || (month != arg1.value.date.month) || (year != arg1.value.date.year) ) {
+    if ( (date != (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day)) ||
+	 (month != (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month)) ||
+	 (year != (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year)) ) {
       printf("string:%s\n", inp);
       printf("date:%x org:%d\n", arg1.value.date.day, date);
       printf("month:%x org:%d\n", arg1.value.date.month, month);
       printf("year:%x org:%d\n", arg1.value.date.year, year);
     }
-    assert(date == arg1.value.date.day);
-    assert(month == arg1.value.date.month);
-    assert(year == arg1.value.date.year);
+    printf("date:%d\n", (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day));
+    printf("month:%d\n", (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month));
+    printf("year:%d\n", (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year));
+    assert(date == (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day));
+    assert(month == (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month));
+    assert(year == (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year));
   }
 
   /* test menuGetOpt::MENU_ITEM_MONTH */
