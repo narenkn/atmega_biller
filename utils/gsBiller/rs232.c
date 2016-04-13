@@ -389,6 +389,23 @@ void RS232_disableDTR(int comport_number)
   }
 }
 
+void RS232_toggleDTR(int comport_number)
+{
+  int status;
+
+  if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
+  {
+    perror("unable to get portstatus");
+  }
+
+  status = (status&TIOCM_DTR) ? (status & ~TIOCM_DTR):
+    (status | TIOCM_DTR);
+
+  if(ioctl(Cport[comport_number], TIOCMSET, &status) == -1)
+  {
+    perror("unable to set portstatus");
+  }
+}
 
 void RS232_enableRTS(int comport_number)
 {
@@ -616,7 +633,6 @@ int RS232_PollComport(int comport_number, unsigned char *buf, int size)
 
 /* added the void pointer cast, otherwise gcc will complain about */
 /* "warning: dereferencing type-punned pointer will break strict aliasing rules" */
-
   ReadFile(Cport[comport_number], buf, size, (LPDWORD)((void *)&n), NULL);
 
   return(n);
@@ -689,16 +705,26 @@ int RS232_IsDSREnabled(int comport_number)
   else return(0);
 }
 
+static int DTRValue = 0;
 
 void RS232_enableDTR(int comport_number)
 {
   EscapeCommFunction(Cport[comport_number], SETDTR);
+  DTRValue = 1;
 }
 
 
 void RS232_disableDTR(int comport_number)
 {
   EscapeCommFunction(Cport[comport_number], CLRDTR);
+  DTRValue = 0;
+}
+
+
+void RS232_toggleDTR(int comport_number)
+{
+  DTRValue ? RS232_disableDTR(comport_number) :
+    RS232_enableDTR(comport_number);
 }
 
 

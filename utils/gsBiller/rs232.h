@@ -70,6 +70,7 @@ int RS232_IsCTSEnabled(int);
 int RS232_IsDSREnabled(int);
 void RS232_enableDTR(int);
 void RS232_disableDTR(int);
+void RS232_toggleDTR(int);
 void RS232_enableRTS(int);
 void RS232_disableRTS(int);
 void RS232_flushRX(int);
