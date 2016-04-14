@@ -35,7 +35,7 @@ ASMFLAGS += $(CFLAGS)
 ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
-BOOTLOAD = 0x3800
+BOOTLOAD = 0x7E00
 LDFLAGS = $(COMMON)
 LDFLAGS +=  -Wl,-Map=$(SOURCE:.c=.map)
 LDFLAGS += -Wl,--section-start=.bootloader=$(BOOTLOAD)
