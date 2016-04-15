@@ -4,8 +4,12 @@
 #include <avr/interrupt.h>
 #include "uart.h"
 
-uint32_t uartWeight, uartCode;
+uint32_t uartWeight;
 uint8_t  uartDecimalPlace;
+static uint8_t uart0_func;
+#define PCPASS_SIZE ((((SERIAL_NO_MAX-2)/3)*4)+2)
+uint8_t pcPassword[PCPASS_SIZE];
+uint8_t pcPassIdx = 0;
 
 //**************************************************
 //UART initialize
@@ -64,6 +68,13 @@ uartSelect(uint8_t uid)
   PORTD |= (uid & 3) << 5;
 }
 
+inline void
+uart0_sel_func(uint8_t func)
+{
+  if (0 == uart0_func)
+    uart0_func = func;
+}
+
 #if 1
 volatile uint8_t ReceivedByte;
 ISR(USART_RXC_vect)
@@ -79,17 +90,36 @@ ISR(USART_RXC_vect)
     uartDecimalPlace ++;
 
   ReceivedByte = UDR;
-  uartCode <<= 8; uartCode |= ReceivedByte;
 
   /* */
   if ( ('\n' == ReceivedByte) || ('\r' == ReceivedByte) ) {
+    pcPassIdx = 0;
     uartWeight = 0;
     uartDecimalPlace = 0;
-  } else if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
-    uartWeight *= 10;
-    uartWeight += ReceivedByte-'0';
-  } else if ('.' == ReceivedByte)
-    uartDecimalPlace = 1;
+  }
+
+  if (UART0_WEIGHMC == uart0_func) {
+    if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
+      uartWeight *= 10;
+      uartWeight += ReceivedByte-'0';
+      uartDecimalPlace = (0 == uartDecimalPlace) ? 0 : uartDecimalPlace+1;
+    } else if ('.' == ReceivedByte) {
+      uartDecimalPlace = 1;
+    }
+  } else {
+    pcPassword[pcPassIdx] = ReceivedByte;
+    ReceivedByte++;
+    if (ReceivedByte>=PCPASS_SIZE) {
+      uint16_t ui16_1 = 0;
+      ReceivedByte = 0;
+      for (uint8_t ui1=0; ui1<(PCPASS_SIZE-2); ui1++) {
+	ui16_1 = _crc16_update(ui16_1, pcPassword[ui1]);
+      }
+      if ( ((ui16_1 & OxFF) == pcPassword[PCPASS_SIZE-1]) &&
+	   ( ((ui16_1>>8)&0xFF) == pcpass_size[PCPASS_SIZE-2] ) )
+    }
+  }
+
 }
 #endif
 

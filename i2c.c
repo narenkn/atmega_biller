@@ -72,6 +72,10 @@ i2c_init(void)
   TWSR= 0x00; //set prescale
   //TWCR= 0x44; //enable twi
 #endif
+
+#ifndef DS1307
+  tmr_init();
+#endif
 }
 
 #if  DS1307
@@ -196,15 +200,6 @@ i2c_stop(void)
 {
   TWCR =  (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);	  //Transmit STOP condition
 }  
-#else
-
-volatile uint8_t rtc_sec;
-volatile uint8_t rtc_min;
-volatile uint8_t rtc_hour;
-volatile uint8_t rtc_date;
-volatile uint8_t rtc_month;
-volatile uint8_t rtc_year;
-
 #endif
 
 /*

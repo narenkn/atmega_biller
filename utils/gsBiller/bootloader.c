@@ -984,7 +984,7 @@ int main(int argc, char *argv[])
 {
     // default values
     unsigned int baudid = 0;
-    int device = 0;
+    int device = 6;
 
     // Checking baudrate
     baudid = 9600;

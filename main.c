@@ -47,14 +47,9 @@ main_init(void)
   uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
   if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
   else EEPROM_SETTING0_ON(BUZZER);
-
-  /* clear display buffer */
-  LCD_CLRSCR;
-
-  /* Enable Global Interrupts */
-  sei();
 }
 
+#if 0
 /* setup timer 2 : need to get 5 sec pulse
    # cycles to skip : (5*F_CPU)
    # clock div is 1024, so we need to skip : (5*F_CPU)>>10
@@ -71,6 +66,7 @@ ISR(TIMER2_OVF_vect)
   LCD_init();
   LCD_refresh();
 }
+#endif
 
 #ifndef NO_MAIN
 
@@ -112,6 +108,8 @@ main(void)
   /* Check if all devices are ready to go, else give
      error and exit */
   if (0 == (devStatus&DS_DEV_ERROR)) {
+    sei();   /* Enable Global Interrupts */
+
     LCD_cmd(LCD_CMD_CUR_20);
     LCD_WR_NP((const char *)PSTR("   Initialized!"), 15);
     LCD_refresh();

@@ -293,7 +293,7 @@ class ep_store_layout:
     'SHOP_NAME_SZ_MAX' : 16*2,
     'COMPANY_NAME_MAX' : 16,
     'FOOTER_SZ_MAX' : 32*2,
-    'SERIAL_NO_MAX' : 16,
+    'SERIAL_NO_MAX' : 14, ## 12 + 2CRC
     'SCRATCH_MAX' : 16,
     'EPS_MAX_VAT_CHOICE' : 4,
     'EPS_CAPTION_SZ_MAX' : 10,
