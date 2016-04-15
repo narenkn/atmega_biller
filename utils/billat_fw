@@ -322,7 +322,7 @@ if "__main__" == __name__:
                   help="Parallel port address on the device (def:0x378)");
   parser.add_option("", "--flb", dest="flb", default=0xE4, type="int",
                   help="Fuse low byte value");
-  parser.add_option("", "--fhb", dest="fhb", default=0xC9, type="int",
+  parser.add_option("", "--fhb", dest="fhb", default=0x99|0x6, type="int",
                   help="Fuse high byte value");
   parser.add_option("", "--feb", dest="feb", default=0xFC, type="int",
                   help="Fuse extended byte value");
@@ -347,11 +347,10 @@ if "__main__" == __name__:
   (options, args) = parser.parse_args()
 
   ## modify certain default values
-  if (0xE4 == options.flb) and (0xC9 == options.fhb):
-    if 'atmega32' == options.mcu:
-      dev = Atmega32(options.lpt_addr);
-    elif 'atmega1284p' == options.mcu:
-      dev = Atmega1284p(options.lpt_addr);
+  if 'atmega32' == options.mcu:
+    dev = Atmega32(options.lpt_addr);
+  else:
+    assert(0);
 
   ##
   if options.release_bus:
@@ -387,10 +386,9 @@ if "__main__" == __name__:
     print "Using default fuse values";
     if 'atmega32' == options.mcu:
       options.flb = 0xE4;
-      options.fhb = 0x99 | 0x40; ## Disable JTAG
-    elif 'atmega1284p' == options.mcu:
-      options.flb = 0x62
-      options.fhb = 0x99
+      options.fhb = 0x99;
+    else:
+      assert(0);
 
   ## Process file
   any_page_valid = False;
@@ -429,6 +427,8 @@ if "__main__" == __name__:
 ##          print "%d = 0x%x" % (address, int(l[i:(i+2)], 16));
           address += 1;
       elif REC_EX_SEGADDR == record_type:
+        segment_addr = int(m.group(4), 16) << 4;
+      elif REC_ST_SEGADDR == record_type:
         segment_addr = int(m.group(4), 16) << 4;
       elif REC_EX_LIADDR == record_type:
         segment_addr = int(m.group(4), 16) << 16;
