@@ -954,7 +954,7 @@ int main(int argc, char *argv[])
     #define	INH32M_HEADER	":020000040000FA"
 
     // Array access operator
-    value_type& hex_data::operator[](address_type address)
+    value_t& hex_data::operator[](address_t address)
     {
 	// Start at the end of the list and find the first (last) block with an address
 	//  less than addr
@@ -974,7 +974,7 @@ int main(int argc, char *argv[])
     }
 
     // Return the value at address, or _fill if not set
-    value_type hex_data::get(address_type address)
+    value_t hex_data::get(address_t address)
     {
 	// Start at the end of the list and find the first (last) block with an address
 	//  less than addr
@@ -994,7 +994,7 @@ int main(int argc, char *argv[])
     }
 
     // Set the value at address or create a new element using value
-    void hex_data::set(address_type address, value_type value)
+    void hex_data::set(address_t address, value_t value)
     {
 	if( value == fill() )	// Handle fill values
 	{
@@ -1010,7 +1010,7 @@ int main(int argc, char *argv[])
 	    if( i->first <= address )
 	    {
 		// Use the block if address is interior or adjacent to the block
-		const address_type index = address - i->first;
+		const address_t index = address - i->first;
 		if( index < i->second.size() )
 		{
 		    i->second[index] = value;
@@ -1057,7 +1057,7 @@ int main(int argc, char *argv[])
     }
 
     // Erase a single element at the given address
-    void hex_data::erase(address_type address)
+    void hex_data::erase(address_t address)
     {
 	for(iterator i=blocks.begin(); i!=blocks.end(); ++i)
 	{
@@ -1067,18 +1067,18 @@ int main(int argc, char *argv[])
 	    if( address < i->first )
 		break;
 	    // Ignore the block if address is past the end of the block
-	    const address_type ope = i->first + i->second.size();
+	    const address_t ope = i->first + i->second.size();
 	    if( address >= ope )
 		continue;
 	    // address is now guaranteed to be >= i->first and < ope
 	    // Copy trailing portion of the old block to a new block
 	    if( (ope - address) > 1 )
 	    {
-		const address_type index = address-i->first+1;
+		const address_t index = address-i->first+1;
 		blocks[address+1].assign(i->second.begin()+index, i->second.end());
 	    }
 	    // Truncate or delete old block
-	    const address_type size = address - i->first;
+	    const address_t size = address - i->first;
 	    if( size )
 		i->second.resize(size);
 	    else
@@ -1088,14 +1088,14 @@ int main(int argc, char *argv[])
     }
 
     // Erase [first, last]
-    void hex_data::erase(address_type first, address_type last)
+    void hex_data::erase(address_t first, address_t last)
     {
 	if( first > last )
 	    std::swap(first, last);
 
 	for(iterator i=blocks.begin(); (i!=blocks.end()) && (first<=last); ++i)
 	{
-	    const address_type ope = i->first + i->second.size();
+	    const address_t ope = i->first + i->second.size();
 	    if( first >= ope )	// Ignore all blocks with addresses < first
 		continue;
 	    // The blocks are sorted, so if the first byte to be deleted is
@@ -1113,11 +1113,11 @@ int main(int argc, char *argv[])
 		// Copy trailing portion of the old block to a new block
 		if( (ope - last) > 1 )
 		{
-		    const address_type index = last-i->first+1;
+		    const address_t index = last-i->first+1;
 		    blocks[last+1].assign(i->second.begin()+index, i->second.end());
 		}
 		// Truncate or delete old block
-		const address_type size = first - i->first;
+		const address_t size = first - i->first;
 		if( size )
 		    i->second.resize(size);
 		else
@@ -1126,7 +1126,7 @@ int main(int argc, char *argv[])
 	    }
 	    else	// Truncate block
 	    {
-		const address_type size = first - i->first;
+		const address_t size = first - i->first;
 		if( size )
 		    i->second.resize(size);
 		else
@@ -1147,7 +1147,7 @@ int main(int argc, char *argv[])
     }
 
     // Returns the number of populated elements with addresses less than addr
-    hex_data::size_type hex_data::size_below_addr(address_type addr)
+    hex_data::size_type hex_data::size_below_addr(address_t addr)
     {
 	size_type s=0;
 
@@ -1163,7 +1163,7 @@ int main(int argc, char *argv[])
     }
 
     // number of words in [lo, hi)
-    hex_data::size_type hex_data::size_in_range(address_type lo, address_type hi)
+    hex_data::size_type hex_data::size_in_range(address_t lo, address_t hi)
     {
 	size_type s=0;
 
@@ -1188,15 +1188,15 @@ int main(int argc, char *argv[])
     }
 
     // Return the max address of all of the set words with addresses less than or equal to hi
-    address_type hex_data::max_addr_below(address_type hi)
+    address_t hex_data::max_addr_below(address_t hi)
     {
-	address_type s=0;
+	address_t s=0;
 
 	for(iterator i=blocks.begin(); i!=blocks.end(); ++i)
 	{
 	    if( i->first <= hi)
 	    {
-		const address_type a = i->first + i->second.size() - 1;	//Max address of this block
+		const address_t a = i->first + i->second.size() - 1;	//Max address of this block
 		if( a > s )
 		    s = a;
 	    }
@@ -1208,19 +1208,19 @@ int main(int argc, char *argv[])
     }
 
     // Lowest address
-    address_type hex_data::min_address() const
+    address_t hex_data::min_address() const
     {
 	return blocks.begin()->first;
     }
 
     // Highest address
-    address_type hex_data::max_address() const
+    address_t hex_data::max_address() const
     {
 	return blocks.rbegin()->first + blocks.rbegin()->second.size() - 1;
     }
 
     //Return true if an element exists at addr
-    bool hex_data::is_set(address_type addr)
+    bool hex_data::is_set(address_t addr)
     {
 	// Start at the end of the list and find the first (last) block with an address
 	//  less than addr
@@ -1242,9 +1242,9 @@ int main(int argc, char *argv[])
     }
 
     // Convert a string from hex to binary and append it to a block
-    uint8_t hex2binary(hex_data::data_container& to, std::string& from)
+    uint8_t hex2binary(hex_data::page_t& to, std::string& from)
     {
-	value_type    sum = 0, value;
+	value_t    sum = 0, value;
 	uint8_t character;
 	bool first = true;
 	std::string::iterator i = from.begin();
@@ -1281,10 +1281,10 @@ int main(int argc, char *argv[])
     // Read data from an input stream
     void hex_data::read(std::istream &s)
     {
-	address_type   address;
-	address_type   linear_address(0);
+	address_t   address;
+	address_t   linear_address(0);
 	std::string line;
-	data_container buffer;
+	page_t buffer;
 
 	while( (s.get() == ':') && s.good() )
 	{
@@ -1300,7 +1300,7 @@ int main(int argc, char *argv[])
 	    address = (address << 8) | buffer[2];
 	    unsigned length = buffer[0];
 	    const unsigned type = buffer[3];
-	    value_type* data = &buffer[4];
+	    value_t* data = &buffer[4];
 
 	    switch(type)
 	    {
@@ -1310,7 +1310,7 @@ int main(int argc, char *argv[])
 		    iterator i = blocks.begin();
 		    for(; i != blocks.end(); ++i )  // Find a block that includes address
 		    {
-			address_type num = 0;
+			address_t num = 0;
 			// If the start of the new block is interior to an existing block...
 			if( (i->first <= address) && ( (i->first + i->second.size()) > address) )
 			{
@@ -1462,7 +1462,7 @@ int main(int argc, char *argv[])
 	    if(i->second.size() > length)	//If the block is too long...
 	    {
 		//Make an interator that points to the first element to copy out of i->second
-		data_container::iterator k(i->second.begin());
+		page_t::iterator k(i->second.begin());
 		advance(k, length);
 
 		// Assign the extra elements to a new block and truncate the original
@@ -1474,14 +1474,14 @@ int main(int argc, char *argv[])
 
     //Compare two sets of hex data
     //	Return true if every word in hex1 has a corresponding, and equivalent, word in hex2
-    bool compare(hex_data& hex1, hex_data& hex2, value_type mask, address_type begin, address_type end)
+    bool compare(hex_data& hex1, hex_data& hex2, value_t mask, address_t begin, address_t end)
     {
 	//Walk block list from hex1
 	for( hex_data::iterator i = hex1.begin(); i != hex1.end(); ++i )
 	{
 	    //Walk the block
-	    address_type addr(i->first);
-	    for( hex_data::data_container::iterator j = i->second.begin(); j != i->second.end(); ++j, ++addr)
+	    address_t addr(i->first);
+	    for( hex_data::page_t::iterator j = i->second.begin(); j != i->second.end(); ++j, ++addr)
 	    {
 		if( (addr < begin) || (addr > end) )
 		    continue;
