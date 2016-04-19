@@ -408,7 +408,7 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
-all: begin gccversion sizebefore build sizeafter end
+all: begin gccversion sizebefore build sizeafter cinc end
 
 # Change the build target to build a HEX file or a library.
 build: ../version.h ../ep_ds.h elf hex eep lss sym
@@ -422,6 +422,7 @@ lss: $(TARGET).lss
 sym: $(TARGET).sym
 LIBNAME=lib$(TARGET).a
 lib: $(LIBNAME)
+cinc: $(TARGET).inc
 
 
 
@@ -513,7 +514,10 @@ extcoff: $(TARGET).elf
 	@echo $(MSG_EXTENDED_COFF) $(TARGET).cof
 	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
 
-
+# Create C++ include data file
+%.inc: %.hex
+	@echo
+	../utils/lptprog.py -f $< --cpph --output $@
 
 # Create final output files (.hex, .eep) from ELF output file.
 %.hex: %.elf
@@ -629,5 +633,3 @@ include ../make.proj
 .PHONY : all begin finish end sizebefore sizeafter gccversion \
 build elf hex eep lss sym coff extcoff \
 clean clean_list program debug gdb-config
-
-
