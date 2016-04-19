@@ -3,22 +3,22 @@ CFLAGS += -DLCD_DPORT_SIZE=4
 
 PYTHON := python
 
-../version.h : ../utils/csv2dat
+../version.h : ../utils/csv2dat.py
 	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
-	git log --pretty=format:"%h %an %s" ../utils/csv2dat | wc -l | xargs expr 1 + | xargs echo "#define SW_VERSION " >> $@
+	git log --pretty=format:"%h %an %s" ../utils/csv2dat.py | wc -l | xargs expr 1 + | xargs echo "#define SW_VERSION " >> $@
 	@echo "#define GIT_HASH_SMALL_LEN 7" >> $@
 	@echo -n "#define GIT_HASH_SMALL " >> $@
 	@git log --pretty=format:'"%h"' | head -1 >> $@
 	@echo -n "#define GIT_HASH " >> $@
 	@git log --pretty=format:'"%H"' | head -1 >> $@
-	@git log --pretty=format:'%H' | head -1 | xargs $(PYTHON) ../utils/csv2dat --crc16 >> $@
+	@git log --pretty=format:'%H' | head -1 | xargs $(PYTHON) ../utils/csv2dat.py --crc16 >> $@
 	@echo "#endif" >> $@
 
-../ep_ds.h : ../utils/csv2dat
-	$(PYTHON) ../utils/csv2dat --header > $@
+../ep_ds.h : ../utils/csv2dat.py
+	$(PYTHON) ../utils/csv2dat.py --header > $@
 
 %.set : %.csv
-	$(PYTHON) ../utils/csv2dat --settings $< > $@
+	$(PYTHON) ../utils/csv2dat.py --settings $< > $@
 
 %.itm : %.csv
-	$(PYTHON) ../utils/csv2dat --items $< > $@
+	$(PYTHON) ../utils/csv2dat.py --items $< > $@
