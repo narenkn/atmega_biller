@@ -379,7 +379,7 @@ if "__main__" == __name__:
                   action="store_true", help=SUPPRESS_HELP);
   parser.add_option("", "--write_lock_bits", dest="write_lock_bits", default=False,
                   action="store_true", help=SUPPRESS_HELP);
-  parser.add_option("", "--serial_no", dest="serial_no", default="abcdef123456",
+  parser.add_option("", "--serial_no", dest="serial_no", default="abcdef1234",
                   help=SUPPRESS_HELP);
   parser.add_option("", "--mcu", dest="mcu", default="atmega32",
                   help=SUPPRESS_HELP); ## atmega1284p
@@ -409,13 +409,13 @@ if "__main__" == __name__:
 
   ## 
   if options.program_serial_no:
-    assert(12 == len(options.serial_no));
+    assert(10 == len(options.serial_no));
     options.serial_no += options.device_id
-    assert(14 == len(options.serial_no));
+    assert(12 == len(options.serial_no));
     ui16 = crc16(bytearray(options.serial_no));
     options.serial_no += chr((ui16>>8)&0xFF)
     options.serial_no += chr(ui16&0xFF)
-    assert(16 == len(options.serial_no));
+    assert(14 == len(options.serial_no));
     options.chip_erase = True;
 
   ##

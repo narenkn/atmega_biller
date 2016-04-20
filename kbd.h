@@ -74,6 +74,9 @@
 #else
 # define KBD_GETCH				\
   while (KBD_NOT_HIT) {				\
+    /* check, enter pc response */		\
+    if (UART0_PC_CMD == uart0_func)		\
+      menuPcUtil();				\
     /* put the device to sleep */		\
     sleep_enable();				\
     sleep_cpu();				\

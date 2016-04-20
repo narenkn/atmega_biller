@@ -886,6 +886,10 @@ menuBilling(uint8_t mode)
     menuMemset((void *)sl, 0, SALE_SIZEOF);
   }
 
+  /* Wait for weighing machine */
+  while (UART0_NONE != uart0_func) {};
+  uart0_func = UART0_WEIGHMC;
+
   for (ui8_5=0; ;) {
     /* already added item, just confirm */
     if (0 != sl->items[ui8_5].quantity)
@@ -1089,6 +1093,9 @@ menuBilling(uint8_t mode)
       }
     } while (0);
   }
+
+  /* Give away weighing machine */
+  uart0_func = UART0_NONE;
 
  menuBillingBill:
   /* Why would somebody make a 0 item bill? */
@@ -2601,4 +2608,103 @@ menuMainStart:
 
   /* Forever stuck in this maze.. can't ever get out */
   goto menuMainStart;
+}
+
+/* PC Utility guide
+  All commands Prefixed with: 0xA5.
+
+  Function           CMD   Args
+  read-all-item       B1   
+  write-item          B2
+  read-all-bill       B3
+  reset-device        B4
+  exit-utility        B5
+
+  Success             AC
+  Fail                BD
+ */
+void
+menuPcUtil()
+{
+  /* when you return from this function, you either get a WDT reset
+     or be in PC connect mode */
+  uart0_func = UART0_PC;
+  if ( (pcPassIdx < 2) || (0xA5 != pcPassword[0]) ||
+       (0xB5 == pcPassword[1]) ) {
+    return;
+  }
+
+  /* interrupts are cut-off */
+  cli();
+
+  /* */
+  if (0xB1 == pcPassword[1]) {
+    /* ack */
+    uartTransmitByte(0xAC);
+    uartTransmitByte((uint8_t)(ITEM_MAX>>8));
+    uartTransmitByte((uint8_t)ITEM_MAX);
+    uartTransmitByte('\r');
+    /* send data */
+    for (uint16_t ui16_1=0; ui16_1<ITEM_MAX_ADDR;) {
+      ee24xx_read_bytes(ui16_1, pcPassword, PCPASS_SIZE);
+      for (uint8_t ui8_1=0; (ui8_1<PCPASS_SIZE) &&
+	     (ui16_1<ITEM_MAX_ADDR); ui8_1++, ui16_1++) {
+	uartTransmitByte(pcPassword[ui8_1]);
+      }
+    }
+    uartTransmitByte('\r');
+    /* */
+    sei(); return;
+  } else if (0xB2 == pcPassword[1]) {
+    uint16_t ui16_1;
+    uint8_t ui8_1, ui8_2, ui8_3;
+    while (1) {
+      ui8_3 = uartReceiveByte();
+      if ('\r' == ui8_3)
+	break;
+      if (0xB2 != ui8_3)
+	continue;
+      /* index to update, ack */
+      ui16_1 = uartReceiveByte(); ui16_1 <<= 8;
+      ui16_1 |= uartReceiveByte();
+      ui8_1 = uartReceiveByte();
+      if ((ui16_1 == 0) || (ui16_1 > ITEM_MAX) || ('\r' != ui8_1))
+	continue;
+      uartTransmitByte(0xAC);
+      uartTransmitByte(ui16_1>>8);
+      uartTransmitByte(ui16_1);
+      uartTransmitByte('\r');
+      if (0xB2 != uartReceiveByte())
+	continue;
+      /* store item */
+      for (ui16_1=itemAddr(ui16_1), ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1 += ui8_2, ui16_1+=ui8_2) {
+	ui8_2 = ((ui8_1+PCPASS_SIZE)<=ITEM_SIZEOF) ? PCPASS_SIZE :
+	  ITEM_SIZEOF-ui8_1;
+	for (ui8_3=0; ui8_3<ui8_2; ui8_3++)
+	  pcPassword[ui8_3] = uartReceiveByte();
+	ee24xx_write_bytes(ui16_1, pcPassword, ui8_2);
+      }
+    }
+    /* */
+    sei(); return;
+  } else if (0xB3 == pcPassword[1]) {
+    uartTransmitByte(0xAC);
+    uartTransmitByte((uint8_t)(ITEM_MAX>>8));
+    uartTransmitByte((uint8_t)ITEM_MAX);
+    uartTransmitByte('\r');
+    for (uint16_t ui16_1=EEPROM_SALE_START_ADDR; ui16_1<EEPROM_SALE_END_ADDR;) {
+      ee24xx_read_bytes(ui16_1, pcPassword, PCPASS_SIZE);
+      for (uint8_t ui8_1=0; (ui8_1<PCPASS_SIZE) &&
+	     (ui16_1<EEPROM_SALE_END_ADDR); ui8_1++, ui16_1++) {
+	uartTransmitByte(pcPassword[ui8_1]);
+      }
+    }
+    uartTransmitByte('\r');
+    /* */
+    sei(); return;
+  }
+
+  /* if it reaches here, do WDT reset */
+  wdt_enable(WDTO_15MS);
+  for (;;) {}
 }

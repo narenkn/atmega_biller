@@ -320,7 +320,7 @@ class ep_store_layout:
       ## 16 passwords
 ##      'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
       'unused_itIdxName' : ['[ITEM_MAX]', 700, TYPE_UINT8],
-      'unused_serial_no' : ['[SERIAL_NO_MAX]', 16, TYPE_STRING],
+      'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
       'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
