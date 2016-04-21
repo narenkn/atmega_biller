@@ -29,6 +29,16 @@ buzz(void)
 int
 main(void) 
 {
+
+  /* sets the direction register of the PORTD */ 
+  DDRD = 0x80;
+
+  /* PortD sets */ 
+  PORTD = 0x80;
+  _delay_ms(30);
+  PORTD = 0x0;
+  _delay_ms(1000);
+
   AppStartPtr();
 
   return 0;

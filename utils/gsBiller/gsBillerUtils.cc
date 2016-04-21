@@ -4,7 +4,9 @@
 #include <vector>
 #include <array>
 
-#define STRINGFY(X) #X
+#define TOSTRING(X) #X
+#define STRINGFY(x) TOSTRING(x)
+
 
 // EssEss replacement 7760860615
 #include "gsBillerUtils.h"
@@ -248,7 +250,7 @@ gsBillerFbUtils::connectDevice()
   // 0xC3 - 'A~',0xE1 - 'a´' - ISO8859-1
   // first 0x0d for autobaud, then password, then 0xff
   // for answer in one-line mode
-  const char passtring[] = "\x0DGurU\xFF";
+  const char passtring[] = "GurU\xFF";
 
   uint8_t val, resp = (uint8_t)~CONNECT;
   for (auto ticks = 0; (resp != CONNECT) && (ticks < TICK_MAX);
@@ -258,19 +260,21 @@ gsBillerFbUtils::connectDevice()
       if (autoreset == AUTORESET) {
 	RS232_toggleDTR (devId);
       }
-      Sleep(25);
+      Sleep(5);
 
       while ((val = *s++) != 0) {
-	  try {
-	    putChar(val);
-	    resp = getChar();
-	  } catch (string &e) {
-	    break;
-	  }
-
-	  if (CONNECT == resp)
-	    return;
+	cout << "0x" << hex << (uint32_t)val << endl;
+	putChar(val);
       }
+      try {
+	resp = getChar();
+	cout << "got response 0x" << hex << (uint32_t)resp << endl;
+      } catch (const char *err) {
+	continue;
+      }
+
+      if (CONNECT == resp)
+	return;
   }
 
   throw "Timeout in connection @" STRINGFY(__LINE__);
@@ -351,7 +355,9 @@ readVerify()
 {
   // now start with target...
   biller.connectDevice();
+  cout << "Device connected " << endl;
   biller.readInfo();
+  cout << "ReadInfo completed " << endl;
 
   biller.progOrVerifyFlash(PROGRAM);
   if (biller.crcOn)

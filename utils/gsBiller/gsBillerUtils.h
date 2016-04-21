@@ -3,7 +3,7 @@
 
 struct gsBillerFbUtils
 {
-  enum { RBUF_SIZE=800, TICK_MAX=1000 };
+  enum { RBUF_SIZE=800, TICK_MAX=10 };
   enum { NO_AUTORESET, AUTORESET } autoreset;
 
   uint8_t  status;
