@@ -29,7 +29,7 @@ _cex3:
 	brcs	SendMessage		; command 0 ... 3
 	breq	program			; command 4
 	cpi	a0, 5
-	breq	timeout			; command 5
+	breq	wdt_timeout_inf_loop	; command 5
 	cpi	a0, 7
 #if VERIFY
 	breq	VerifyFlash		; command 7
@@ -58,6 +58,11 @@ timeout:				; command 5
 	out	STX_PORT, zerol
 #if SRX_PORT != STX_PORT
 	out	SRX_PORT, zerol
+#endif
+#if FlashEnd > 0x0fff
+        jmp Application
+#else
+	rjmp	Application		; run application
 #endif
 #if WDTRIGGER
 wdt_timeout_inf_loop:

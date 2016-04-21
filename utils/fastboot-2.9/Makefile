@@ -162,7 +162,7 @@ else
 	    -e "s/@STUB_OFFSET@/$$STUB_OFFSET/g" \
 	    bootload.template.x > bootload.x; \
 	avr-ld -N -E -T bootload.x -Map=$(patsubst %.elf,%,$@).map \
-	  --cref $+ -o $@ --defsym Application=0
+	  --cref $+ -o $@ --defsym Application="$$LOADER_START-2"
 endif
 
 atmel_def.h: $(ATMEL_INC) Makefile

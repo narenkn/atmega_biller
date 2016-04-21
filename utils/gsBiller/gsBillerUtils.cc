@@ -39,6 +39,7 @@ gsBillerFbUtils::calcCrc(uint8_t ch)
 void
 gsBillerFbUtils::putChar(uint8_t ch)
 {
+  cout << "Sending 0x" << hex << (uint32_t) ch << endl;
   auto ret = RS232_SendByte(devId, ch);
   if (0 != ret)
     throw "Error while sending data to COM port @" STRINGFY(__LINE__);
@@ -56,6 +57,8 @@ gsBillerFbUtils::command(uint8_t cmd)
   if (0 != ret)
     throw "Error while sending data to COM port @" STRINGFY(__LINE__);
   calcCrc( COMMAND ); // calculate transmit CRC
+  cout << "Sending Cmd 0x" << hex << (uint32_t) COMMAND <<
+    " 0x" << (uint32_t) cmd << endl;
   ret = RS232_SendByte(devId, cmd);
   if (0 != ret)
     throw "Error while sending data to COM port @" STRINGFY(__LINE__);
@@ -124,6 +127,8 @@ gsBillerFbUtils::getChar()
   rbufValid--;
   ret = readBuf[0];
   memcpy(readBuf, readBuf+1, rbufValid*sizeof(uint8_t));
+
+  cout << "Obtained 0x" << hex << (uint32_t) ret << endl;
   return ret;
 }
 
@@ -250,7 +255,7 @@ gsBillerFbUtils::connectDevice()
   // 0xC3 - 'A~',0xE1 - 'a´' - ISO8859-1
   // first 0x0d for autobaud, then password, then 0xff
   // for answer in one-line mode
-  const char passtring[] = "GurU\xFF";
+  const char passtring[] = "\x0DGurU\xFF";
 
   uint8_t val, resp = (uint8_t)~CONNECT;
   for (auto ticks = 0; (resp != CONNECT) && (ticks < TICK_MAX);
@@ -263,12 +268,10 @@ gsBillerFbUtils::connectDevice()
       Sleep(5);
 
       while ((val = *s++) != 0) {
-	cout << "0x" << hex << (uint32_t)val << endl;
 	putChar(val);
       }
       try {
 	resp = getChar();
-	cout << "got response 0x" << hex << (uint32_t)resp << endl;
       } catch (const char *err) {
 	continue;
       }
@@ -317,6 +320,9 @@ void
 gsBillerFbUtils::readInfo()
 {
   uint8_t crcStat;
+
+  crcStat = checkCrc(); /* clear crc */
+  crcOn = (SUCCESS == crcStat) ? true : false;
 
   command(REVISION);
   revision = readInt32();
