@@ -62,62 +62,13 @@
 #define PRINTER_STATUS_VHIGH             (1<<3)
 #define PRINTER_STATUS_THIGH             (1<<6)
 
-#define PRINTER_FEED_DOTS(n)			\
-  uartTransmitByte(ASCII_PRINTER_ESC);		\
-  uartTransmitByte('J');			\
-  uartTransmitByte(n)
-
-#define PRINTER_FEED_LINES(n)			\
-  uartTransmitByte(ASCII_PRINTER_ESC);		\
-  uartTransmitByte('d');			\
-  uartTransmitByte(n)
-
-#define PRINTER_FONT_ENLARGE(N)			\
-  uartTransmitByte(0x1D);			\
-  uartTransmitByte('!');			\
-  uartTransmitByte(N)
-
-#define PRINTER_BOLD(N)				\
-  uartTransmitByte(ASCII_PRINTER_ESC);		\
-  uartTransmitByte('!');			\
-  uartTransmitByte(N)
-
-#define PRINTER_UNDERLINE(N)			\
-  uartTransmitByte(ASCII_PRINTER_ESC);		\
-  uartTransmitByte('-');			\
-  uartTransmitByte(N)
-
-#define PRINTER_USERCHAR_ENDIS(N)		\
-  uartTransmitByte(ASCII_PRINTER_ESC);		\
-  uartTransmitByte('%');			\
-  uartTransmitByte(N)
-
-#define PRINTER_PSTR(P) do {						\
-    uint8_t ui8_1t, ui8_2t;						\
-    for (ui8_1t=0, ui8_2t=pgm_read_byte(((const uint8_t *)P));		\
-	 ui8_2t;							\
-	 ui8_2t=pgm_read_byte(((const uint8_t *)P)+ ++ui8_1t)) {		\
-      PRINTER_PRINT(ui8_2t);						\
-    }									\
-  } while (0)
-
-#define PRINTER_PRINT_2D(var) do {			\
-    uint8_t _ui8 = ((var)/10)%10;			\
-    PRINTER_PRINT('0'+_ui8);				\
-    _ui8 = (var)%10;					\
-    PRINTER_PRINT('0'+_ui8);				\
-  } while (0)
-
-#define PRINTER_PRINT_4D(var) do {			\
-  uint8_t ui8_1 = ((var)/1000)%10;			\
-  PRINTER_PRINT('0'+ui8_1);				\
-  ui8_1 = ((var)/100)%10;				\
-  PRINTER_PRINT('0'+ui8_1);				\
-  ui8_1 = ((var)/10)%10;				\
-  PRINTER_PRINT('0'+ui8_1);				\
-  ui8_1 = (var)%10;					\
-  PRINTER_PRINT('0'+ui8_1);				\
-  } while (0)
+void PRINTER_FEED_DOTS(uint8_t n);
+void PRINTER_FEED_LINES(uint8_t n);
+void PRINTER_FONT_ENLARGE(uint8_t N);
+void PRINTER_BOLD(uint8_t N);
+void PRINTER_UNDERLINE(uint8_t N);
+void PRINTER_USERCHAR_ENDIS(uint8_t N);
+void PRINTER_PSTR(const char *P);
 
 #define PRINTER_PRINT_D menuPrnD
 #define PRINTER_PRINT_F menuPrnF

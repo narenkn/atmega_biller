@@ -26,31 +26,30 @@
 #include "main.h"
 
 
-volatile uint8_t eeprom_setting0 = 0, eeprom_setting1 = 0;
+volatile uint8_t eeprom_setting0;
 
 void
 main_init(void)
 {
-  /* For Buzzer */
-  DDRD |= 0x80;
-  BUZZER_OFF;
-  EEPROM_SETTING0_ON(BUZZER);
-
+#if LCD_TIMER2_REFRESH
   /* setup timer 2 : need to get 5 sec pulse
      # cycles to skip : (5*F_CPU)
      # clock div is 1024, so we need to skip : (5*F_CPU)>>10
    */
-//  TCCR2 |= (0x7 << CS20);
-//  TCNT2 = 0;
-//  TIMSK |= (1 << TOIE2);
+  TCCR2 |= (0x7 << CS20);
+  TCNT2 = 0;
+  TIMSK |= (1 << TOIE2);
+#endif
 
-  /* */
+  /* For Buzzer */
+  DDRD |= 0x80;
+  eeprom_setting0 = 0;
   uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
   if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
   else EEPROM_SETTING0_ON(BUZZER);
 }
 
-#if 0
+#if LCD_TIMER2_REFRESH
 /* setup timer 2 : need to get 5 sec pulse
    # cycles to skip : (5*F_CPU)
    # clock div is 1024, so we need to skip : (5*F_CPU)>>10

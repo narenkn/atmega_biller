@@ -104,6 +104,9 @@ KbdInit(void)
 
   /* when sleep get to powerdown mode */
   set_sleep_mode(2);
+
+  /* */
+  kbdStatus = 0, bitC = 0, drC = 0;
 }
 
 /* At reset/ idle state
@@ -296,7 +299,7 @@ ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_DEL, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
 
-uint8_t kbdStatus = 0;
+uint8_t kbdStatus;
 #define ps2ShiftHit (1<<0)
 #define ps2CtrlHit  (1<<1)
 #define ps2AltHit   (1<<2)
@@ -304,7 +307,7 @@ uint8_t kbdStatus = 0;
 
 #define LENOF_DR    4
 uint8_t kbdDr[LENOF_DR];
-uint8_t KeyData, bitC=0, drC=0;
+uint8_t KeyData, bitC, drC;
 ISR(INT0_vect)
 {             /* Data come with Clock from Device to MCU together */
   static uint8_t kbdTransL = 1;
@@ -400,19 +403,4 @@ ISR(INT0_vect)
       kbdDr[drC] = 0;
     drC = 0;
   }
-}
-
-uint8_t
-KbdIsShiftPressed(void)
-{
-  uint8_t shift;
-
-  shift = (kbdStatus & ps2ShiftHit) ? KBD_SHIFT : 0;
-
-  KBD_R1_EN;
-  KBD_RISE_DELAY(0x4);
-  if (KBD_C3_VAL==0) { shift = KBD_SHIFT; }
-  KBD_NODRIVE;
-
-  return shift;
 }

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <avr/pgmspace.h>
 
 #include "a1micro2mm.h"
 #include "uart.h"
@@ -38,4 +39,63 @@ printerStatus(void)
   ui8_1 += uartReceiveByte();
 
   return ui8_1;
+}
+
+void
+PRINTER_FEED_DOTS(uint8_t n)
+{
+  uartTransmitByte(ASCII_PRINTER_ESC);
+  uartTransmitByte('J');
+  uartTransmitByte(n);
+}
+
+void
+PRINTER_FEED_LINES(uint8_t n)
+{
+  uartTransmitByte(ASCII_PRINTER_ESC);
+  uartTransmitByte('d');
+  uartTransmitByte(n);
+}
+
+void
+PRINTER_FONT_ENLARGE(uint8_t N)
+{
+  uartTransmitByte(0x1D);
+  uartTransmitByte('!');
+  uartTransmitByte(N);
+}
+
+void
+PRINTER_BOLD(uint8_t N)
+{
+  uartTransmitByte(ASCII_PRINTER_ESC);
+  uartTransmitByte('!');
+  uartTransmitByte(N);
+}
+
+void
+PRINTER_UNDERLINE(uint8_t N)
+{
+  uartTransmitByte(ASCII_PRINTER_ESC);
+  uartTransmitByte('-');
+  uartTransmitByte(N);
+}
+
+void
+PRINTER_USERCHAR_ENDIS(uint8_t N)
+{
+  uartTransmitByte(ASCII_PRINTER_ESC);
+  uartTransmitByte('%');
+  uartTransmitByte(N);
+}
+
+void
+PRINTER_PSTR(const char *P)
+{
+  uint8_t ui8_1t, ui8_2t;
+  for (ui8_1t=0, ui8_2t=pgm_read_byte(P);
+       ui8_2t;
+       ui8_2t=pgm_read_byte(((const uint8_t *)P)+ ++ui8_1t)) {
+    PRINTER_PRINT(ui8_2t);
+  }
 }

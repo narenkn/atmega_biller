@@ -26,51 +26,11 @@
 #define TIMER_ADDR_YEAR            6
 
 #if  DS1307
-#define timerDateSet(year, month, date)			\
-  i2c_start();						\
-  i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_DATE);			\
-  i2c_sendData(date);					\
-  i2c_sendData(month);					\
-  i2c_sendData(year);					\
-  i2c_stop()
 
-#define timerDateGet(ymd)				\
-  i2c_start();						\
-  i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_DATE); /* date, month, yr */	\
-  i2c_repeatStart();					\
-  i2c_sendAddress(TIMER_CTRL_READ);			\
-  ymd[0] = i2c_receiveData_ACK();			\
-  ymd[1] = i2c_receiveData_ACK();			\
-  ymd[2] = i2c_receiveData_NACK();			\
-  i2c_stop();						\
-  ymd[2] = (((ymd[2]>>4) & 0x0F)*10) + (ymd[2]&0x0F);	\
-  ymd[1] = (((ymd[1]>>4) & 0x0F)*10) + (ymd[1]&0x0F);	\
-  ymd[0] = (((ymd[0]>>4) & 0x0F)*10) + (ymd[0]&0x0F)
-
-#define timerTimeSet(hour, min)				\
-  i2c_start();						\
-  i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_SEC);				\
-  i2c_sendData(0x0);					\
-  i2c_sendData(min);					\
-  i2c_sendData(hour);					\
-  i2c_stop()
-
-#define timerTimeGet(hms)				\
-  i2c_start();						\
-  i2c_sendAddress(TIMER_CTRL_WRITE);			\
-  i2c_sendData(TIMER_ADDR_SEC); /* sec, min, hr */	\
-  i2c_repeatStart();					\
-  i2c_sendAddress(TIMER_CTRL_READ);			\
-  hms[0] = i2c_receiveData_ACK();			\
-  hms[1] = i2c_receiveData_ACK();			\
-  hms[2] = i2c_receiveData_NACK();			\
-  i2c_stop();						\
-  hms[2] = (((hms[2]>>4) & 0x0F)*10) + (hms[2]&0x0F);	\
-  hms[1] = (((hms[1]>>4) & 0x0F)*10) + (hms[1]&0x0F);	\
-  hms[0] = (((hms[0]>>4) & 0x0F)*10) + (hms[0]&0x0F)
+void timerDateSet(uint8_t year, uint8_t month, uint8_t date);
+void timerDateGet(uint8_t *ymd);
+void timerTimeSet(uint8_t hour, uint8_t min);
+void timerTimeGet(uint8_t *hms);
 
 uint8_t  i2c_start(void);
 uint8_t  i2c_repeatStart(void);

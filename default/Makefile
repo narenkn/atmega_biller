@@ -178,6 +178,7 @@ CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
 CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
 CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
 CFLAGS += -DUNICODE_ENABLE=0             # Unicode in device
+CFLAGS += -DLCD_TIMER2_REFRESH=0         # Timer2 intr to refresh LCD
 
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information
@@ -517,7 +518,7 @@ extcoff: $(TARGET).elf
 # Create C++ include data file
 %.inc: %.hex
 	@echo
-	../utils/lptprog.py -f $< --cpph --output $@
+	./genInc.py -f $< --output $@
 
 # Create final output files (.hex, .eep) from ELF output file.
 %.hex: %.elf

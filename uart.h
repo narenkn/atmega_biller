@@ -1,7 +1,7 @@
 #ifndef UART_H
 #define UART_H
 
-enum { UART0_NONE=0, UART0_WEIGHMC, UART0_PC, UART0_PC_CMD } uart0_func_t;
+typedef enum { UART0_NONE=0, UART0_WEIGHMC, UART0_PC, UART0_PC_CMD } uart0_func_t;
 
 #define PCPASS_SIZE (((SERIAL_NO_MAX-2)/3)*4)
 
