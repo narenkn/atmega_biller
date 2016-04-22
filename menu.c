@@ -188,8 +188,8 @@ const uint8_t menu_str1[] PROGMEM =
   ;
 
 /* */
-static uint8_t MenuMode = MENU_MRESET;
-uint8_t devStatus = 0;   /* 0 is no err */
+static uint8_t MenuMode;
+uint8_t devStatus;   /* 0 is no err */
 
 /* Diagnosis */
 uint16_t diagStatus;
@@ -201,7 +201,7 @@ typedef struct  __attribute__((packed)) {
   uint8_t crc_prod_code;
 } itemIdxs_t;
 itemIdxs_t      itIdxs[ITEM_MAX];
-uint16_t   numValidItems = 0;
+uint16_t   numValidItems;
 
 /* Found issue with memset */
 #define menuMemset(S, c, N) do {			\
@@ -674,6 +674,7 @@ menuInit()
 
   /* Re-scan and index all items */
   struct item *it = (void *)bufSS;
+  numValidItems = 0;
   for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
 	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
     ee24xx_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
@@ -798,7 +799,7 @@ menuBilling(uint8_t mode)
 	   ((MENU_ITEM_ID == arg2.valid) &&
 	    (sl->info.bill_id == arg2.value.integer.i16)) ) {
 	/* User consent */
-	LCD_ALERT("Found Bill..");
+	LCD_ALERT(PSTR("Found Bill.."));
 	LCD_CLRLINE(0);
 	LCD_PUT_UINT(sl->info.bill_id);
 	LCD_WR_NP(PSTR(": Amt:"), 6);
@@ -1621,12 +1622,12 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
       PRINTER_PRINT(ui8_3);
   }
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
-  PRINTER_PRINT_2D(1+sl->info.date_dd); PRINTER_PRINT('/');
-  PRINTER_PRINT_2D(1+sl->info.date_mm); PRINTER_PRINT('/');
-  PRINTER_PRINT_4D(1980+sl->info.date_yy); PRINTER_PRINT(' ');
-  PRINTER_PRINT_2D(sl->info.time_hh); PRINTER_PRINT(':');
-  PRINTER_PRINT_2D(sl->info.time_mm); PRINTER_PRINT(':');
-  PRINTER_PRINT_2D(sl->info.time_ss); PRINTER_PRINT('\n');
+  PRINTER_PRINT_D(1+sl->info.date_dd); PRINTER_PRINT('/');
+  PRINTER_PRINT_D(1+sl->info.date_mm); PRINTER_PRINT('/');
+  PRINTER_PRINT_D(1980+sl->info.date_yy); PRINTER_PRINT(' ');
+  PRINTER_PRINT_D(sl->info.time_hh); PRINTER_PRINT(':');
+  PRINTER_PRINT_D(sl->info.time_mm); PRINTER_PRINT(':');
+  PRINTER_PRINT_D(sl->info.time_ss); PRINTER_PRINT('\n');
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
@@ -1638,7 +1639,7 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
     }
     PRINTER_PSTR(PSTR("Sl. Item  Nos  Price Disc Tax \n"));
     PRINTER_PSTR(PSTR("------------------------------\n"));
-    PRINTER_PRINT_2D((unsigned int)(ui8_1+1));
+    PRINTER_PRINT_D((unsigned int)(ui8_1+1));
     PRINTER_PRINT('.'); PRINTER_PRINT(' ');
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);

@@ -25,7 +25,7 @@ uint32_t uartWeight;
 uint8_t  uartDecimalPlace;
 uint8_t uart0_func;
 uint8_t pcPassword[PCPASS_SIZE];
-uint8_t pcPassIdx = 0;
+uint8_t pcPassIdx;
 
 //**************************************************
 //UART initialize

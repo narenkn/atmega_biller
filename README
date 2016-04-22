@@ -73,10 +73,11 @@ Atmega32 Product:
    * Validate Device serial # before giving control
    * Validate software revision before taking control
    * Take control of Device: Reset on exit
-9. Use as a printer (??) 
+##9. Use as a printer (??): No
 10. Fix units/test_menu_2 (few loops 0)
 11. Have soft-reset key combination.
 ##12. LCD Brightness control
 13. Check Control, CapsLock, Alt, Shift behaviour from Keyboard
-14. Who will keep time when device is turned OFF??
+##14. Who will keep time when device is turned OFF?? : DS1307 is implemented.
+15. Keep buzzing while waiting for PC programming.
 

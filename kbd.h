@@ -102,11 +102,12 @@ extern keyHitData_t keyHitData;
 
 void    KbdInit(void);
 void    KbdScan(void);
-uint8_t KbdIsShiftPressed(void);
 extern volatile uint8_t KbdData;
 extern volatile uint8_t KbdDataAvail;
 extern const uint8_t ps2code2ascii[] PROGMEM;
 extern const uint8_t ps2code2asciiE0[] PROGMEM;
 extern const uint8_t keyChars[] PROGMEM;
+
+extern uint8_t kbdStatus, bitC, drC;
 
 #endif
