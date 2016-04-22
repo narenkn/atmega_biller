@@ -7,6 +7,7 @@
 #include <avr/eeprom.h>
 #include <util/twi.h>
 #include <avr/sleep.h>
+#include <avr/wdt.h>
 
 #include "ep_ds.h"
 #include "version.h"
@@ -83,6 +84,9 @@ main(void)
 #elif defined (__AVR_ATxmega256A3__) || defined (__AVR_ATxmega256A3B__) || defined (__AVR_ATxmega256D3__)
   #error "Unknown device"
 #endif
+
+  /* */
+  wdt_disable();
 
   LCD_init();
 

@@ -105,6 +105,22 @@ class Atmega32:
       return;
     else:
       print "Info: Compatible device...";
+    ## Fuse Read
+    if options.read_fuse:
+      print "Info: Reading Fuse : ", ;
+      ## Read back & verify : low byte
+      self.Out(0x50);
+      self.Out(0x0);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      print "FLB : 0x%x" % in_val
+      ## Read back & verify : high byte
+      self.Out(0x58);
+      self.Out(0x08);
+      self.Out(0x0);
+      in_val = self.Out(0x0);
+      print "FHB : 0x%x" % in_val
+      return;
     ## Fuse programming
     if options.program_fuse:
       print "Info: Programming Fuse : ", ;
@@ -369,6 +385,8 @@ if "__main__" == __name__:
                   action="store_true", help="release the drive");
   parser.add_option("-D", "--defaults", dest="defaults", default=False,
                   action="store_true", help="Use reset values wherever applicable");
+  parser.add_option("", "--read_fuse", dest="read_fuse", default=False,
+                  action="store_true", help="print out the fuse values");
   parser.add_option("-F", "--program_fuse", dest="program_fuse", default=False,
                   action="store_true", help="release the drive");
   parser.add_option("", "--program_serial_no", dest="program_serial_no", default=False,
