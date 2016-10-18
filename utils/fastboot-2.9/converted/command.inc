@@ -64,16 +64,12 @@ timeout:				; command 5
 #else
 	rjmp	Application		; run application
 #endif
-#if WDTRIGGER
+
+#if !WDTRIGGER
+#include "watchdog.inc"
+#endif
 wdt_timeout_inf_loop:
         rjmp    wdt_timeout_inf_loop
-#else
-#if FlashEnd > 0x0fff
-        jmp Application
-#else
-	rjmp	Application		; run application
-#endif
-#endif
 ;-------------------------------------------------------------------------
 #include "message.inc" // command 0 ... 3
 ;-------------------------------------------------------------------------

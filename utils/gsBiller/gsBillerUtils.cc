@@ -18,11 +18,12 @@ using namespace std;
 
 typedef struct
 {
-  unsigned long   id;
+  uint32_t        id;
   const char      *name;
+  uint32_t        flashSize;
 } avrdev_t;
 const avrdev_t avr_dev[] = {
-  { 0x01e9502, "ATmega32" },
+  { 0x1e9502, "ATmega32", 0x7C00 },
 };
 
 /**
@@ -39,10 +40,10 @@ gsBillerFbUtils::calcCrc(uint8_t ch)
 void
 gsBillerFbUtils::putChar(uint8_t ch)
 {
-  cout << "Sending 0x" << hex << (uint32_t) ch << endl;
+  //  cout << "Sending 0x" << hex << (uint32_t) ch << endl;
   auto ret = RS232_SendByte(devId, ch);
   if (0 != ret)
-    throw "Error while sending data to COM port @" STRINGFY(__LINE__);
+    throw rErrSend;
   calcCrc( ch ); // calculate transmit CRC
   RS232_flushTX(devId);
 }
@@ -55,13 +56,13 @@ gsBillerFbUtils::command(uint8_t cmd)
 {
   auto ret = RS232_SendByte(devId, COMMAND);
   if (0 != ret)
-    throw "Error while sending data to COM port @" STRINGFY(__LINE__);
+    throw rErrSend;
   calcCrc( COMMAND ); // calculate transmit CRC
-  cout << "Sending Cmd 0x" << hex << (uint32_t) COMMAND <<
-    " 0x" << (uint32_t) cmd << endl;
+  //  cout << "Sending Cmd 0x" << hex << (uint32_t) COMMAND <<
+  //    " 0x" << (uint32_t) cmd << endl;
   ret = RS232_SendByte(devId, cmd);
   if (0 != ret)
-    throw "Error while sending data to COM port @" STRINGFY(__LINE__);
+    throw rErrSend;
   calcCrc( cmd ); // calculate transmit CRC
   RS232_flushTX(devId);
 }
@@ -108,12 +109,12 @@ gsBillerFbUtils::updDeviceStatus()
  * timeout in 10th of seconds
  */
 uint8_t
-gsBillerFbUtils::getChar()
+gsBillerFbUtils::getChar(uint32_t maxTicks)
 {
   uint32_t  ticks = 0;
   uint8_t   ret;
 
-  for (ticks = 0; (rbufValid <= 0) && (ticks < TICK_MAX); ticks++) {
+  for (ticks = 0; (rbufValid <= 0) && (ticks < maxTicks); ticks++) {
     rbufValid = RS232_PollComport(devId, readBuf, RBUF_SIZE);
     if (rbufValid > 0) {
       break;
@@ -121,14 +122,14 @@ gsBillerFbUtils::getChar()
       rbufValid = 0;
     Sleep(1);
   }
-  if (ticks == TICK_MAX)
-    throw "Timeout in communication @" STRINGFY(__LINE__);
+  if (ticks >= maxTicks)
+    throw rErrTimeout;
 
   rbufValid--;
   ret = readBuf[0];
   memcpy(readBuf, readBuf+1, rbufValid*sizeof(uint8_t));
 
-  cout << "Obtained 0x" << hex << (uint32_t) ret << endl;
+  //  cout << "Obtained 0x" << hex << (uint32_t) ret << endl;
   return ret;
 }
 
@@ -154,10 +155,19 @@ gsBillerFbUtils::readInt32()
     if (SUCCESS == i)
       break;
     else
-      throw "Internal Error @" STRINGFY(__LINE__);
+      throw rErrHost;
   }
 
   return ret;
+}
+
+void
+gsBillerFbUtils::iFlush()
+{
+  do {
+    rbufValid = RS232_PollComport(devId, readBuf, RBUF_SIZE);
+  } while (rbufValid > 0);
+  rbufValid = 0;
 }
 
 /*****************************************************************************
@@ -185,7 +195,7 @@ gsBillerFbUtils::read ( uint8_t*   pszIn,
       valid = 0;
   }
   if (ticks == TICK_MAX)
-    throw "Timeout in communication @" STRINGFY(__LINE__);
+    throw rErrTimeout;
 
   if (valid > tLen) { /* more bytes read */
     rbufValid = valid - tLen;
@@ -207,10 +217,6 @@ gsBillerFbUtils::progOrVerifyFlash(uint8_t cmd)
   /* Sending commands to MC */
   command(cmd);
 
-  if (getChar() == BADCOMMAND) {
-    throw "Unsupported operation @" STRINGFY(__LINE__);
-  }
-
   for (uint32_t addr=0; ; addr+=SPM_PAGESIZE) {
     if (hexFile.end() == hexFile.find(addr))
       break;
@@ -225,15 +231,18 @@ gsBillerFbUtils::progOrVerifyFlash(uint8_t cmd)
     }
 
     /* made sure buffSize == SPM_PAGESIZE, wait for continue */
-    if (CONTINUE != getChar())
-      throw "Operation terminated by device @" STRINGFY(__LINE__);
+    if (CONTINUE != getChar(500))
+      throw rErrDisconnect;
+
+    cout << ".";
   }
+  cout << endl;
 
   putChar(ESCAPE);
   putChar(ESC_SHIFT); // A5,80 = End
 
   if (SUCCESS != getChar())
-    throw "Command Failed @" STRINGFY(__LINE__);
+    throw rErrRspFail;
 }
 
 /**
@@ -246,7 +255,7 @@ gsBillerFbUtils::connectDevice()
 
   int retOpen = RS232_OpenComport(devId, baud, pMode);
   if (0 != retOpen)
-    throw "Unable to open COM port @" STRINGFY(__LINE__);
+    throw rErrNoCom;
 
   // pointer to password...
   // following characters are needed for autobaud
@@ -280,7 +289,7 @@ gsBillerFbUtils::connectDevice()
 	return;
   }
 
-  throw "Timeout in connection @" STRINGFY(__LINE__);
+  throw rErrTimeout;
 }
 
 void
@@ -303,12 +312,12 @@ gsBillerFbUtils::disconnectDevice()
 uint8_t
 gsBillerFbUtils::checkCrc()
 {
+  uint16_t crc1;
   command(CHECK_CRC);
+  crc1 = crc;
 
-  putChar(crc);
-  putChar(crc >> 8);
-
-  crc = 0;
+  putChar(crc1);
+  putChar(crc1 >> 8);
 
   return getChar();
 }
@@ -321,8 +330,9 @@ gsBillerFbUtils::readInfo()
 {
   uint8_t crcStat;
 
-  crcStat = checkCrc(); /* clear crc */
+  crcStat = checkCrc();
   crcOn = (SUCCESS == crcStat) ? true : false;
+  cout << "CRC " << (crcOn ? "ON" : "OFF") << endl;
 
   command(REVISION);
   revision = readInt32();
@@ -339,19 +349,17 @@ gsBillerFbUtils::readInfo()
   }
   if ((j >= (sizeof (avr_dev) / sizeof (avrdev_t))) ||
       (0 != j)) {
-    throw "No matching cpu signature @" STRINGFY(__LINE__);
+    throw rErrDevUnknown;
   }
 
   command(BUFFSIZE);
-  if (SPM_PAGESIZE != readInt32())
-    throw "Invalid buff-Size @" STRINGFY(__LINE__);
+  bufSize = readInt32();
+  if (0 != (bufSize%SPM_PAGESIZE))
+    throw rErrBufSize;
 
   command(USERFLASH);
-  if (SPM_PAGESIZE != readInt32())
-    throw "Flash page-size mismatch @" STRINGFY(__LINE__);
-
-  crcStat = checkCrc(); /* clear crc */
-  crcOn = (SUCCESS == crcStat) ? true : false;
+  if (avr_dev[j].flashSize != readInt32())
+    throw rErrFlashSize;
 }
 
 gsBillerFbUtils biller(6);
@@ -362,22 +370,30 @@ readVerify()
   // now start with target...
   biller.connectDevice();
   cout << "Device connected " << endl;
+  biller.iFlush();
   biller.readInfo();
   cout << "ReadInfo completed " << endl;
+  biller.iFlush();
 
   biller.progOrVerifyFlash(PROGRAM);
+  cout << "Program Completed" << endl;
   if (biller.crcOn)
     if (SUCCESS != biller.checkCrc())
-      throw "Data Transmit Error while Programming @" STRINGFY(__LINE__);
+      throw rErrCrc;
+    else
+      cout << "Prog CRC Success" << endl;
 
-  //  progOrVerifyFlash(VERIFY);
-  //  if (biller.crcOn)
-  //    if (SUCCESS != biller.checkCrc())
-  //      throw "Data Transmit Error while Verifying @" STRINGFY(__LINE__);
+  cout << "Verify Started" << endl;
+  biller.progOrVerifyFlash(VERIFY);
+  cout << "Verify Completed" << endl;
+  if (biller.crcOn)
+    if (SUCCESS != biller.checkCrc())
+      throw rErrCrc;
+    else
+      cout << "Verify CRC Success" << endl;
 
   /* start application */
-  //  biller.command(START);
-  //  biller.command(START);
+  biller.command(START);
 }
 
 /**
@@ -388,8 +404,10 @@ main(int argc, char *argv[])
 {
   try {
     readVerify();
-  } catch(const char *err) {
-    cerr << "Error: " << err << endl;
+  } catch(rs232_error_t err) {
+    cerr << "Error: " << (uint32_t) err << endl;
+  } catch (uint32_t err) {
+    cerr << "Error uint32_t: " << (uint32_t) err << endl;
   }
 
   return 0;

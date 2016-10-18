@@ -86,17 +86,19 @@
 # endif
   ;----------------------------	max possible buffer size -----------------
 
-  .equ  BufferSize,((SRAM_SIZE / 2) - PAGESIZE)
-  .macro testpage
-    .if		BootStart % BufferSize
-      .set BufferSize, BufferSize - PAGESIZE
-      .if	BootStart % BufferSize
-        .set Buffersize, BufferSize - PAGESIZE
-        testpage
-      .endif
-    .endif
-  .endm
-	testpage	; calculate Buffersize to fit into BootStart
+;naren;  .equ  BufferSize,((SRAM_SIZE / 2) - PAGESIZE)
+;naren;  .macro testpage
+;naren;    .if		BootStart % BufferSize
+;naren;      .set BufferSize, BufferSize - PAGESIZE
+;naren;      .if	BootStart % BufferSize
+;naren;        .set Buffersize, BufferSize - PAGESIZE
+;naren;        testpage
+;naren;      .endif
+;naren;    .endif
+;naren;  .endm
+;naren;	testpage	; calculate Buffersize to fit into BootStart
+
+.equ  BufferSize, PAGESIZE
 
   ;-----------------------------------------------------------------------
 # define  UserFlash (2*BootStart)
