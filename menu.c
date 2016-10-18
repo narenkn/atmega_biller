@@ -888,7 +888,13 @@ menuBilling(uint8_t mode)
   }
 
   /* Wait for weighing machine */
-  while (UART0_NONE != uart0_func) {};
+  while (UART0_NONE != uart0_func) {
+    /* put the device to sleep */
+    sleep_enable();
+    sleep_cpu();
+    /* some event has to occur to come here */
+    sleep_disable();
+  }
   uart0_func = UART0_WEIGHMC;
 
   for (ui8_5=0; ;) {
@@ -2223,10 +2229,12 @@ menuRunDiag(uint8_t mode)
   _delay_ms(2000);
   diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Can see abcd?"), 13)) ? DIAG_LCD : 0;
 
+#if 0
   /* FIXME: Adjust LCD/TFT brightness */
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diag Display Bri"), 16);
   _delay_ms(1000);
+#endif
 
   /* Run Printer : Print test page */
   LCD_CLRSCR;
@@ -2369,6 +2377,14 @@ menuRunDiag(uint8_t mode)
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Weight in KGs..."), 16);
   LCD_refresh();
+  while (UART0_NONE != uart0_func) {
+    /* put the device to sleep */
+    sleep_enable();
+    sleep_cpu();
+    /* some event has to occur to come here */
+    sleep_disable();
+  }
+  uart0_func = UART0_WEIGHMC;
   KBD_RESET_KEY;
   for (ui8_1=0; ;) {
     /* FIXME: display the weight */
@@ -2384,6 +2400,7 @@ menuRunDiag(uint8_t mode)
     }
   }
   diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
+  uart0_func = UART0_NONE;
 #endif
 
   /* Verify Buzzer */
