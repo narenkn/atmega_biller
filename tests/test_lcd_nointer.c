@@ -14,8 +14,8 @@ int
 main(void)
 {
   LCD_init();
+  LCD_bl_on;
 
-  PORTD = 0x10;
   LCD_WriteDirect(LCD_CMD_CUR_10, "Hello World 7", 13);
   LCD_WriteDirect(LCD_CMD_CUR_20, "Hello World 8", 13);
   _delay_ms(1000);
@@ -35,7 +35,7 @@ main(void)
 
   while (1) {}
 
-  PORTD = 0x0;
+  LCD_bl_off;
 
   return 0;
 }

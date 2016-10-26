@@ -5,18 +5,20 @@
 #define LCD_MAX_COL           16
 
 #if 8 == LCD_DPORT_SIZE
-# define LCD_PORT(val)  P1 = val
+# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= 0xF; PORTA |= val
 #elif 4 == LCD_DPORT_SIZE
 # define LCD_PORT(val)				\
   PORTA = (PORTA & ~0xF) | ((val) & 0xF)
 #endif
-#define LCD_en_high  PORTC |= 0x80
-#define LCD_en_low   PORTC &= ~0x80
-#define LCD_rs_high  PORTC |= 0x40
-#define LCD_rs_low   PORTC &= ~0x40
-#define LCD_bl_on    PORTD |= 0x10
-#define LCD_bl_off   PORTD &= ~0x10
-#define LCD_WAS_ON  (PORTD&0x10)
+#define LCD_en_high  PORTB |= _BV(7)
+#define LCD_en_low   PORTB &= ~_BV(7)
+#define LCD_rs_high  PORTB |= _BV(5)
+#define LCD_rs_low   PORTB &= ~_BV(5)
+#define LCD_rw_high  PORTB |= _BV(6)
+#define LCD_rw_low   PORTB &= ~_BV(6)
+#define LCD_bl_on    PORTG |= _BV(2)
+#define LCD_bl_off   PORTG &= ~_BV(2)
+#define LCD_WAS_ON  (PORTG&_BV(2))
 
 #ifdef  UNIT_TEST
 
@@ -54,21 +56,21 @@
 
 # define LCD_cmd(var)   \
   LCD_PORT(var);	\
-  LCD_rs = 0;		\
-  LCD_en = 1;		\
-  LCD_en = 0;		\
+  LCD_rs_low;		\
+  LCD_en_high;		\
+  LCD_en_low;		\
   _delay_ms(2)
 
 # define LCD_idle_drive \
   LCD_PORT(0);		\
-  LCD_rs = 0;		\
-  LCD_en = 0
+  LCD_rs_low;		\
+  LCD_en_low
 
 # define LCD_wrchar(var)\
   LCD_PORT(var);	\
-  LCD_rs = 1;		\
-  LCD_en = 1;		\
-  LCD_en = 0;		\
+  LCD_rs_high;		\
+  LCD_en_high;		\
+  LCD_en_low;		\
   _delay_ms(2)
 
 #elif 4 == LCD_DPORT_SIZE

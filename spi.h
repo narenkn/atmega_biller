@@ -15,8 +15,8 @@
 #define SPI_SD             SPCR = 0x52
 #define SPI_HIGH_SPEED     SPCR = 0x50; SPSR |= (1<<SPI2X)
 
-void spi_init(void);
-uint8_t SPI_transmit(uint8_t);
-uint8_t SPI_receive(void);
+void spiInit(void);
+uint8_t spiTransmit(uint8_t);
+uint8_t spiReceive(void);
 
 #endif

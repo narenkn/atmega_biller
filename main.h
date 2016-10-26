@@ -3,8 +3,8 @@
 
 void main_init(void);
 
-#define BUZZER_ON  PORTD |= 0x80
-#define BUZZER_OFF PORTD &= ~0x80
+#define BUZZER_ON  PORTA |= 0x80
+#define BUZZER_OFF PORTA &= ~0x80
 
 //  Return format : Year[31:25], Month[24:21], Date[20:16]
 //                  Hour[15:11], Min[10:5], Sec[4:0]

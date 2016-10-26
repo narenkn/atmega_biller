@@ -12,46 +12,38 @@
 # define LCD_ACT_LINE2         0x3C   /* Activate second line */
 # define LCD_CMD_2LINE_5x7     0x28   /* Use 2 lines and 5×7 matrix */
 
-#define LCD_en_high  PORTC |= 0x80
-#define LCD_en_low   PORTC &= 0x7F
-#define LCD_rs_high  PORTC |= 0x40
-#define LCD_rs_low   PORTC &= 0xBF
+#define LCD_en_high  PORTB |= _BV(7)
+#define LCD_en_low   PORTB &= ~_BV(7)
+#define LCD_rs_high  PORTB |= _BV(5)
+#define LCD_rs_low   PORTB &= ~_BV(5)
+#define LCD_rw_high  PORTB |= _BV(6)
+#define LCD_rw_low   PORTB &= ~_BV(6)
+#define LCD_bl_on    PORTG |= _BV(2)
+#define LCD_bl_off   PORTG &= ~_BV(2)
+#define LCD_WAS_ON  (PORTD&0x10)
 
-#define LCD_PORT(x) PORTA = x
+# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= 0xF; PORTA |= val
 
-# define LCD_wrnib(var)	\
-  PORTA = var;		\
-  _delay_us(100);	\
-  LCD_rs_high;		\
-  _delay_us(10);	\
+# define LCD_CMD_2LINE_5x7     0x38   /* Use 2 lines and 5×7 matrix */
+
+# define LCD_cmd(var)   \
+  LCD_PORT(var);	\
+  LCD_rs_low;		\
   LCD_en_high;		\
-  _delay_us(10);	\
+  LCD_en_low;		\
+  _delay_ms(2)
+
+# define LCD_idle_drive \
+  LCD_PORT(0);		\
+  LCD_rs_low;		\
   LCD_en_low
 
 # define LCD_wrchar(var)\
-  LCD_wrnib(var>>4);	\
-  _delay_us(100);	\
-  LCD_wrnib(var);	\
-  _delay_us(100)
-
-# define LCD_cmd(var)   \
-  LCD_PORT(var>>4);	\
-  _delay_us(100);	\
-  LCD_rs_low;		\
-  _delay_us(10);		\
-  LCD_en_high;		\
-  _delay_us(10);		\
-  LCD_en_low;		\
-  _delay_us(10);		\
   LCD_PORT(var);	\
-  _delay_us(100);	\
-  LCD_rs_low;		\
-  _delay_us(10);		\
+  LCD_rs_high;		\
   LCD_en_high;		\
-  _delay_us(10);		\
   LCD_en_low;		\
-  _delay_us(100)
-
+  _delay_ms(2)
 
 int
 main(void)

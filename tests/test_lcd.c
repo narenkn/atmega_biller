@@ -14,7 +14,7 @@ main()
 {
   LCD_init();
 
-  DDRD |= 0x10 ; LCD_bl_on;
+  DDRG |= _BV(2); LCD_bl_on;
 
   LCD_CLRSCR;
   LCD_WR_NP(PSTR("Hello World 7"), 13);

@@ -42,7 +42,7 @@ main_init(void)
 #endif
 
   /* For Buzzer */
-  DDRD |= 0x80;
+  DDRA |= 0x80;
   eeprom_setting0 = 0;
   uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
   if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);

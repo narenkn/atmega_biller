@@ -39,9 +39,10 @@ LCD_init(void)
   uint8_t ui8_1;
 
   /* Set IO directions */
-  DDRD |= 0x10;
+  DDRG |= _BV(2);
+  DDRD |= 0xF0;
   DDRA |= 0x0F;
-  DDRC |= 0xC0;
+  DDRB |= 0xE0;
 
 #if 4 == LCD_DPORT_SIZE
   _delay_ms(100);

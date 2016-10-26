@@ -5,7 +5,7 @@
 /* SPI initialize for SD card */
 /* clock rate: 125Khz */
 void
-spi_init(void)
+spiInit(void)
 {
   DDRB |=  (1<<0) | (1<<1) | (1<<3) | (1<<4) | (1<<5) | (1<<7);
   DDRB &=  ~(1<<6);
@@ -17,7 +17,7 @@ spi_init(void)
 }
 
 uint8_t
-SPI_transmit(uint8_t data)
+spiTransmit(uint8_t data)
 {
   /* Start transmission */
   SPDR = data;
@@ -30,7 +30,7 @@ SPI_transmit(uint8_t data)
 }
 
 uint8_t
-SPI_receive(void)
+spiReceive(void)
 {
   uint8_t data;
   /* Wait for reception complete */
