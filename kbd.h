@@ -5,29 +5,85 @@
 #define KBD_PS2_CLK      ((PIND >> 2)&1)
 #define KBD_PS2_CLK_NS   (PIND & 0x4)
 #define KBD_PS2_DATA     ((PIND >> 3)&1)
-#if 1
-# define KBD_NODRIVE      DDRC &= ~(0x3C)
-# define KBD_DRIVE        DDRC |= 0x3C; DDRA &= ~0xF0/*; PORTA |= 0xF0*/
-# define KBD_R0_EN        PORTC &= ~0x3C; PORTC |= 0x04
-# define KBD_R1_EN        PORTC &= ~0x3C; PORTC |= 0x08
-# define KBD_R2_EN        PORTC &= ~0x3C; PORTC |= 0x10
-# define KBD_R3_EN        PORTC &= ~0x3C; PORTC |= 0x20
-# define KBD_C0_VAL       (PINA & 0x10)
-# define KBD_C1_VAL       (PINA & 0x20)
-# define KBD_C2_VAL       (PINA & 0x40)
-# define KBD_C3_VAL       (PINA & 0x80)
-#else
-# define KBD_NODRIVE      DDRA &= ~(0xF0)
-# define KBD_DRIVE        DDRA |= 0xF0; DDRC &= ~0x3C; PORTC &= ~0x3C
-# define KBD_R0_EN        PORTA &= ~0xF0; PORTA |= 0x10
-# define KBD_R1_EN        PORTA &= ~0xF0; PORTA |= 0x20
-# define KBD_R2_EN        PORTA &= ~0xF0; PORTA |= 0x40
-# define KBD_R3_EN        PORTA &= ~0xF0; PORTA |= 0x80
-# define KBD_C0_VAL       (PINC & 0x4)
-# define KBD_C1_VAL       (PINC & 0x8)
-# define KBD_C2_VAL       (PINC & 0x10)
-# define KBD_C3_VAL       (PINC & 0x20)
+#if defined (__AVR_ATmega128__)
+# define KBD_IO_INIT						\
+  DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));	\
+  DDRA &= ~(1<<PA6)
+# define KBD_INT_PIN_DR0			\
+  PORTE &= ~0x10; DDRE  |= 0x10  /* drive 0 */
+# define KBD_INT_PIN_VAL			\
+  (PINE & 0x10)
+# define KBD_NODRIVE				\
+  PORTC |= 0xF0;  /* pullup */			\
+  PORTC &= ~0x0F; /* drive 0 */			\
+  PORTE |= 0x10;  /* pullup */			\
+  DDRC &= ~0xF0;  /* in */			\
+  DDRC |= 0x0F;   /* out */			\
+  DDRE &= ~0x10   /* in */
+# define KBD_IPIN_PHI				\
+  DDRC  &= ~0x0F; /* input */			\
+  PORTC |= 0x0F /* pull high */
+# define KBD_OPIN_DR0				\
+  DDRC  |= 0xF0; /* output */			\
+  PORTC &= ~0xF0 /* drive 0 */
+# define KBD_OPIN_DR_R0_0			\
+  PORTC &= ~0xF0; PORTC |= 0xE0
+# define KBD_OPIN_DR_R1_0			\
+  PORTC &= ~0xF0; PORTC |= 0xD0
+# define KBD_OPIN_DR_R2_0			\
+  PORTC &= ~0xF0; PORTC |= 0xB0
+# define KBD_OPIN_DR_R3_0			\
+  PORTC &= ~0xF0; PORTC |= 0x70
+# define KBD_IPIN_ANY_HIT			\
+  (0x0F != (PINC & 0x0F))
+# define KBD_IPIN_PIN0_HIT			\
+  (0 == (PINC & 0x1))
+# define KBD_IPIN_PIN1_HIT			\
+  (0 == (PINC & 0x2))
+# define KBD_IPIN_PIN2_HIT			\
+  (0 == (PINC & 0x4))
+# define KBD_IPIN_PIN3_HIT			\
+  (0 == (PINC & 0x8))
+#elif defined (__AVR_ATmega32__)
+# define KBD_IO_INIT				\
+  DDRD &= ~((1<<PD2)|(1<<PD3))
+# define KBD_INT_PIN_DR0			\
+  PORTB &= ~0x04; DDRB  |= 0x04  /* drive 0 */
+# define KBD_INT_PIN_VAL			\
+  (PINB & 0x04)
+# define KBD_NODRIVE				\
+  PORTA |= 0xF0;  /* pullup */			\
+  PORTC &= ~0x3C; /* drive 0 */			\
+  PORTB |= 0x04;  /* pullup */			\
+  DDRA &= ~0xF0;  /* in */			\
+  DDRC |= 0x3C;   /* out */			\
+  DDRB &= ~0x04   /* in */
+# define KBD_IPIN_PHI				\
+  DDRC  &= ~0x3C; /* input */			\
+  PORTC |= 0x3C /* pull high */
+# define KBD_OPIN_DR0				\
+  DDRA  |= 0xF0; /* output */			\
+  PORTA &= ~0xF0 /* drive 0 */
+# define KBD_OPIN_DR_R0_0			\
+  PORTA &= ~0xF0; PORTA |= 0xE0
+# define KBD_OPIN_DR_R1_0			\
+  PORTA &= ~0xF0; PORTA |= 0xD0
+# define KBD_OPIN_DR_R2_0			\
+  PORTA &= ~0xF0; PORTA |= 0xB0
+# define KBD_OPIN_DR_R3_0			\
+  PORTA &= ~0xF0; PORTA |= 0x70
+# define KBD_IPIN_ANY_HIT			\
+  (0x3C != (PINC & 0x3C))
+# define KBD_IPIN_PIN0_HIT			\
+  (0 == (PINC & 0x4))
+# define KBD_IPIN_PIN1_HIT			\
+  (0 == (PINC & 0x8))
+# define KBD_IPIN_PIN2_HIT			\
+  (0 == (PINC & 0x10))
+# define KBD_IPIN_PIN3_HIT			\
+  (0 == (PINC & 0x20))
 #endif
+
 /* Key definitions */
 #define ASCII_UNDEF      0
 #define ASCII_DEFINED    ((uint8_t)~ASCII_UNDEF)

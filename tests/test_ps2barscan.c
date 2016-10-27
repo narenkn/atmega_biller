@@ -171,17 +171,19 @@ main(void)
   LCD_init();
 
   /* Set pin mode & enable pullup */
-  DDRD &= ~((1<<PD2)|(1<<PD3));
-//  PORTD |= (1<<PD2) | (1<<PD3);
+  DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));
+  DDRA &= ~(1<<PA6);
 
   /* Enable Int0 on falling edge */
-  GICR = 1<<INT0;
-  MCUCR |= 1<<ISC01 | 0<<ISC00;
+  EICRB |= 1<<ISC51 | 0<<ISC50;
+  EICRB |= 1<<ISC61 | 0<<ISC60;
+  EICRB |= 1<<ISC71 | 0<<ISC70;
+  MCUSR |= 0x80;
 
   /* Enable Global Interrupts */
   sei();
 
-  PORTD = 0x10;
+  LCD_bl_on;
   LCD_WriteDirect(LCD_CMD_CUR_10, "PS2 Kbd: ", 9);
   _delay_ms(1000);
 

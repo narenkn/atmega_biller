@@ -10,6 +10,17 @@
 
 volatile uint8_t eeprom_setting0=0;
 
+#undef KBD_GETCH
+#define KBD_GETCH				\
+  while (KBD_NOT_HIT) {				\
+    /* put the device to sleep */		\
+    sleep_enable();				\
+    sleep_cpu();				\
+    /* some event has to occur to come here */	\
+    sleep_disable();				\
+  }						\
+  LCD_bl_on
+
 int
 main()
 {

@@ -73,12 +73,12 @@ i2c_init(void)
   //TWCR= 0x44; //enable twi
 #endif
 
-#ifndef DS1307
+#if DS1307
   tmr_init();
 #endif
 }
 
-#if  DS1307
+#if DS1307
 
 //*************************************************
 //Function to start i2c communication
@@ -674,20 +674,20 @@ ISR(TIMER0_COMP_vect)
       rtc_min = 0;
       if (++rtc_hour == 24) {
 	rtc_hour = 0;
-	rtc_days++;
+	rtc_date++;
 
 	/* find max time, keep date */
 	if (1 == rtc_month) {
-	  max_days_in_month = ((0 == (ui32_1%4)) && (0 != (ui32_1%100)))? 29 : 28;
-	} else if ( (0 == month) || (2 == month) ||
-		    (4 == month) || (6 == month) ||
-		    (7 == month) || (9 == month) ||
-		    (11 == month) )
+	  max_days_in_month = ((0 == (rtc_year & 0x3)) && (0 != (rtc_year%100)))? 29 : 28;
+	} else if ( (0 == rtc_month) || (2 == rtc_month) ||
+		    (4 == rtc_month) || (6 == rtc_month) ||
+		    (7 == rtc_month) || (9 == rtc_month) ||
+		    (11 == rtc_month) )
 	  max_days_in_month = 31;
 	else
 	  max_days_in_month = 30;
-	if (rtc_days >= max_days_in_month) {
-	  rtc_days = 0;
+	if (rtc_date >= max_days_in_month) {
+	  rtc_date = 0;
 	  if (++rtc_month >= 12) {
 	    rtc_month = 0;
 	    rtc_year++;

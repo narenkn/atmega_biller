@@ -25,7 +25,7 @@
 #define TIMER_ADDR_MONTH           5
 #define TIMER_ADDR_YEAR            6
 
-#if  DS1307
+#if DS1307
 
 void timerDateSet(uint8_t year, uint8_t month, uint8_t date);
 void timerDateGet(uint8_t *ymd);

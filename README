@@ -80,3 +80,7 @@ Atmega32 Product:
 13. Check Control, CapsLock, Alt, Shift behaviour from Keyboard
 ##14. Who will keep time when device is turned OFF?? : DS1307 is implemented.
 15. Keep buzzing while waiting for PC programming.
+
+Atmega128 Product:
+1. Upload data from file
+2. Save data to file

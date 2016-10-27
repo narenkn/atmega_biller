@@ -20,7 +20,7 @@
 #include "menu.h"
 #include "main.h"
 
-#define KBD_RISE_DELAY(N) \
+#define KBD_RISE_DELAY(N)			\
   _delay_us(N)
 
 const uint8_t
@@ -76,15 +76,10 @@ KbdInit(void)
      Port C   : input   (pull high)
      Port B.2 : input   (pull high)
    */
-  PORTA |= 0xF0;  /* pullup */
-  PORTC &= ~0x3C; /* drive 0 */
-  PORTB |= 0x04;  /* pullup */
-  DDRA &= ~0xF0;  /* in */
-  DDRC |= 0x3C;   /* out */
-  DDRB &= ~0x04;  /* in */
+  KBD_NODRIVE;
 
   /* PS2 IO */
-  DDRD &= ~((1<<PD2)|(1<<PD3));
+  KBD_IO_INIT;
 
   /* No data yet */
   KBD_RESET_KEY;
@@ -99,8 +94,10 @@ KbdInit(void)
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   /* */
-  GICR |= (1<<INT2) | (1<<INT0);
-  MCUCR |= 1<<ISC01 | 0<<ISC00;
+  EICRB |= 1<<ISC51 | 0<<ISC50;
+  EICRB |= 1<<ISC61 | 0<<ISC60;
+  EICRB |= 1<<ISC71 | 0<<ISC70;
+  MCUSR |= 0x80;
 
   /* when sleep get to powerdown mode */
   set_sleep_mode(2);
@@ -129,53 +126,49 @@ ISR(INT2_vect)
 
   /* get rid of spurious spikes */
   _delay_ms(5);
-  if (PINB & 0x04) return;
+  if KBD_INT_PIN_VAL return;
   _delay_ms(5);
-  if (PINB & 0x04) return;
-  _delay_ms(5);
-  if (PINB & 0x04) return;
+  if KBD_INT_PIN_VAL return;
 
   /* detected a key press */
   if (EEPROM_SETTING0(BUZZER))
     BUZZER_ON;
-  PORTB &= ~0x04; DDRB  |= 0x04;  /* drive 0 */
+  KBD_INT_PIN_DR0;
 
   /* Scan keypad */
-  DDRC  &= ~0x3C; /* input */
-  PORTC |= 0x3C; /* pull high */
-  DDRA  |= 0xF0; /* output */
-  PORTA &= ~0xF0;/* drive 0 */
-  PORTA |= 0xE0;
+  KBD_IPIN_PHI;
+  KBD_OPIN_DR0;
+  KBD_OPIN_DR_R0_0;
   _delay_ms(1);
-  if (0x3C != (PINC & 0x3C)) {
+  if (KBD_IPIN_ANY_HIT) {
     kbdData = 1;
-    kbdData += (0 == (PINC & 0x4)) ? 0 :
-      (0 == (PINC & 0x8)) ? 0x4 :
-      (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+    kbdData += KBD_IPIN_PIN0_HIT ? 0 :
+      KBD_IPIN_PIN1_HIT ? 0x4 :
+      KBD_IPIN_PIN2_HIT ? 0x8 : 0xC;
   } else {
-    PORTA &= ~0xF0; PORTA |= 0xD0;
+    KBD_OPIN_DR_R1_0;
     _delay_ms(1);
-    if (0x3C != (PINC & 0x3C)) {
+    if (KBD_IPIN_ANY_HIT) {
       kbdData = 2;
-      kbdData += (0 == (PINC & 0x4)) ? 0 :
-	(0 == (PINC & 0x8)) ? 0x4 :
-	(0 == (PINC & 0x10)) ? 0x8 : 0xC;
+      kbdData += KBD_IPIN_PIN0_HIT ? 0 :
+	KBD_IPIN_PIN1_HIT ? 0x4 :
+	KBD_IPIN_PIN2_HIT ? 0x8 : 0xC;
     } else {
-      PORTA &= ~0xF0; PORTA |= 0xB0;
+	KBD_OPIN_DR_R2_0;
       _delay_ms(1);
-      if (0x3C != (PINC & 0x3C)) {
+      if (KBD_IPIN_ANY_HIT) {
 	kbdData = 3;
-	kbdData += (0 == (PINC & 0x4)) ? 0 :
-	  (0 == (PINC & 0x8)) ? 0x4 :
-	  (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+	kbdData += KBD_IPIN_PIN0_HIT ? 0 :
+	  KBD_IPIN_PIN1_HIT ? 0x4 :
+	  KBD_IPIN_PIN2_HIT ? 0x8 : 0xC;
       } else {
-	PORTA &= ~0xF0;	PORTA |= 0x70;
+	KBD_OPIN_DR_R3_0;
 	_delay_ms(1);
-	if (0x3C != (PINC & 0x3C)) {
+	if (KBD_IPIN_ANY_HIT) {
 	  kbdData = 4;
-	  kbdData += (0 == (PINC & 0x4)) ? 0 :
-	    (0 == (PINC & 0x8)) ? 0x4 :
-	    (0 == (PINC & 0x10)) ? 0x8 : 0xC;
+	  kbdData += KBD_IPIN_PIN0_HIT ? 0 :
+	    KBD_IPIN_PIN1_HIT ? 0x4 :
+	    KBD_IPIN_PIN2_HIT ? 0x8 : 0xC;
 	} else {
 	  kbdData = 0;
 	}
@@ -201,25 +194,18 @@ ISR(INT2_vect)
   }
 
   /* Back to idle state */
-  PORTA |= 0xF0;  /* pullup */
-  PORTC &= ~0x3C; /* drive 0 */
-  PORTB |= 0x04;  /* pullup */
-  DDRA &= ~0xF0;  /* in */
-  DDRC |= 0x3C;   /* out */
-  DDRB &= ~0x04;  /* in */
+  KBD_NODRIVE;
   _delay_ms(2);
 
   /* debounce */
-  while (0 == (PINB & 0x04)) {}
+  while (0 == KBD_INT_PIN_VAL) {}
   _delay_ms(5);
-  while (0 == (PINB & 0x04)) {}
-  _delay_ms(5);
-  while (0 == (PINB & 0x04)) {}
+  while (0 == KBD_INT_PIN_VAL) {}
   _delay_ms(5);
 
   /* action before last */
   BUZZER_OFF;
-  _delay_ms(25);
+  _delay_ms(5);
 }
 
 /* need call at every 500 ms
