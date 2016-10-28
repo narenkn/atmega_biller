@@ -2,9 +2,12 @@
 #define KBD_H
 
 /* Keypad Connections */
-#define KBD_PS2_CLK      ((PIND >> 2)&1)
-#define KBD_PS2_CLK_NS   (PIND & 0x4)
-#define KBD_PS2_DATA     ((PIND >> 3)&1)
+#define KBD0_PS2_CLK      ((PINE >> 5)&1)
+#define KBD0_PS2_DATA     ((PINE >> 2)&1)
+#define KBD1_PS2_CLK      ((PINE >> 6)&1)
+#define KBD1_PS2_DATA     ((PINE >> 3)&1)
+#define KBD2_PS2_CLK      ((PINE >> 7)&1)
+#define KBD2_PS2_DATA     ((PINA >> 6)&1)
 #if defined (__AVR_ATmega128__)
 # define KBD_IO_INIT						\
   DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));	\

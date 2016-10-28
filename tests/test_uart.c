@@ -23,37 +23,35 @@ main()
   _delay_ms(1000);
   uartInit();
 
-  uartSelect(0);
   _delay_ms(1000);
 
-#if 1
+#if 1 // For Printer
   while (1) {
-  uartTransmitByte('H');
-  //  _delay_ms(10);
-  uartTransmitByte('e');
-  //  _delay_ms(10);
-  uartTransmitByte('l');
-  //  _delay_ms(10);
-  uartTransmitByte('l');
-  //  _delay_ms(10);
-  uartTransmitByte('o');
-  //  _delay_ms(10);
-  uartTransmitByte(' ');
+    uart0TransmitByte('H');
+    //  _delay_ms(10);
+    uart0TransmitByte('e');
+    //  _delay_ms(10);
+    uart0TransmitByte('l');
+    //  _delay_ms(10);
+    uart0TransmitByte('l');
+    //  _delay_ms(10);
+    uart0TransmitByte('o');
+    //  _delay_ms(10);
+    uart0TransmitByte(' ');
   }
 #endif
 
-#if 0
+#if 0 // Weighing machine
   set_sleep_mode(SLEEP_MODE_IDLE);
-  sei();
+  cli();
   LCD_CLRLINE(1);
   LCD_CLRLINE(0);
   while (1) {
     LCD_cmd(LCD_CMD_CUR_10);
     for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
 
-      sleep_mode();
-
-      ui2 = ReceivedByte;
+      while(!(UCSR1A & _BV(RXC1)));
+      ui2 = UDR1;
 
       if (isgraph(ui2)) {
 	LCD_PUTCH(ui2);
@@ -64,9 +62,8 @@ main()
     LCD_cmd(LCD_CMD_CUR_20);
     for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
 
-      sleep_mode();
-
-      ui2 = ReceivedByte;
+      while(!(UCSR1A & _BV(RXC1)));
+      ui2 = UDR1;
 
       if (isgraph(ui2)) {
 	LCD_PUTCH(ui2);

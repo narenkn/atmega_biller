@@ -13,104 +13,28 @@
 #include <avr/io.h>
 #include "adc.h"
 
-//******************************************************
-//Purpose : Initialize the ADC
-//Conversion time: 52uS
-//******************************************************
-void ADC_init(void)
+void
+adcInit(void)
 {
-  ADCSRA = 0x00; //disable adc
-  ADMUX  = 0x40;  //select adc input 0, ref:AVCC
-  ADCSRA = 0x82; //prescaler:4, single conversion mode
+  /* internal reference voltage of 2.56 with cap @ VREF */
+  ADMUX = _BV(REFS0) | _BV(ADLAR);
+  ADMUX |= 0x1E; /* V_bg */
+  /* intr & clock div */
+  ADCSRA = _BV(ADIE) | 2;
+  /* pins en */
+  DDRF &= ~_BV(PF1);
+
   ADC_ENABLE;
 }
 
+uint16_t batVcc;
 
-//********************************************************************
-//Purpose : Do an Analog to Digital Conversion
-//Paramtr :	none
-//return  : intger temperature value
-//********************************************************************
-unsigned int ADC_read(void)
+/* ADC End of Conversion interrupt */
+ISR(ADC_vect)
 {
-  char i;
-  unsigned int ADC_temp, ADCH_temp;
-  unsigned int ADC_var = 0;
-    
-            
-  for(i=0;i<8;i++)             // do the ADC conversion 8 times for better accuracy 
-    {
-      ADC_START_CONVERSION;
-      while(!(ADCSRA & 0x10)); // wait for conversion done, ADIF flag active
-      ADCSRA|=(1<<ADIF);
-		
-      ADC_temp = ADCL;         // read out ADCL register
-      ADCH_temp = ADCH;        // read out ADCH register        
-      ADC_temp +=(ADCH_temp << 8);
-      ADC_var += ADC_temp;      // accumulate result (8 samples) for later averaging
-    }
+  uint8_t adc_data = ADCH;
 
-  ADC_var = ADC_var >> 3;       // average the 8 samples
-
-  if(ADC_var > 1023) ADC_var = 1023;
-	
-  return ADC_var;
+  batVcc = 123; /* 1.23 V_bg */
+  batVcc *= 255;
+  batVcc /= adc_data;
 }
-
-
-//********************************************************************
-//Purpose : Read temperature from LM35 connected to the ADC
-//Paramtr : uint8_t ADC channel number
-//returns : None (modifies the global string 'temperature')
-//********************************************************************
-void readTemperature(uint8_t channel)
-{
-  unsigned int value;
-  float volt;
-
-  ADMUX = 0x40 | channel;
-  value = ADC_read();
-
-  volt = (float)(value * 5.0)/ 1024.0;
-  value = (unsigned int)(volt * 1000);
-
-  temperature[6] = 'C';  //centigrade
-  temperature[5] = 0xb0; //ascii value for degree symbol
-  temperature[4] = (value % 10) | 0x30;
-  temperature[3] = '.';  
-  value = value / 10;
-  temperature[2] = (value % 10) | 0x30;
-  value = value / 10;
-  temperature[1] = (value % 10) | 0x30;
-  value = value / 10;
-  temperature[0] = value | 0x30;   
-}  
-
-
-//********************************************************************
-//Purpose : Read voltage from ADC channels
-//Paramtr : uint8_t ADC channel number
-//returns : None (modifies the global string 'voltage')
-//********************************************************************
-void readVoltage(uint8_t channel)
-{
-  unsigned int value;
-  float volt;
-
-  ADMUX = 0x40 | channel;
-  value = ADC_read();
-
-  volt = (float)(value * 5.0)/ 1024.0;
-  value = (unsigned int)(volt * 1000);
-
-  voltage[6] = 'V';  //V for voltage
-  voltage[5] = ' '; 
-  voltage[4] = (value % 10) | 0x30;
-  value = value / 10;
-  voltage[3] = (value % 10) | 0x30;
-  value = value / 10;
-  voltage[2] = (value % 10) | 0x30;
-  voltage[1] = '.';  
-  value = value / 10;
-  voltage[0] = value | 0x30;   
-}  

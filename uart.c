@@ -21,11 +21,11 @@
 #include "i2c.h"
 #include "uart.h"
 
-uint32_t uartWeight;
-uint8_t  uartDecimalPlace;
-uint8_t uart0_func;
-uint8_t pcPassword[PCPASS_SIZE];
-uint8_t pcPassIdx;
+static volatile uint8_t uart0TxBusy;
+static uint8_t uart0TxBitsLeft;
+static uint16_t uart0TxBuffer;
+volatile uint32_t uartWeight;
+volatile uint8_t  uartDecimalPlace;
 
 //**************************************************
 //UART initialize
@@ -48,137 +48,70 @@ uartInit(void)
 #if 1
   uint16_t ui1;
 
-  UCSRB = 0x00;
-  UCSRA = 0x00;
+  UCSR0B = 0x00;
+  UCSR0A = 0x00;
+  UCSR1B = 0x00;
+  UCSR1A = 0x00;
 #if F_CPU <= 1000000UL
   /*
    * Note [4]
    * Slow system clock, double Baud rate to improve rate error.
    */
-  UCSRA = _BV(U2X);
+  UCSR0A = _BV(U2X0);
+  UCSR1A = _BV(U2X1);
   ui1 = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
 #else
   ui1 = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
 #endif
-  UCSRC = (1 << URSEL) | 0x06 | _BV(USBS);
-  UBRRL = ui1;
-  UBRRH = ui1 >> 8;
-  UCSRB = _BV(TXEN) | _BV(RXEN);		/* rx, tx enable */
+  /* Printer uart 0 */
+  UCSR0C = (1 << UMSEL0) | 0x06 | _BV(USBS0);
+  UBRR0L = ui1;
+  UBRR0H = ui1 >> 8;
+  UCSR0B = _BV(TXEN0) | _BV(RXEN0); /* rx, tx enable */
+  /* Weighing mc uart 1 */
+  UCSR1C = (1 << UMSEL1) | 0x06 | _BV(USBS0);
+  UBRR1L = ui1;
+  UBRR1H = ui1 >> 8;
+  UCSR1B = _BV(RXEN1); /* rx enable */
 #endif
 
-  /* For UART select */
-  DDRD |= (3<<5);
-  PORTD &= ~(3<<5);
+  /* For UART0 select */
+  DDRE &= ~_BV(PE0); DDRE |= _BV(PE1);
+  PORTE &= ~(_BV(PE0)|_BV(PE1));
+  /* For UART1 select */
+  DDRD &= ~_BV(PD2); DDRA |= _BV(PA4);
+  PORTD &= ~_BV(PD2); PORTA &= ~_BV(PA4);
 
   /* Enable the USART Recieve Complete interrupt (USART_RXC) */
-  UCSRB |= (1 << RXCIE);
+  UCSR0B |= _BV(RXCIE0);
+  UCSR1B |= _BV(RXCIE1);
 
   /* init */
   uartDecimalPlace = 0;
   uartWeight = 0;
-  uart0_func = UART0_NONE;
-  pcPassIdx = 0;
-
-  assert(0 == (PCPASS_SIZE&0x3)); /* used to read values from 24cXX */
 }
 
-void
-uartSelect(uint8_t uid)
+ISR(USART1_RX_vect)
 {
-  PORTD |= (uid & 3) << 5;
-}
-
-/*
-** Translation Table to decode (created by author)
-*/
-static const uint8_t cd64[] PROGMEM =
-  "|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
-
-/*
-** decodeblock
-**
-** decode 4 '6-bit' characters into 3 8-bit binary bytes
-*/
-static void
-b64decode( uint8_t *in, uint8_t *out )
-{   
-  out[ 0 ] = (in[0] << 2 | in[1] >> 4);
-  out[ 1 ] = (in[1] << 4 | in[2] >> 2);
-  out[ 2 ] = (((in[2] << 6) & 0xc0) | in[3]);
-}
-
-/*
-** decode
-**
-** decode a base64 encoded stream discarding padding, line breaks and noise
-*/
-static void
-decode( uint8_t *in, uint8_t *out )
-{
-  uint8_t len, in_idx, out_idx;
-  uint8_t ui1, v;
-
-  for (len=0, in_idx=out_idx=0; len<12;
-       len+=3, in_idx+=4, out_idx+=3) {
-    for (ui1=0; ui1<4; ui1++) {
-      v = in[in_idx+ui1];
-      v = (v < 43 || v > 122) ? (uint8_t) 0 :
-	pgm_read_byte (cd64+v-43);
-      if (v != 0) {
-	v = ((v == (uint8_t)'$') ? 0 : v - 61);
-	in[in_idx+ui1] = (uint8_t) (v - 1);
-      } else {
-	in[in_idx+ui1] = (uint8_t) 0;
-      }
-    }
-
-    b64decode (in+in_idx, out+out_idx);
-  }
-}
-
-ISR(USART_RXC_vect)
-{
-  uint8_t ReceivedByte, ui8_1;
+  uint8_t ReceivedByte;
 
   if (0 != uartDecimalPlace)
     uartDecimalPlace ++;
 
-  ReceivedByte = UDR;
+  ReceivedByte = UDR1;
 
   /* */
   if ( ('\n' == ReceivedByte) || ('\r' == ReceivedByte) ) {
-    pcPassIdx = 0;
     uartWeight = 0;
     uartDecimalPlace = 0;
   }
 
-  if (UART0_WEIGHMC == uart0_func) {
-    if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
-      uartWeight *= 10;
-      uartWeight += ReceivedByte-'0';
-      uartDecimalPlace = (0 == uartDecimalPlace) ? 0 : uartDecimalPlace+1;
-    } else if ('.' == ReceivedByte) {
-      uartDecimalPlace = 1;
-    }
-  } else if (UART0_NONE == uart0_func) {
-    pcPassword[pcPassIdx++] = ReceivedByte;
-    if ('\n' == ReceivedByte) pcPassIdx = 0;
-    if (pcPassIdx>=PCPASS_SIZE) {
-      pcPassIdx = 0;
-      decode(pcPassword, pcPassword);
-      for (ui8_1=0; ui8_1<SERIAL_NO_MAX; ui8_1++)
-	if (pcPassword[ui8_1] !=
-	    eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1))
-	  break;
-      if (ui8_1 == SERIAL_NO_MAX)
-	uart0_func = UART0_PC;
-    }
-  } else if (UART0_PC == uart0_func) {
-    pcPassword[pcPassIdx++] = ReceivedByte;
-    if (('\n' == ReceivedByte) || (pcPassIdx>=PCPASS_SIZE))
-      pcPassIdx = 0;
-    else if (('\r' == ReceivedByte) && pcPassIdx)
-      uart0_func = UART0_PC_CMD;
+  if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
+    uartWeight *= 10;
+    uartWeight += ReceivedByte-'0';
+    uartDecimalPlace = (0 == uartDecimalPlace) ? 0 : uartDecimalPlace+1;
+  } else if ('.' == ReceivedByte) {
+    uartDecimalPlace = 1;
   }
 }
 
@@ -186,25 +119,65 @@ ISR(USART_RXC_vect)
 //Function to receive a single byte
 //*************************************************
 uint8_t
-uartReceiveByte( void )
+uart0ReceiveByte( void )
 {
   uint8_t data, status;
 
-  while(!(UCSRA & (1<<RXC))); 	// Wait for incomming data
+  // Wait for incomming data
+  while(!(UCSR0A & _BV(RXC0)));
 
-  status = UCSRA;
-  data = UDR;
+  status = UCSR0A;
+  data = UDR0;
 
   return(data);
 }
+#if 0
+uint8_t
+uart1ReceiveByte( void )
+{
+  uint8_t data, status;
+
+  // Wait for incomming data
+  while(!(UCSR1A & _BV(RXC1)));
+
+  status = UCSR1A;
+  data = UDR1;
+
+  return(data);
+}
+#endif
 
 //***************************************************
 //Function to transmit a single byte
 //***************************************************
 void
-uartTransmitByte( uint8_t data )
+uart0TransmitByte( uint8_t data )
 {
-  while ( !(UCSRA & (1<<UDRE)) )
+  while ( !(UCSR1A & _BV(UDRE1)) )
     ; 			                /* Wait for empty transmit buffer */
-  UDR = data; 			        /* Start transmition */
+  UDR1 = data; 			        /* Start transmition */
+}
+void
+uart1TransmitByte( uint8_t data )
+{
+  while ( uart0TxBitsLeft ) {
+    ; // wait for transmitter ready
+    // add watchdog-reset here if needed;
+  }
+
+  /* 1 start + 8 data + 2 stop */
+  uart0TxBitsLeft = 8+3;
+  uart0TxBuffer = ((uint16_t)data << 1) | ((uint16_t)3<<9);
+}
+
+/* FIXME: Needs to be called every baud rate */
+void
+uart1TransmitBit()
+{
+  if (0 == uart0TxBitsLeft)
+    return;
+
+  uart0TxBitsLeft--;
+  (uart0TxBuffer & 1) ? (PORTA |= _BV(4)) : (PORTA &= ~_BV(4));
+  uart0TxBuffer >>= 1;
 }

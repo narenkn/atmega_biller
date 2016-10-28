@@ -4,7 +4,7 @@
 #define PRINTER_MAX_CHARS_ON_LINE   32
 
 #define PRINTER_PRINT(c)			\
-  uartTransmitByte(c)
+  uart0TransmitByte(c)
 
 #define PRINTER_PRINT_DEC(d)			\
 
@@ -48,7 +48,7 @@
   PRINTER_TOGGLE_ONOFF;				\
   PRINTER_CMD_ARG(0)
 
-#define PRINTER_COMMAND                  uartTransmitByte
+#define PRINTER_COMMAND                  uart0TransmitByte
 #define PRN_CMD_NL                       0xA
 #define PRN_CMD_FF                       0xC
 #define PRN_CMD_HT                       0x9

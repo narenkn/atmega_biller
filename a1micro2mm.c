@@ -25,18 +25,18 @@ printerStatus(void)
 
   PRINTER_PAPER_STATUS;
   PRINTER_PRINT('n'); /* FIXME: not sure if this is right */
-  if ('P' != uartReceiveByte())
+  if ('P' != uart0ReceiveByte())
     return 0;
-  if ('1' != uartReceiveByte())
+  if ('1' != uart0ReceiveByte())
     return 0;
-  if ('V' != uartReceiveByte())
+  if ('V' != uart0ReceiveByte())
     return 0;
-  uartReceiveByte();
-  uartReceiveByte();
-  if ('T' != uartReceiveByte())
+  uart0ReceiveByte();
+  uart0ReceiveByte();
+  if ('T' != uart0ReceiveByte())
     return 0;
-  ui8_1 = uartReceiveByte() * 10;
-  ui8_1 += uartReceiveByte();
+  ui8_1 = uart0ReceiveByte() * 10;
+  ui8_1 += uart0ReceiveByte();
 
   return ui8_1;
 }
@@ -44,49 +44,49 @@ printerStatus(void)
 void
 PRINTER_FEED_DOTS(uint8_t n)
 {
-  uartTransmitByte(ASCII_PRINTER_ESC);
-  uartTransmitByte('J');
-  uartTransmitByte(n);
+  uart0TransmitByte(ASCII_PRINTER_ESC);
+  uart0TransmitByte('J');
+  uart0TransmitByte(n);
 }
 
 void
 PRINTER_FEED_LINES(uint8_t n)
 {
-  uartTransmitByte(ASCII_PRINTER_ESC);
-  uartTransmitByte('d');
-  uartTransmitByte(n);
+  uart0TransmitByte(ASCII_PRINTER_ESC);
+  uart0TransmitByte('d');
+  uart0TransmitByte(n);
 }
 
 void
 PRINTER_FONT_ENLARGE(uint8_t N)
 {
-  uartTransmitByte(0x1D);
-  uartTransmitByte('!');
-  uartTransmitByte(N);
+  uart0TransmitByte(0x1D);
+  uart0TransmitByte('!');
+  uart0TransmitByte(N);
 }
 
 void
 PRINTER_BOLD(uint8_t N)
 {
-  uartTransmitByte(ASCII_PRINTER_ESC);
-  uartTransmitByte('!');
-  uartTransmitByte(N);
+  uart0TransmitByte(ASCII_PRINTER_ESC);
+  uart0TransmitByte('!');
+  uart0TransmitByte(N);
 }
 
 void
 PRINTER_UNDERLINE(uint8_t N)
 {
-  uartTransmitByte(ASCII_PRINTER_ESC);
-  uartTransmitByte('-');
-  uartTransmitByte(N);
+  uart0TransmitByte(ASCII_PRINTER_ESC);
+  uart0TransmitByte('-');
+  uart0TransmitByte(N);
 }
 
 void
 PRINTER_USERCHAR_ENDIS(uint8_t N)
 {
-  uartTransmitByte(ASCII_PRINTER_ESC);
-  uartTransmitByte('%');
-  uartTransmitByte(N);
+  uart0TransmitByte(ASCII_PRINTER_ESC);
+  uart0TransmitByte('%');
+  uart0TransmitByte(N);
 }
 
 void

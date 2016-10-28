@@ -12,18 +12,12 @@
 #ifndef ADC_H
 #define ADC_H
 
+#define ADC_ENABLE            ADCSRA |= _BV(ADEN)
+#define ADC_DISABLE           ADCSRA &= ~_BV(ADEN)
+#define ADC_START_CONVERSION  ADCSRA |= _BV(ADSC)
 
-#define ADC_ENABLE 					ADCSRA |= (1<<ADEN)
-#define ADC_DISABLE 				ADCSRA &= 0x7F
-#define ADC_START_CONVERSION		ADCSRA |= (1<<ADSC)
+void adcInit(void);
 
-uint8_t temperature[7];
-uint8_t voltage[7];	
-
-void ADC_init(void);
-unsigned int ADC_read(void);
-void readTemperature(uint8_t);
-void readVoltage(uint8_t);
-
+extern uint16_t batVcc;
 
 #endif

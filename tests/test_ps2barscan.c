@@ -175,10 +175,11 @@ main(void)
   DDRA &= ~(1<<PA6);
 
   /* Enable Int0 on falling edge */
+  EICRB |= 1<<ISC41 | 0<<ISC40;
   EICRB |= 1<<ISC51 | 0<<ISC50;
   EICRB |= 1<<ISC61 | 0<<ISC60;
   EICRB |= 1<<ISC71 | 0<<ISC70;
-  MCUSR |= 0x80;
+  EIMSK |= _BV(INT4) | _BV(INT5) | _BV(INT6) | _BV(INT7);
 
   /* Enable Global Interrupts */
   sei();

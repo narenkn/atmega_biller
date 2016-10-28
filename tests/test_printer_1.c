@@ -10,9 +10,8 @@
 
 volatile uint8_t KbdData, KbdDataAvail=0;
 #define KBD_HIT (0 != KbdDataAvail)
-#define KBD_PS2_CLK      ((PIND >> 2)&1)
-#define KBD_PS2_CLK_NS   (PIND & 0x4)
-#define KBD_PS2_DATA     ((PIND >> 3)&1)
+#define KBD0_PS2_CLK      ((PINE >> 5)&1)
+#define KBD0_PS2_DATA     ((PINE >> 2)&1)
 
 uint8_t kbdStatus = 0;
 #define ps2ShiftHit (1<<0)
@@ -59,7 +58,7 @@ ps2code2asciiE0[] PROGMEM = {
 };
 
 volatile uint8_t KeyData, bitC=0, drC=0;
-ISR(INT0_vect)
+ISR(INT5_vect)
 {             /* Data come with Clock from Device to MCU together */
   static uint8_t kbdTransL = 1;
   /* ------------------------------------- */
@@ -72,7 +71,7 @@ ISR(INT0_vect)
     bitC = 0;
   } else {
     KeyData >>= 1;
-    KeyData |= (((uint8_t)KBD_PS2_DATA)<<7);
+    KeyData |= (((uint8_t)KBD0_PS2_DATA)<<7);
   }
 
   if (0 != bitC)
@@ -173,22 +172,19 @@ main(void)
   LCD_init();
 
   uartInit();
-  uartSelect(0);
 
   /* Set pin mode & enable pullup */
-  DDRD &= ~((1<<PD2)|(1<<PD3));
-//  PORTD |= (1<<PD2) | (1<<PD3);
-  DDRD |= 0x10;
-  PORTD |= 2<<5;
+  DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));
+  DDRA &= ~(1<<PA6);
 
   /* Enable Int0 on falling edge */
-  GICR = 1<<INT0;
-  MCUCR |= 1<<ISC01 | 0<<ISC00;
+  EICRB |= 1<<ISC51 | 0<<ISC50;
+  EIMSK |= _BV(INT5);
 
   /* Enable Global Interrupts */
   sei();
 
-  PORTD |= 0x10;
+  LCD_bl_on;
   LCD_WriteDirect(LCD_CMD_CUR_10, "Printer: ", 9);
   _delay_ms(1000);
 
@@ -197,12 +193,13 @@ main(void)
       LCD_cmd((LCD_CMD_CUR_10+9));
       LCD_wrchar(KbdData);
       KbdDataAvail = 0;
-      uartTransmitByte(KbdData);
-      uartTransmitByte('\r');
-      uartTransmitByte('\n');
+      uart0TransmitByte(KbdData);
+      uart0TransmitByte('\r');
+      uart0TransmitByte('\n');
     }
     _delay_ms(100);
   }
+  LCD_bl_off;
 
   return 0;
 }

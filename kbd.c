@@ -94,10 +94,11 @@ KbdInit(void)
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   /* */
+  EICRB |= 1<<ISC41 | 0<<ISC40;
   EICRB |= 1<<ISC51 | 0<<ISC50;
   EICRB |= 1<<ISC61 | 0<<ISC60;
   EICRB |= 1<<ISC71 | 0<<ISC70;
-  MCUSR |= 0x80;
+  EIMSK |= _BV(INT4) | _BV(INT5) | _BV(INT6) | _BV(INT7);
 
   /* when sleep get to powerdown mode */
   set_sleep_mode(2);
@@ -294,7 +295,7 @@ uint8_t kbdStatus;
 #define LENOF_DR    4
 uint8_t kbdDr[LENOF_DR];
 uint8_t KeyData, bitC, drC;
-ISR(INT0_vect)
+ISR(INT5_vect)
 {             /* Data come with Clock from Device to MCU together */
   static uint8_t kbdTransL = 1;
   /* ------------------------------------- */
@@ -307,7 +308,7 @@ ISR(INT0_vect)
     bitC = 0;
   } else {
     KeyData >>= 1;
-    KeyData |= (((uint8_t)KBD_PS2_DATA)<<7);
+    KeyData |= (((uint8_t)KBD0_PS2_DATA)<<7);
   }
 
   if (0 != bitC)
