@@ -7,12 +7,12 @@
 
 
 /* Port controls  (Platform dependent) */
-#define CS_LOW()	PORTB &= ~((0==mmc_sdid) ? 0x10 : 0x2)			/* CS=low */
-#define	CS_HIGH()	PORTB |= ((0==mmc_sdid) ? 0x10 : 0x2)			/* CS=high */
-#define SOCKINS		(1)	/* Card detected.   yes:true, no:false, default:true */
-#define SOCKWP		(0)		/* Write protected. yes:true, no:false, default:false */
-#define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (F_CPU / 64) */
-#define	FCLK_FAST()	SPCR = 0x50		/* Set fast clock (F_CPU / 2) */
+#define CS_LOW()	PORTB &= ~_BV(0)   /* CS=low */
+#define	CS_HIGH()	PORTB |= _BV(0)    /* CS=high */
+#define SOCKINS		((PINB & _BV(4)) ? 0 : 1) /* Card detected.   yes:true, no:false, default:true */
+#define SOCKWP		(0)	/* Write protected. yes:true, no:false, default:false */
+#define	FCLK_SLOW()	SPCR = 0x52	/* Set slow clock (F_CPU / 64) */
+#define	FCLK_FAST()	SPCR = 0x50	/* Set fast clock (F_CPU / 2) */
 
 
 /*--------------------------------------------------------------------------
@@ -53,8 +53,6 @@ BYTE Timer1, Timer2;	/* 100Hz decrement timer */
 static
 BYTE CardType;			/* Card type flags */
 
-BYTE mmc_sdid = 1;
-
 /*-----------------------------------------------------------------------*/
 /* Power Control  (Platform dependent)                                   */
 /*-----------------------------------------------------------------------*/
@@ -77,20 +75,22 @@ void power_on (void)
 //naren		for (Timer1 = 2; Timer1; );	/* Wait for 20ms */
 //naren	}
 
-	PORTB |= 0b10110010;	/* Configure SCK/MOSI/CS as output */
-	DDRB  |= 0b10110010;
+  /* Configure SCK/MOSI/CS as output */
+  DDRB  |= _BV(0) | _BV(1) | _BV(2);
+  PORTB |= _BV(0) | _BV(1) | _BV(2);
+  DDRB &= ~(_BV(3) | _BV(4));
 
-	SPCR = 0x52;			/* Enable SPI function in mode 0 */
-	SPSR = 0x01;			/* SPI 2x mode */
+  /* Enable 2x SPI function in mode 0 */
+  SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
+  SPSR = 0x1;
 }
 
 static
 void power_off (void)
 {
-	SPCR = 0;				/* Disable SPI function */
+  SPCR = 0;				/* Disable SPI function */
 
-	DDRB  &= ~0b11110010;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
-	PORTB &= ~0b11110010;
+  DDRB  &= ~(_BV(0) | _BV(1) | _BV(2));
 
 //naren	{	/* Remove this block if no socket power control */
 //naren		PORTE |= _BV(7);		/* Socket power off (PE7=high) */
