@@ -80,11 +80,11 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c menu.c main.c
+SRC = lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c menu.c spi.c mmc_avr.c adc.c ff.c main.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC = 
+CPPSRC = flash.cc
 
 
 # List Assembler source files here.
@@ -159,7 +159,7 @@ CFLAGS += -Wstrict-prototypes
 CFLAGS += -mshort-calls
 CFLAGS += -fno-unit-at-a-time
 CFLAGS += -Wundef
-CFLAGS += -Wunreachable-code
+#CFLAGS += -Wunreachable-code
 CFLAGS += -Wsign-compare
 CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
@@ -200,7 +200,7 @@ CPPFLAGS += -Wundef
 CPPFLAGS += -mshort-calls
 CPPFLAGS += -fno-unit-at-a-time
 CPPFLAGS += -Wstrict-prototypes
-CPPFLAGS += -Wunreachable-code
+#CPPFLAGS += -Wunreachable-code
 CPPFLAGS += -Wsign-compare
 CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
 CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))

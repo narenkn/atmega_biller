@@ -10,7 +10,7 @@ void    uart0TransmitByte(uint8_t);
 uint8_t uart1ReceiveByte(void);
 #endif
 void    uart1TransmitByte(uint8_t);
-void    uart1TransmitBit();
+void    uart1TransmitBit(void);
 
 extern volatile uint32_t uartWeight;
 extern volatile uint8_t  uartDecimalPlace;

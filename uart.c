@@ -172,7 +172,7 @@ uart1TransmitByte( uint8_t data )
 
 /* FIXME: Needs to be called every baud rate */
 void
-uart1TransmitBit()
+uart1TransmitBit(void)
 {
   if (0 == uart0TxBitsLeft)
     return;
