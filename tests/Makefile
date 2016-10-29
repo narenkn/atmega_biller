@@ -27,6 +27,7 @@ CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
 CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
 CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
 CFLAGS += -DUNICODE_ENABLE=0             # Unicode in device
+CFLAGS += -DNVFLASH_EN=1                 # Non Volatile Flash
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)

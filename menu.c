@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +23,9 @@
 #include "ep_store.h"
 #include "item.h"
 #include "billing.h"
+#include "flash.h"
 #include "i2c.h"
+#include "spi.h"
 #include "uart.h"
 #include "a1micro2mm.h"
 #include "integer.h"

@@ -35,15 +35,6 @@
 #ifndef _SPIFLASH_H_
 #define _SPIFLASH_H_
 
-#if ARDUINO >= 100
-#include <Arduino.h>
-#else
-#include <wiring.h>
-#include "pins_arduino.h"
-#endif
-
-#include <SPI.h>
-
 /// IMPORTANT: NAND FLASH memory requires erase before write, because
 ///            it can only transition from 1s to 0s and only the erase command can reset all 0s to 1s
 /// See http://en.wikipedia.org/wiki/Flash_memory
@@ -70,7 +61,7 @@
 #define SPIFLASH_WRITEDISABLE     0x04        // write disable
 
 #define SPIFLASH_BLOCKERASE_4K    0x20        // erase one 4K block of flash memory
-#define SPIFLASH_BLOCKERASE_32K   0x52        // erase one 32K block of flash memory
+//#define SPIFLASH_BLOCKERASE_32K   0x52        // erase one 32K block of flash memory
 #define SPIFLASH_BLOCKERASE_64K   0xD8        // erase one 64K block of flash memory
 #define SPIFLASH_CHIPERASE        0x60        // chip erase (may take several seconds depending on size)
                                               // but no actual need to wait for completion (instead need to check the status register BUSY bit)
@@ -86,39 +77,44 @@
                                               // Example for Atmel-Adesto 4Mbit AT25DF041A: 0x1F44 (page 27: http://www.adestotech.com/sites/default/files/datasheets/doc3668.pdf)
                                               // Example for Winbond 4Mbit W25X40CL: 0xEF30 (page 14: http://www.winbond.com/NR/rdonlyres/6E25084C-0BFE-4B25-903D-AE10221A0929/0/W25X40CL.pdf)
 #define SPIFLASH_MACREAD          0x4B        // read unique ID number (MAC)
-                                              
+
+/* address 23 is don't care for 8MBytes, some code is written that way */
+#define JEDEC_ID                  0x014017
+#define NVF_PAGE_SIZE             256
+
 class SPIFlash {
-public:
-  static uint8_t UNIQUEID[8];
-  SPIFlash(uint8_t slaveSelectPin, uint16_t jedecID=0);
-  boolean initialize();
-  void command(uint8_t cmd, boolean isWrite=false);
+ public:
+  //  static uint8_t UNIQUEID[8];
+ private:
+  bool initialize();
+  void command(uint8_t cmd, bool isWrite=false);
   uint8_t readStatus();
-  uint8_t readByte(uint32_t addr);
-  void readBytes(uint32_t addr, void* buf, uint16_t len);
-  void writeByte(uint32_t addr, uint8_t byt);
-  void writeBytes(uint32_t addr, const void* buf, uint16_t len);
-  boolean busy();
-  void chipErase();
-  void blockErase4K(uint32_t address);
-  void blockErase32K(uint32_t address);
-  void blockErase64K(uint32_t addr);
-  uint16_t readDeviceId();
-  uint8_t* readUniqueId();
+  uint16_t readBytes(uint16_t addr, uint8_t* buf, uint16_t len);
+  uint16_t writeBytes(uint16_t addr, uint8_t* buf, uint16_t len);
+  bool busy();
+  void chipErase(uint8_t sel);
+  void blockErase4K(uint16_t address);
+  uint32_t readDeviceId();
+//  uint8_t* readUniqueId();
   
   void sleep();
   void wakeup();
-  void end();
-protected:
   void select();
   void unselect();
-  uint8_t _slaveSelectPin;
-  uint16_t _jedecID;
-  uint8_t _SPCR;
-  uint8_t _SPSR;
-#ifdef SPI_HAS_TRANSACTION
-  SPISettings _settings;
-#endif
+  uint8_t _selected;
 };
+
+#define  ee24xx_read_bytes   spiFlash.readBytes
+#define   ee24xx_write_bytes spiFlash.writeBytes
+
+/*
+ * Number of NV Flash devices connected in the system
+ * Can be 4 or 2 or 1
+ */
+#define EEPROM_MAX_DEVICES             4
+#define EEPROM_MAX_DEVICES_LOGN2       2
+
+/* */
+#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
 
 #endif

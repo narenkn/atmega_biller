@@ -17,6 +17,5 @@
 
 void spiInit(void);
 uint8_t spiTransmit(uint8_t);
-uint8_t spiReceive(void);
 
 #endif

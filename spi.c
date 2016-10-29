@@ -14,6 +14,12 @@ spiInit(void)
      SCK phase low, SCK idle low */
   SPCR = 0x50;
   SPSR = 0x00;
+
+#if NVFLASH_EN
+  /* */
+  PORTF |= 0xF;
+  DDRF |= 0xF;
+#endif
 }
 
 uint8_t
@@ -26,19 +32,5 @@ spiTransmit(uint8_t data)
   while(!(SPSR & (1<<SPIF)));
   data = SPDR;
 
-  return(data);
-}
-
-uint8_t
-spiReceive(void)
-{
-  uint8_t data;
-  /* Wait for reception complete */
-
-  SPDR = 0xff;
-  while(!(SPSR & (1<<SPIF)));
-  data = SPDR;
-
-  /* Return data register */
   return data;
 }

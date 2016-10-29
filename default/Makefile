@@ -156,28 +156,29 @@ CFLAGS += -fpack-struct
 CFLAGS += -fshort-enums
 CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
-#CFLAGS += -mshort-calls
-#CFLAGS += -fno-unit-at-a-time
-#CFLAGS += -Wundef
-#CFLAGS += -Wunreachable-code
-#CFLAGS += -Wsign-compare
+CFLAGS += -mshort-calls
+CFLAGS += -fno-unit-at-a-time
+CFLAGS += -Wundef
+CFLAGS += -Wunreachable-code
+CFLAGS += -Wsign-compare
 CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
 ## Our defines
-CFLAGS += -DLCD_USE_FUNCTIONS=1 -DBUFSS_SIZE=336 -DDS1307=0
-CFLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
-CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
-CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
-CFLAGS += -DMENU_DELBILL=1               # Delete bill
-CFLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
-CFLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
-CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
-CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
-CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
-CFLAGS += -DUNICODE_ENABLE=0             # Unicode in device
-CFLAGS += -DLCD_TIMER2_REFRESH=0         # Timer2 intr to refresh LCD
+BUILD_FLAGS += -DLCD_USE_FUNCTIONS=1 -DBUFSS_SIZE=336 -DDS1307=0
+BUILD_FLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
+BUILD_FLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
+BUILD_FLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
+BUILD_FLAGS += -DMENU_DELBILL=1               # Delete bill
+BUILD_FLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
+BUILD_FLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
+BUILD_FLAGS += -DFF_ENABLE=0                  # Enable SD file system
+BUILD_FLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
+BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
+BUILD_FLAGS += -DUNICODE_ENABLE=0             # Unicode in device
+BUILD_FLAGS += -DLCD_TIMER2_REFRESH=0         # Timer2 intr to refresh LCD
+BUILD_FLAGS += -DNVFLASH_EN=1                 # Non Volatile Flash
 
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information
@@ -196,11 +197,11 @@ CPPFLAGS += -fshort-enums
 CPPFLAGS += -fno-exceptions
 CPPFLAGS += -Wall
 CPPFLAGS += -Wundef
-#CPPFLAGS += -mshort-calls
-#CPPFLAGS += -fno-unit-at-a-time
-#CPPFLAGS += -Wstrict-prototypes
-#CPPFLAGS += -Wunreachable-code
-#CPPFLAGS += -Wsign-compare
+CPPFLAGS += -mshort-calls
+CPPFLAGS += -fno-unit-at-a-time
+CPPFLAGS += -Wstrict-prototypes
+CPPFLAGS += -Wunreachable-code
+CPPFLAGS += -Wsign-compare
 CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
 CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 #CPPFLAGS += $(CSTANDARD)
@@ -399,8 +400,8 @@ GENDEPFLAGS = -MMD -MP -MF .dep/$(@F).d
 
 # Combine all necessary flags and optional flags.
 # Add target processor to flags.
-ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) $(GENDEPFLAGS)
-ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GENDEPFLAGS)
+ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) $(BUILD_FLAGS) $(GENDEPFLAGS)
+ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(BUILD_FLAGS) $(GENDEPFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
@@ -571,7 +572,7 @@ $(OBJDIR)/%.o : %.c
 
 
 # Compile: create object files from C++ source files.
-$(OBJDIR)/%.o : %.cpp
+$(OBJDIR)/%.o : %.cc
 	@echo
 	@echo $(MSG_COMPILING_CPP) $<
 	$(CC) -c $(ALL_CPPFLAGS) $< -o $@ 

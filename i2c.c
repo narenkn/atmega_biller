@@ -202,6 +202,8 @@ i2c_stop(void)
 }  
 #endif
 
+#if ! NVFLASH_EN
+
 /*
  * Note [7]
  *
@@ -558,6 +560,8 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 
   return total;
 }
+
+#endif
 
 //******************************************************************
 //Function to get RTC date & time in FAT32 format

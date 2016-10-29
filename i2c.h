@@ -82,6 +82,8 @@ extern volatile uint8_t rtc_year;
 
 #endif
 
+#if ! NVFLASH_EN
+
 void     i2c_init(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 uint16_t ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len);
@@ -161,11 +163,13 @@ uint8_t twst;
  * Number of EEPROM devices connected in the system
  * Can be 4 or 2 or 1
  */
-#define EEPROM_MAX_DEVICES             1
-#define EEPROM_MAX_DEVICES_LOGN2       0
+#define EEPROM_MAX_DEVICES             4
+#define EEPROM_MAX_DEVICES_LOGN2       2
 
 /* */
 #define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
+
+#endif
 
 uint32_t get_fattime(void);
 

@@ -73,6 +73,8 @@ void billingInit(void);
   ((id<ITEM_MAX) ? id+1 : 1)
 #define ITEM_MAX_ADDR (ITEM_MAX*(ITEM_SIZEOF>>2))
 
+#if ! NVFLASH_EN
+
 /* Biggest device that can be connected to Board/rev0 is 4*24C512
    which is 4*64KBytes = 128KBytes
    * item's size is 56 bytes. Max items 1024. So need 56Kbytes.
@@ -88,7 +90,7 @@ void billingInit(void);
 #define EEPROM_BILL_ADDR(N)      (EEPROM_SALE_START_ADDR+	\
 				  (SALE_DATA_SIZEOF_NORM*N))
 #define EEPROM_SALE_END_APPROX_ADDR		\
-  (EEPROM_MAX_ADDRESS-SALE_DATA_SIZEOF_NORM+1)
+  ((uint16_t)(EEPROM_MAX_ADDRESS-SALE_DATA_SIZEOF_NORM+1))
 #define EEPROM_SALE_MAX_BILLS						\
   ((uint16_t)( ((EEPROM_SALE_END_APPROX_ADDR-EEPROM_SALE_START_ADDR)	\
 		/SALE_DATA_SIZEOF_NORM)) + 1 )
@@ -100,5 +102,36 @@ void billingInit(void);
 #define EEPROM_NEXT_SALE_RECORD(curAddr)			\
   ( ((curAddr+SALE_DATA_SIZEOF_NORM)<=EEPROM_SALE_END_ADDR) ?	\
     (curAddr+SALE_DATA_SIZEOF_NORM) : EEPROM_SALE_START_ADDR )
+#define EEPROM_BILL_HAS_ITEMS    0
+
+#else /* #if ! NVFLASH_EN */
+
+/* NV Flash : Cypress 64Mbits/8M bytes
+   Max devices : 4
+   Total addr space is 32Mbytes, need 25[24:0] addr bits. But we're using
+     16-bit pointers. So, each block needs to be of size (25-16)=9 bits
+     wide (atleast).
+*/
+
+#define NVF_MIN_BLOCK_SZ         (1<<9)
+#define SALE_DATA_SIZEOF_NORM    1 /* how many NVF_MIN_BLOCK_SZ? */
+#define EEPROM_SALE_START_ADDR   0
+#define EEPROM_BILL_ADDR(N)      (N<<(SALE_DATA_SIZEOF_NORM-1))
+#define EEPROM_SALE_END_APPROX_ADDR		\
+  ((uint16_t)(EEPROM_MAX_ADDRESS-SALE_DATA_SIZEOF_NORM+1))
+#define EEPROM_SALE_MAX_BILLS						\
+  ((uint16_t)(EEPROM_SALE_END_APPROX_ADDR-EEPROM_SALE_START_ADDR))
+#define EEPROM_SALE_END_ADDR /* could be last-avail-addr+1 */		\
+  (EEPROM_SALE_START_ADDR+(SALE_DATA_SIZEOF_NORM*(EEPROM_SALE_MAX_BILLS-1)))
+#define EEPROM_PREV_SALE_RECORD(curAddr)			\
+  ( (curAddr==EEPROM_SALE_START_ADDR) ?				\
+    EEPROM_SALE_END_ADDR : (curAddr-SALE_DATA_SIZEOF_NORM) )
+#define EEPROM_NEXT_SALE_RECORD(curAddr)			\
+  ( ((curAddr+SALE_DATA_SIZEOF_NORM)<=EEPROM_SALE_END_ADDR) ?	\
+    (curAddr+SALE_DATA_SIZEOF_NORM) : EEPROM_SALE_START_ADDR )
+
+#define EEPROM_BILL_HAS_ITEMS    1
+
+#endif
 
 #endif
