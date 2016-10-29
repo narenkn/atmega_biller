@@ -82,39 +82,30 @@
 #define JEDEC_ID                  0x014017
 #define NVF_PAGE_SIZE             256
 
-class SPIFlash {
- public:
-  //  static uint8_t UNIQUEID[8];
- private:
-  bool initialize();
-  void command(uint8_t cmd, bool isWrite=false);
-  uint8_t readStatus();
-  uint16_t readBytes(uint16_t addr, uint8_t* buf, uint16_t len);
-  uint16_t writeBytes(uint16_t addr, uint8_t* buf, uint16_t len);
-  bool busy();
-  void chipErase(uint8_t sel);
-  void blockErase4K(uint16_t address);
-  uint32_t readDeviceId();
-//  uint8_t* readUniqueId();
+static bool nvfInitialize();
+static void command(uint8_t cmd, bool isWrite);
+static uint8_t readStatus();
+static bool busy();
+static void chipErase(uint8_t sel);
+static void blockErase4K(uint16_t address);
+static uint32_t readDeviceId();
   
-  void sleep();
-  void wakeup();
-  void select();
-  void unselect();
-  uint8_t _selected;
-};
+static void sleep();
+static void wakeup();
+static void select();
+static void unselect();
 
-#define  ee24xx_read_bytes   spiFlash.readBytes
-#define   ee24xx_write_bytes spiFlash.writeBytes
+uint16_t bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
+uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 
 /*
  * Number of NV Flash devices connected in the system
  * Can be 4 or 2 or 1
  */
-#define EEPROM_MAX_DEVICES             4
-#define EEPROM_MAX_DEVICES_LOGN2       2
+#define NVF_MAX_DEVICES             4
+#define NVF_MAX_DEVICES_LOGN2       2
 
 /* */
-#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
+#define NVF_MAX_ADDRESS     ((uint16_t)((0x3FFF<<NVF_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
 
 #endif

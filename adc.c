@@ -26,4 +26,6 @@ ISR(ADC_vect)
   batVcc = 123; /* 1.23 V_bg */
   batVcc *= 255;
   batVcc /= adc_data;
+
+  return batVcc;
 }

@@ -82,8 +82,6 @@ extern volatile uint8_t rtc_year;
 
 #endif
 
-#if ! NVFLASH_EN
-
 void     i2c_init(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 uint16_t ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len);
@@ -168,6 +166,11 @@ uint8_t twst;
 
 /* */
 #define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
+
+#if ! NVFLASH_EN
+
+#define bill_read_bytes    ee24xx_read_bytes
+#define bill_write_bytes   ee24xx_write_bytes
 
 #endif
 

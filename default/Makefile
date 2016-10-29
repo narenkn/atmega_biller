@@ -80,11 +80,11 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c menu.c spi.c mmc_avr.c adc.c ff.c main.c
+SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c ff.c menu.c main.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC = flash.cc
+CPPSRC =
 
 
 # List Assembler source files here.
@@ -155,13 +155,13 @@ CFLAGS += -funsigned-bitfields
 CFLAGS += -fpack-struct
 CFLAGS += -fshort-enums
 CFLAGS += -Wall
-CFLAGS += -Wstrict-prototypes
-CFLAGS += -mshort-calls
+#CFLAGS += -Wstrict-prototypes
+#CFLAGS += -mshort-calls
 CFLAGS += -fno-unit-at-a-time
 CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
 CFLAGS += -Wsign-compare
-CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.c=%.lst))
+#CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.c=%.lst))
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
@@ -197,12 +197,12 @@ CPPFLAGS += -fshort-enums
 CPPFLAGS += -fno-exceptions
 CPPFLAGS += -Wall
 CPPFLAGS += -Wundef
-CPPFLAGS += -mshort-calls
+#CPPFLAGS += -mshort-calls
 CPPFLAGS += -fno-unit-at-a-time
-CPPFLAGS += -Wstrict-prototypes
+#CPPFLAGS += -Wstrict-prototypes
 #CPPFLAGS += -Wunreachable-code
 CPPFLAGS += -Wsign-compare
-CPPFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.cc=%.lst))
+#CPPFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.cc=%.lst))
 CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 #CPPFLAGS += $(CSTANDARD)
 
@@ -388,10 +388,10 @@ MSG_CREATING_LIBRARY = Creating library:
 
 
 # Define all object files.
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cc=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) 
+OBJ = $(CPPSRC:%.cc=$(OBJDIR)/%.o) $(SRC:%.c=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o)
 
 # Define all listing files.
-LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cc=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) 
+LST = $(CPPSRC:%.cc=$(OBJDIR)/%.lst) $(SRC:%.c=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) 
 
 
 # Compiler flags to generate dependency files.

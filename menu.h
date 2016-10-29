@@ -199,9 +199,6 @@ uint8_t menuSettingSet(uint8_t mode);
 uint8_t menuBillReports(uint8_t mode); // Unverified
 uint8_t menuDelAllBill(uint8_t mode);
 
-/* pc utility */
-void menuPcUtil(void); // Unverified
-
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode);
 uint8_t menuRunDiag(uint8_t mode); // Unverified

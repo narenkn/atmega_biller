@@ -133,9 +133,6 @@
 #else
 # define KBD_GETCH				\
   while (KBD_NOT_HIT) {				\
-    /* check, enter pc response */		\
-    if (UART0_PC_CMD == uart0_func)		\
-      menuPcUtil();				\
     /* put the device to sleep */		\
     sleep_enable();				\
     sleep_cpu();				\
@@ -150,7 +147,7 @@
 #define KCHAR_SHIFT_SZ     5
 #define KBD_SHIFT       0x80
 
-typedef volatile struct {
+typedef volatile struct s_keyHitData {
   uint8_t KbdData;
   uint8_t KbdDataAvail;
   uint8_t _kbdData;

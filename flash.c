@@ -69,29 +69,31 @@
 /// Example for Atmel-Adesto 4Mbit AT25DF041A: 0x1F44 (page 27: http://www.adestotech.com/sites/default/files/datasheets/doc3668.pdf)
 /// Example for Winbond 4Mbit W25X40CL: 0xEF30 (page 14: http://www.winbond.com/NR/rdonlyres/6E25084C-0BFE-4B25-903D-AE10221A0929/0/W25X40CL.pdf)
 
+static uint8_t _selected = 0;
+
 /// Select the flash chip
-void
-SPIFlash::select()
+static void
+select()
 {
   PORTF &= ~(_BV(_selected)&0xF);
 }
 
 /// UNselect the flash chip
-void
-SPIFlash::unselect()
+static void
+unselect()
 {
   PORTF |= 0xF;
 }
 
 /// setup SPI, read device ID etc...
-bool
-SPIFlash::initialize()
+static bool
+nvfInitialize()
 {
   unselect();
   wakeup();
 
   /* all flash devices */
-  for (uint8_t id=0; id<EEPROM_MAX_DEVICES; id++) {
+  for (uint8_t id=0; id<NVF_MAX_DEVICES; id++) {
     if (JEDEC_ID != readDeviceId())
       return false;
 
@@ -104,8 +106,8 @@ SPIFlash::initialize()
 }
 
 /// Get the manufacturer and device ID bytes (as a short word)
-uint32_t
-SPIFlash::readDeviceId()
+static uint32_t
+readDeviceId()
 {
   select();
   spiTransmit(SPIFLASH_IDREAD);
@@ -127,7 +129,7 @@ SPIFlash::readDeviceId()
 //uint8_t*
 //SPIFlash::readUniqueId()
 //{
-//  command(SPIFLASH_MACREAD);
+//  command(SPIFLASH_MACREAD, false);
 //  spiTransmit(0);
 //  spiTransmit(0);
 //  spiTransmit(0);
@@ -140,12 +142,12 @@ SPIFlash::readDeviceId()
 
 /// read unlimited # of bytes
 uint16_t
-SPIFlash::readBytes(uint16_t addr, uint8_t* buf, uint16_t len)
+bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 {
-  _selected = addr >> (16 - EEPROM_MAX_DEVICES_LOGN2);
-  addr <<= EEPROM_MAX_DEVICES_LOGN2;
+  _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
+  addr <<= NVF_MAX_DEVICES_LOGN2;
 
-  command(SPIFLASH_ARRAYREAD);
+  command(SPIFLASH_ARRAYREAD, false);
   /* coded for 8Mbyte device where address[23] is don't care */
   spiTransmit(addr >> 8);
   spiTransmit(addr);
@@ -159,12 +161,12 @@ SPIFlash::readBytes(uint16_t addr, uint8_t* buf, uint16_t len)
 }
 
 /// Send a command to the flash chip, pass TRUE for isWrite when its a write command
-void
-SPIFlash::command(uint8_t cmd, bool isWrite)
+static void
+command(uint8_t cmd, bool isWrite)
 {
   if (isWrite)
   {
-    command(SPIFLASH_WRITEENABLE); // Write Enable
+    command(SPIFLASH_WRITEENABLE, false); // Write Enable
     unselect();
   }
 
@@ -179,8 +181,8 @@ SPIFlash::command(uint8_t cmd, bool isWrite)
 }
 
 /// check if the chip is busy erasing/writing
-bool
-SPIFlash::busy()
+static bool
+busy()
 {
   /*
   select();
@@ -193,8 +195,8 @@ SPIFlash::busy()
 }
 
 /// return the STATUS register
-uint8_t
-SPIFlash::readStatus()
+static uint8_t
+readStatus()
 {
   select();
   spiTransmit(SPIFLASH_STATUSREAD);
@@ -210,14 +212,14 @@ SPIFlash::readStatus()
 /// This version handles both page alignment and data blocks larger than 256 bytes.
 ///
 uint16_t
-SPIFlash::writeBytes(uint16_t addr, uint8_t* buf, uint16_t len)
+bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 {
   uint16_t _len = len;
   // force the first set of bytes to stay within the first page
   uint16_t maxBytesInPage;
 
-  _selected = addr >> (16 - EEPROM_MAX_DEVICES_LOGN2);
-  addr <<= EEPROM_MAX_DEVICES_LOGN2;
+  _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
+  addr <<= NVF_MAX_DEVICES_LOGN2;
 
   for (uint16_t idx=0, offset=0; _len>0; idx++)
   {
@@ -246,8 +248,8 @@ SPIFlash::writeBytes(uint16_t addr, uint8_t* buf, uint16_t len)
 /// other things and later check if the chip is done with busy()
 /// note that any command will first wait for chip to become available using busy()
 /// so no need to do that twice
-void
-SPIFlash::chipErase(uint8_t sel)
+static void
+chipErase(uint8_t sel)
 {
   _selected = sel;
   command(SPIFLASH_CHIPERASE, true);
@@ -255,11 +257,11 @@ SPIFlash::chipErase(uint8_t sel)
 }
 
 /// erase a 4Kbyte block
-void
-SPIFlash::blockErase4K(uint16_t addr)
+static void
+blockErase4K(uint16_t addr)
 {
-  _selected = addr >> (16 - EEPROM_MAX_DEVICES_LOGN2);
-  addr <<= EEPROM_MAX_DEVICES_LOGN2;
+  _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
+  addr <<= NVF_MAX_DEVICES_LOGN2;
 
   command(SPIFLASH_BLOCKERASE_4K, true); // Block Erase
   spiTransmit(addr >> 8);
@@ -268,18 +270,16 @@ SPIFlash::blockErase4K(uint16_t addr)
   unselect();
 }
 
-void
-SPIFlash::sleep()
+static void
+sleep()
 {
-  command(SPIFLASH_SLEEP);
+  command(SPIFLASH_SLEEP, false);
   unselect();
 }
 
-void
-SPIFlash::wakeup()
+static void
+wakeup()
 {
-  command(SPIFLASH_WAKE);
+  command(SPIFLASH_WAKE, false);
   unselect();
 }
-
-SPIFlash spiFlash;
