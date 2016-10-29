@@ -161,7 +161,7 @@ CFLAGS += -fno-unit-at-a-time
 CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
 CFLAGS += -Wsign-compare
-CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
+CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.c=%.lst))
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
@@ -202,7 +202,7 @@ CPPFLAGS += -fno-unit-at-a-time
 CPPFLAGS += -Wstrict-prototypes
 #CPPFLAGS += -Wunreachable-code
 CPPFLAGS += -Wsign-compare
-CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
+CPPFLAGS += -Wa,-adhlns=$(OBJDIR)/$(notdir $(<:%.cc=%.lst))
 CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 #CPPFLAGS += $(CSTANDARD)
 
@@ -388,10 +388,10 @@ MSG_CREATING_LIBRARY = Creating library:
 
 
 # Define all object files.
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) 
+OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cc=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) 
 
 # Define all listing files.
-LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) 
+LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cc=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) 
 
 
 # Compiler flags to generate dependency files.
@@ -584,7 +584,7 @@ $(OBJDIR)/%.o : %.cc
 
 
 # Compile: create assembler files from C++ source files.
-%.s : %.cpp
+%.s : %.cc
 	$(CC) -S $(ALL_CPPFLAGS) $< -o $@
 
 
