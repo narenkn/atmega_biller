@@ -300,7 +300,7 @@ class ep_store_layout:
 ##    'EPS_MAX_USERS' : 15,
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
-    'ITEM_MAX' : 700,
+    'ITEM_MAX' : 1000,
     }
   variables = {
     'uint16_t' : {
@@ -319,7 +319,7 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 16 passwords
 ##      'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
-      'unused_itIdxName' : ['[ITEM_MAX]', 700, TYPE_UINT8],
+      'unused_itIdxName' : ['[ITEM_MAX]', 1000, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
@@ -429,7 +429,7 @@ if "__main__" == __name__:
     print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n\n"
-    print "#define ITEM_MAX 700\n"
+    print "#define ITEM_MAX 1000\n"
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)

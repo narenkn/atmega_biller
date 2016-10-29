@@ -73,33 +73,33 @@ static uint8_t _selected = 0;
 
 /// Select the flash chip
 static void
-select()
+nvfSelect()
 {
   PORTF &= ~(_BV(_selected)&0xF);
 }
 
-/// UNselect the flash chip
+/// NvfUnSelect the flash chip
 static void
-unselect()
+nvfUnSelect()
 {
   PORTF |= 0xF;
 }
 
 /// setup SPI, read device ID etc...
-static bool
-nvfInitialize()
+bool
+nvfInit()
 {
-  unselect();
-  wakeup();
+  nvfUnSelect();
+  nvfWakeUp();
 
   /* all flash devices */
   for (uint8_t id=0; id<NVF_MAX_DEVICES; id++) {
-    if (JEDEC_ID != readDeviceId())
+    if (JEDEC_ID != nvfReadDeviceId())
       return false;
 
-    command(SPIFLASH_STATUSWRITE, true); // Write Status Register
+    nvfCommand(SPIFLASH_STATUSWRITE, true); // Write Status Register
     spiTransmit(0);                     // Global Unprotect
-    unselect();
+    nvfUnSelect();
   }
 
   return true;
@@ -107,16 +107,16 @@ nvfInitialize()
 
 /// Get the manufacturer and device ID bytes (as a short word)
 static uint32_t
-readDeviceId()
+nvfReadDeviceId()
 {
-  select();
+  nvfSelect();
   spiTransmit(SPIFLASH_IDREAD);
   uint32_t jedecid = spiTransmit(0);
   jedecid <<= 8;
   jedecid |= spiTransmit(0);
   jedecid <<= 8;
   jedecid |= spiTransmit(0);
-  unselect();
+  nvfUnSelect();
   return jedecid;
 }
 
@@ -129,14 +129,14 @@ readDeviceId()
 //uint8_t*
 //SPIFlash::readUniqueId()
 //{
-//  command(SPIFLASH_MACREAD, false);
+//  nvfCommand(SPIFLASH_MACREAD, false);
 //  spiTransmit(0);
 //  spiTransmit(0);
 //  spiTransmit(0);
 //  spiTransmit(0);
 //  for (uint8_t i=0;i<8;i++)
 //    UNIQUEID[i] = spiTransmit(0);
-//  unselect();
+//  nvfUnSelect();
 //  return UNIQUEID;
 //}
 
@@ -147,7 +147,7 @@ bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
   addr <<= NVF_MAX_DEVICES_LOGN2;
 
-  command(SPIFLASH_ARRAYREAD, false);
+  nvfCommand(SPIFLASH_ARRAYREAD, false);
   /* coded for 8Mbyte device where address[23] is don't care */
   spiTransmit(addr >> 8);
   spiTransmit(addr);
@@ -155,19 +155,19 @@ bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   spiTransmit(0); //"dont care"
   for (uint16_t i = 0; i < len; ++i)
     ((uint8_t*) buf)[i] = spiTransmit(0);
-  unselect();
+  nvfUnSelect();
 
   return len;
 }
 
 /// Send a command to the flash chip, pass TRUE for isWrite when its a write command
 static void
-command(uint8_t cmd, bool isWrite)
+nvfCommand(uint8_t cmd, bool isWrite)
 {
   if (isWrite)
   {
-    command(SPIFLASH_WRITEENABLE, false); // Write Enable
-    unselect();
+    nvfCommand(SPIFLASH_WRITEENABLE, false); // Write Enable
+    nvfUnSelect();
   }
 
   //wait for any write/erase to complete
@@ -175,33 +175,33 @@ command(uint8_t cmd, bool isWrite)
   //  that is because some chips can take several seconds to carry out a chip erase or other similar multi block or entire-chip operations
   //  a recommended alternative to such situations where chip can be or not be present is to add a 10k or similar weak pulldown on the
   //  open drain MISO input which can read noise/static and hence return a non 0 status byte, causing the while() to hang when a flash chip is not present
-  while(busy());
-  select();
+  while(nvfBusy());
+  nvfSelect();
   spiTransmit(cmd);
 }
 
 /// check if the chip is busy erasing/writing
 static bool
-busy()
+nvfBusy()
 {
   /*
-  select();
+  nvfSelect();
   spiTransmit(SPIFLASH_STATUSREAD);
   uint8_t status = spiTransmit(0);
-  unselect();
+  nvfUnSelect();
   return status & 1;
   */
-  return readStatus() & 1;
+  return nvfReadStatus() & 1;
 }
 
 /// return the STATUS register
 static uint8_t
-readStatus()
+nvfReadStatus()
 {
-  select();
+  nvfSelect();
   spiTransmit(SPIFLASH_STATUSREAD);
   uint8_t status = spiTransmit(0);
-  unselect();
+  nvfUnSelect();
   return status;
 }
 
@@ -224,7 +224,7 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   for (uint16_t idx=0, offset=0; _len>0; idx++)
   {
     /* coded for 8Mbyte device where address[23] is don't care */
-    command(SPIFLASH_BYTEPAGEPROGRAM, true);  // Byte/Page Program
+    nvfCommand(SPIFLASH_BYTEPAGEPROGRAM, true);  // Byte/Page Program
     spiTransmit((addr+idx) >> 8);
     spiTransmit(addr+idx);
     spiTransmit(0); /* addr[7:0] */
@@ -232,7 +232,7 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
     maxBytesInPage = (_len<=NVF_PAGE_SIZE) ? _len : NVF_PAGE_SIZE;
     for (uint16_t i = 0; i < maxBytesInPage; i++)
       spiTransmit(((uint8_t*) buf)[offset + i]);
-    unselect();
+    nvfUnSelect();
 
     offset += maxBytesInPage;
     _len -= maxBytesInPage;
@@ -249,37 +249,37 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 /// note that any command will first wait for chip to become available using busy()
 /// so no need to do that twice
 static void
-chipErase(uint8_t sel)
+nvfChipErase(uint8_t sel)
 {
   _selected = sel;
-  command(SPIFLASH_CHIPERASE, true);
-  unselect();
+  nvfCommand(SPIFLASH_CHIPERASE, true);
+  nvfUnSelect();
 }
 
 /// erase a 4Kbyte block
 static void
-blockErase4K(uint16_t addr)
+nvfBlockErase4K(uint16_t addr)
 {
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
   addr <<= NVF_MAX_DEVICES_LOGN2;
 
-  command(SPIFLASH_BLOCKERASE_4K, true); // Block Erase
+  nvfCommand(SPIFLASH_BLOCKERASE_4K, true); // Block Erase
   spiTransmit(addr >> 8);
   spiTransmit(addr);
   spiTransmit(0);
-  unselect();
+  nvfUnSelect();
 }
 
 static void
-sleep()
+nvfSleep()
 {
-  command(SPIFLASH_SLEEP, false);
-  unselect();
+  nvfCommand(SPIFLASH_SLEEP, false);
+  nvfUnSelect();
 }
 
 static void
-wakeup()
+nvfWakeUp()
 {
-  command(SPIFLASH_WAKE, false);
-  unselect();
+  nvfCommand(SPIFLASH_WAKE, false);
+  nvfUnSelect();
 }
