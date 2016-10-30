@@ -82,19 +82,7 @@
 #define JEDEC_ID                  0x014017
 #define NVF_PAGE_SIZE             256
 
-static bool nvfInit();
-static void nvfCommand(uint8_t cmd, bool isWrite);
-static uint8_t nvfReadStatus();
-static bool nvfBusy();
-static void nvfChipErase(uint8_t sel);
-static void nvfBlockErase4K(uint16_t address);
-static uint32_t nvfReadDeviceId();
-  
-static void nvfSleep();
-static void nvfWakeUp();
-static void nvfSelect();
-static void nvfUnSelect();
-
+bool nvfInit();
 uint16_t bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 

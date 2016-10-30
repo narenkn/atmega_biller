@@ -71,6 +71,18 @@
 
 static uint8_t _selected = 0;
 
+static void nvfCommand(uint8_t cmd, bool isWrite);
+static uint8_t nvfReadStatus();
+static bool nvfBusy();
+static void nvfChipErase(uint8_t sel);
+static void nvfBlockErase4K(uint16_t address);
+static uint32_t nvfReadDeviceId();
+  
+static void nvfSleep();
+static void nvfWakeUp();
+static void nvfSelect();
+static void nvfUnSelect();
+
 /// Select the flash chip
 static void
 nvfSelect()

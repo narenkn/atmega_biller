@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
@@ -17,6 +18,9 @@
 #include "ep_store.h"
 #include "billing.h"
 #include "i2c.h"
+#if NVFLASH_EN
+#include "flash.h"
+#endif
 #include "uart.h"
 #include "a1micro2mm.h"
 #if FF_ENABLE
@@ -102,6 +106,9 @@ main(void)
   KbdInit();
   ep_store_init();
   i2c_init();
+#if NVFLASH_EN
+  nvfInit();
+#endif
   uartInit();
   printerInit();
   main_init();
