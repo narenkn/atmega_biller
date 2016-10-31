@@ -104,7 +104,56 @@ KbdInit(void)
   set_sleep_mode(2);
 
   /* */
-  kbdStatus = 0, bitC = 0, drC = 0;
+  kbd0.kbdStatus = 0, kbd0.bitC = 0, kbd0.drC = 0;
+  kbd1.kbdStatus = 0, kbd1.bitC = 0, kbd1.drC = 0;
+  kbd2.kbdStatus = 0, kbd2.bitC = 0, kbd2.drC = 0;
+}
+
+void
+kbdPushKeyHit(uint8_t key, uint8_t avail)
+{
+  /* more key-press than we can process */
+  if (keyHitData.hbCnt >= sizeof(keyHitData.hitBuf))
+    return;
+
+  keyHitData.hbCnt++;
+  keyHitData.hitBuf <<= 8; keyHitData.hitBuf |= key;
+  keyHitData.availBuf <<= 8; keyHitData.availBuf |= avail;
+}
+
+static volatile uint8_t timer1_iter = 0;
+void
+keypadPushHit()
+{
+  uint8_t key;
+
+  /* swallow the first key when lcd was off */
+  timer1_iter = 0;
+  if ((!LCD_WAS_ON) || (0 == keyHitData.count)) return;
+
+  /* */
+  if (keyHitData.count < (KCHAR_ROWS<<1)) {
+    keyHitData.count--;
+    keyHitData.count %= KCHAR_COLS;
+    keyHitData._kbdData--;
+    keyHitData._kbdData &= 0xF;
+    key = pgm_read_byte(keyMap+keyHitData._kbdData);
+    if (keyHitData.KbdDataAvail & KBD_LWIN_BIT) {
+      key = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
+    } else if (keyHitData.KbdData < 10) {
+      key = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & KBD_SHIFT_BIT)*5) ));
+    } else if (ASCII_LGUI == keyHitData.KbdData) {
+      keyHitData.KbdDataAvail ^= KBD_LWIN_BIT;
+      goto keypadPushHitRet;
+    } else if (ASCII_SHIFT == keyHitData.KbdData) {
+      keyHitData.KbdDataAvail ^= KBD_SHIFT_BIT;
+      goto keypadPushHitRet;
+    }
+    kbdPushKeyHit(key, KBD_HIT_BIT);
+  }
+
+ keypadPushHitRet:
+  keyHitData.count = 0;
 }
 
 /* At reset/ idle state
@@ -182,11 +231,12 @@ ISR(INT2_vect)
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   /* first time any key is hit */
-  if (0 == keyHitData._kbdData) {
+  if (0 == keyHitData.count) {
     keyHitData._kbdData = kbdData;
     keyHitData.count = 1;
   } else if (keyHitData._kbdData != kbdData) {
     /* diff key, miss any previous key that's pending */
+    keypadPushHit();
     keyHitData._kbdData = kbdData;
     keyHitData.count = 1;
   } else {
@@ -213,38 +263,10 @@ ISR(INT2_vect)
    clock is at 8MHz, timer1 clock is prescaled by 1024
    (F_CPU/2*1024)
  */
-static uint8_t timer1_iter = 0;
 ISR(TIMER1_OVF_vect)
 {
   /* key hit */
-  if ((keyHitData.count) && KBD_NOT_HIT) {
-    keyHitData.KbdData = 0;
-    if ( LCD_WAS_ON && (keyHitData.count < (KCHAR_ROWS<<1)) ) {
-      keyHitData.count--;
-      keyHitData.count %= KCHAR_COLS;
-      keyHitData._kbdData--;
-      keyHitData._kbdData &= 0xF;
-      keyHitData.KbdData = pgm_read_byte(keyMap+keyHitData._kbdData);
-      keyHitData.KbdDataAvail |= KBD_HIT_BIT;
-      if (keyHitData.KbdDataAvail & KBD_LWIN_BIT) {
-	keyHitData.KbdData = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
-	keyHitData.KbdDataAvail |= KBD_HIT_BIT;
-      } else if (keyHitData.KbdData < 10) {
-	keyHitData.KbdData = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & KBD_SHIFT_BIT)*5) ));
-      } else if (ASCII_LGUI == keyHitData.KbdData) {
-	keyHitData.KbdDataAvail |= KBD_LWIN_BIT;
-	keyHitData.KbdDataAvail &= ~KBD_HIT_BIT; /* disable this key now */
-      } else if (ASCII_SHIFT == keyHitData.KbdData) {
-	keyHitData.KbdDataAvail |= KBD_SHIFT_BIT;
-	keyHitData.KbdDataAvail &= ~KBD_HIT_BIT; /* disable this key now */
-      }
-    }
-    keyHitData._kbdData = 0;
-    keyHitData.count = 0;
-    timer1_iter = 0;
-  } else if (keyHitData.KbdDataAvail & KBD_HIT_BIT) {
-    timer1_iter = 0;
-  }
+  keypadPushHit();
 
   /* Wait for 5 secs to disable timer permanently
      assume we need to get call next */
@@ -286,18 +308,15 @@ ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_DEL, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
 
-uint8_t kbdStatus;
-#define ps2ShiftHit (1<<0)
-#define ps2CtrlHit  (1<<1)
-#define ps2AltHit   (1<<2)
-#define ps2CapsHit  (1<<3)
-
 #define LENOF_DR    4
-uint8_t kbdDr[LENOF_DR];
-uint8_t KeyData, bitC, drC;
 ISR(INT5_vect)
-{             /* Data come with Clock from Device to MCU together */
-  static uint8_t kbdTransL = 1;
+{
+  static uint8_t KeyData = 0, bitC = 0, drC = 0;
+  static uint8_t kbdStatus = 0, kbdTransL = 1;
+  static uint8_t kbdDr[LENOF_DR];
+  uint8_t key = ASCII_UNDEF;
+
+  /* Data come with Clock from Device to MCU together */
   /* ------------------------------------- */
   bitC++;
   if (1 == bitC) {
@@ -323,18 +342,25 @@ ISR(INT5_vect)
     kbdTransL = 2;    /* E0 XX */
     if (kbdDr[1] == 0x12) {    /* E0 12 E0 7C */
       kbdTransL = 4;
-    }
-    if (kbdDr[1] == 0xF0) {
+    } else if (kbdDr[1] == 0x14) {
+      kbdStatus |= ps2CtrlHit;
+    } else if (kbdDr[1] == 0x11) {
+      kbdStatus |= ps2AltHit;
+    } else if ((kbdDr[1] == 0x1F) || (kbdDr[1] == 0x27)) {
+      kbdStatus |= ps2GuiHit;
+    } else if (kbdDr[1] == 0xF0) {
       kbdTransL = 3;    /* E0 F0 XX */
       if (kbdDr[2] == 0x7C) {    /* E0 F0 7C E0 F0 12 */
 	kbdTransL = 6;
+	key = ASCII_PRNSCRN;
+      } else if (kbdDr[2] == 0x14) {
+	kbdStatus &= ~ps2CtrlHit;
+      } else if (kbdDr[2] == 0x11) {
+	kbdStatus &= ~ps2AltHit;
+      } else if ((kbdDr[2] == 0x1F) || (kbdDr[2] == 0x27)) {
+	kbdStatus &= ~ps2GuiHit;
       } else {
-	KeyData = pgm_read_byte(&(ps2code2asciiE0[kbdDr[2]&PS2CODE2ASCII_MASK]));
-	if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
-	  keyHitData.KbdData = KeyData;
-	  keyHitData.KbdDataAvail |= KBD_HIT_BIT;
-	  drC = 3; /* make sure == kbdTransL */
-	}
+	key = pgm_read_byte(&(ps2code2asciiE0[kbdDr[2]&PS2CODE2ASCII_MASK]));
       }
     }
   } else if (kbdDr[0] == 0xF0) {
@@ -347,19 +373,13 @@ ISR(INT5_vect)
       else if (0x11 == kbdDr[1])
 	kbdStatus &= ~ps2AltHit;
       else {
-	KeyData = (kbdStatus & ps2ShiftHit) ?
+	key = (kbdStatus & ps2ShiftHit) ?
 	  pgm_read_byte(&(ps2code2asciiE0[kbdDr[1]&PS2CODE2ASCII_MASK])) :
 	  pgm_read_byte(&(ps2code2ascii[kbdDr[1]&PS2CODE2ASCII_MASK]));
 	/* temporary fix for code not in table */
-	if (ASCII_UNDEF == KeyData) {
+	if (ASCII_UNDEF == key) {
 	  if (0x83 == kbdDr[1])
-	    KeyData = ASCII_F7;
-	}
-	if (ASCII_NUMLK == KeyData) {
-	  /* FIXME: Switch TOGGLE the light */
-	} else if ((ASCII_UNDEF != KeyData) && KBD_NOT_HIT && LCD_WAS_ON) {
-	  keyHitData.KbdData = KeyData;
-	  keyHitData.KbdDataAvail |= KBD_HIT_BIT;
+	    key = ASCII_F7;
 	}
       }
     }
@@ -377,16 +397,20 @@ ISR(INT5_vect)
     /* if (0xFA == kbdDr[0]) ACKNOWLEDGEMENT FROM KBD */
   }
 
-  /* Get ready for new trans */
-  if (drC == kbdTransL) {
-    if ( ((2 == kbdTransL) && (0xF0 == kbdDr[0])) || /* skip make codes */
-	 ((3 == kbdTransL) && (0xF0 == kbdDr[1]) && (0xE0 == (kbdDr[0]&0xF0))) ) {
-      kbdTransL = 1;
+  /* Get ready for new trans skip make codes */
+  if (drC >= kbdTransL) {
+    /* */
+    if (ASCII_NUMLK == key) {
+      /* FIXME: Switch TOGGLE the light */
+    } else if ((ASCII_UNDEF != key) && KBD_NOT_HIT && LCD_WAS_ON) {
+      kbdPushKeyHit(key, kbdStatus);
+      /* */
       TCNT1 = 0xFFFF - (F_CPU>>11);
       TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
       timer1_iter = 0;
     }
-    for (drC=0; drC<LENOF_DR; drC++)
+    kbdTransL = 1;
+    for (; (drC<LENOF_DR) && (--drC); )
       kbdDr[drC] = 0;
     drC = 0;
   }

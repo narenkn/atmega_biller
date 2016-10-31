@@ -118,13 +118,18 @@
 #define ASCII_LGUI       0xB7
 #define ASCII_SHIFT      0xB8
 
-#define KBD_RESET_KEY          \
-  keyHitData.KbdData=0, keyHitData._kbdData=0, keyHitData.count=0, keyHitData.KbdDataAvail=0
+#define KBD_RESET_KEY							\
+  keyHitData.hbCnt-=keyHitData.hbCnt?1:0, keyHitData.KbdData=(keyHitData.hitBuf>>(keyHitData.hbCnt<<3)), keyHitData.KbdDataAvail=(keyHitData.availBuf>>(keyHitData.hbCnt<<3))
 
-#define KBD_HIT_BIT      (0x1)
-#define KBD_LWIN_BIT     (0x2)
-#define KBD_SHIFT_BIT    (0x4)
+#define kbdHit      (1<<0)
+#define kbdShiftHit (1<<1)
+#define kbdCtrlHit  (1<<2)
+#define kbdAltHit   (1<<3)
+#define kbdCapsHit  (1<<4)
+#define kbdGuiHit   (1<<5)
+#define kbdWinHit   (1<<6)
 
+#define KBD_HIT_BIT  kbdHit
 #define KBD_HIT      (keyHitData.KbdDataAvail & KBD_HIT_BIT)
 #define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & KBD_HIT_BIT))
 
@@ -152,6 +157,9 @@ typedef volatile struct s_keyHitData {
   uint8_t KbdDataAvail;
   uint8_t _kbdData;
   uint8_t count;
+  uint8_t  hbCnt;
+  uint64_t hitBuf;
+  uint64_t availBuf;
 } keyHitData_t;
 
 extern keyHitData_t keyHitData;

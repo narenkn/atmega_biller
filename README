@@ -84,3 +84,42 @@ Atmega32 Product:
 Atmega128 Product:
 1. Upload data from file
 2. Save data to file
+3. Billwise sales report
+4. Daywise sales report
+--5. itemwise sales report
+6. void bill report
+7. monthly sales report
+8. yearly bill report
+9. Duplicate bill report
+10. VAT & Tax report
+11. item in bill report
+##12. stock report
+##13. UDF item report
+##14. returned item report
+##15. hourly sales report
+##16. rate wise report
+##17. UDF wise report
+##18. user wise report
+##19. KOT pending report
+##20. Department report
+##21. Delete KOT report
+22. Tally cash @ end-of-day
+23. Weighing scale connectivity
+24. 2000 items
+25. billing through item code or alpha search
+26. Discount option
+27. VAT
+28. Price change
+29. No. of Cashiers
+30. Rates for each item
+31. 5000 bills / day
+32. Reverse vat calculation
+33. Timer routines and allocations
+34. Uart1 TX callback
+35. disk_timerproc of mmc_avr needs to be called back
+36. flash.c : test routines
+37. poweron testing needs to be updated
+38. User tests to be updated
+39. flash : erase 4k page
+40. firmware update routine to be updated
+

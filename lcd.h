@@ -18,7 +18,7 @@
 #define LCD_rw_low   PORTB &= ~_BV(6)
 #define LCD_bl_on    PORTG |= _BV(2)
 #define LCD_bl_off   PORTG &= ~_BV(2)
-#define LCD_WAS_ON  (PORTG&_BV(2))
+#define LCD_WAS_ON  (PORTG & _BV(2))
 
 #ifdef  UNIT_TEST
 
