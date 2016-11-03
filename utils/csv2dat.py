@@ -245,7 +245,7 @@ class csv2dat:
 
 class item:
   consts = {
-    'ITEM_NAME_BYTEL':10,
+    'ITEM_NAME_BYTEL':15,
     'ITEM_NAME_UNI_BYTEL':16,
     'ITEM_PROD_CODE_BYTEL':16,
     }
@@ -256,25 +256,24 @@ class item:
       },
     'uint16_t' : {
       'id': ['', 2, TYPE_UINT16],
-      },
-    'uint8_t'  : {
-      'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
-      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
-##      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
       'Vat' : ['', 2, TYPE_UINT16],
       'Tax1' : ['', 2, TYPE_UINT16],
       'Tax2' : ['', 2, TYPE_UINT16],
       'Tax3' : ['', 2, TYPE_UINT16],
+      },
+    'uint8_t'  : {
+      'name':['[ITEM_NAME_BYTEL]', 1*15, TYPE_STRING],
+      'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
+##      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
       'unused_crc':['', 1, TYPE_UINT8],
       'unused_crc_invert':['', 1, TYPE_UINT8],
-      'has_serv_tax':[':1', 0.1, TYPE_BIT],
-      'has_common_discount':[':1', 0.1, TYPE_BIT],
+      'unused0':[':1', 0.1, TYPE_BIT],
+      'unused1':[':1', 0.1, TYPE_BIT],
+      'unused2':[':1', 0.1, TYPE_BIT],
+      'unused3':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
-      'name_in_unicode':[':1', 0.1, TYPE_BIT],
-      'has_vat':[':1', 0.1, TYPE_BIT],
       'is_disabled':[':1', 0.1, TYPE_BIT],
       'unused_find_best_match':[':1', 0.1, TYPE_BIT],
-      'actual_tax':[':1', 0.1, TYPE_BIT],
       'is_reverse_tax':[':1', 0.1, TYPE_BIT],
       }
     }

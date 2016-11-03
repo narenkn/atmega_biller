@@ -13,7 +13,8 @@ struct sale_item {
   /* Option to hot override */
   uint32_t   cost;          /* XXXXX.YY * 100 */
   uint32_t   discount;      /* XXXXX.YY * 100 */
-  uint8_t    unused:3;
+  uint8_t    unused:2;
+  uint8_t    dup_bill_issued:1;
   uint8_t    has_common_discount:1;
   uint8_t    has_vat:1;
   uint8_t    has_tax1:1;

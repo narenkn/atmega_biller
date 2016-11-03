@@ -32,4 +32,10 @@ extern volatile uint8_t eeprom_setting0, eeprom_setting1;
 #define EEPROM_SETTING0_OFF(X) eeprom_setting0 &= ~EEPROM_SETTING_ ## X
 #define EEPROM_SETTING0(X)  (eeprom_setting0 & EEPROM_SETTING_ ## X)
 
+#define soft_reset()        \
+  do {			    \
+    wdt_enable(WDTO_15MS);  \
+    for(;;) { }		    \
+  } while(0)
+
 #endif

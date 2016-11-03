@@ -141,54 +141,64 @@ uint8_t    menu_error;
 
 #define MENU_STR1_IDX_PRICE 0
 #define MENU_STR1_IDX_DISCO 1
-#define MENU_STR1_IDX_S_TAX 2
-#define MENU_STR1_IDX_VAT   3
-#define MENU_STR1_IDX_CONFI 4
-#define MENU_STR1_IDX_ITEM  5
-#define MENU_STR1_IDX_SALEQTY  6
-#define MENU_STR1_IDX_FINALIZ  7
-#define MENU_STR1_IDX_PRINT  8
-#define MENU_STR1_IDX_SAVE   9
-#define MENU_STR1_IDX_DELETE 10
-#define MENU_STR1_IDX_NAME  11
-#define MENU_STR1_IDX_REPLA 12
-#define MENU_STR1_IDX_DAY   13
-#define MENU_STR1_IDX_MONTH 14
-#define MENU_STR1_IDX_YEAR  15
-#define MENU_STR1_IDX_PRODCODE  16
-#define MENU_STR1_IDX_UNICODE   17
-#define MENU_STR1_IDX_ENTRYES   18
-#define MENU_STR1_IDX_COMNDISC  19
-#define MENU_STR1_IDX_OLD       20
-#define MENU_STR1_IDX_FILEERR   21
-#define MENU_STR1_IDX_INVALID   22
-#define MENU_STR1_IDX_SUCCESS   23 /* Keep this last, used by LCD_ALERT */
-#define MENU_STR1_IDX_NUM_ITEMS 24
+#define MENU_STR1_IDX_TAX1  2
+#define MENU_STR1_IDX_TAX2  3
+#define MENU_STR1_IDX_TAX3  4
+#define MENU_STR1_IDX_VAT   5
+#define MENU_STR1_IDX_CONFI 6
+#define MENU_STR1_IDX_ITEM  7
+#define MENU_STR1_IDX_SALEQTY  8
+#define MENU_STR1_IDX_FINALIZ  9
+#define MENU_STR1_IDX_PRINT  10
+#define MENU_STR1_IDX_SAVE   11
+#define MENU_STR1_IDX_DELETE 12
+#define MENU_STR1_IDX_NAME  13
+#define MENU_STR1_IDX_REPLA 14
+#define MENU_STR1_IDX_DAY   15
+#define MENU_STR1_IDX_MONTH 16
+#define MENU_STR1_IDX_YEAR  17
+#define MENU_STR1_IDX_PRODCODE  18
+#define MENU_STR1_IDX_UNICODE   19
+#define MENU_STR1_IDX_ENTRYES   20
+#define MENU_STR1_IDX_COMNDISC  21
+#define MENU_STR1_IDX_OLD       23
+#define MENU_STR1_IDX_FILEERR   24
+#define MENU_STR1_IDX_INVALID   25
+#define MENU_STR1_IDX_HAS_WMC   26
+#define MENU_STR1_IDX_IS_REV_TAX 27
+#define MENU_STR1_IDX_SUCCESS   29 /* Keep this last, used by LCD_ALERT */
+#define MENU_STR1_IDX_NUM_ITEMS 30
 const uint8_t menu_str1[] PROGMEM =
   "Price   " /* 0 */
   "Discount" /* 1 */
-  "Serv.Tax" /* 2 */
-  "Vat     " /* 3 */
-  "Confirm?" /* 4 */
-  "Item/id " /* 5 */
-  "Sale Qty" /* 6 */
-  "Finaliz?" /* 7 */
-  "Print?  " /* 8 */
-  "Save?   " /* 9 */
-  "Delete? " /*10 */
-  "Name    " /*11 */
-  "Replace?" /*12 */
-  "Date    " /*13 */
-  "Month   " /*14 */
-  "Year    " /*15 */
-  "ProdCode" /*16 */
-  "Unicode " /*17 */
-  "Entr:Yes" /*18 */
-  "ComnDisc" /*19 */
-  "Old:    " /*20 */
-  "FileErr " /*21 */
-  "Invalid!" /*22 */
-  "Success!" /*23 */
+  "Tax 1   " /* 2 */
+  "Tax 2   " /* 3 */
+  "Tax 3   " /* 4 */
+  "Vat     " /* 5 */
+  "Confirm?" /* 6 */
+  "Item/id " /* 7 */
+  "Sale Qty" /* 8 */
+  "Finaliz?" /* 9 */
+  "Print?  " /*10 */
+  "Save?   " /*11 */
+  "Delete? " /*12 */
+  "Name    " /*13 */
+  "Replace?" /*14 */
+  "Date    " /*15 */
+  "Month   " /*16 */
+  "Year    " /*17 */
+  "ProdCode" /*18 */
+  "Unicode " /*19 */
+  "Entr:Yes" /*20 */
+  "Common D" /*21 */
+  "iscount?" /*22 */
+  "Old:    " /*23 */
+  "FileErr " /*24 */
+  "Invalid!" /*25 */
+  "HasWtMc?" /*26 */
+  "Reverse " /*27 */
+  "Tax ?   " /*28 */
+  "Success!" /*29 */
   ;
 
 /* */
@@ -215,7 +225,7 @@ uint16_t   numValidItems;
 /* Found issue with memset */
 #define menuMemset(S, c, N) do {			\
     for (uint16_t _ui16_1=0; _ui16_1<N; _ui16_1++) {	\
-      ((uint8_t *)S)[_ui16_1] = c;				\
+      ((uint8_t *)S)[_ui16_1] = c;			\
     }							\
   } while (0)
 
@@ -256,13 +266,18 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const char *)prompt, MENU_PROMPT_LEN);
     LCD_PUTCH('?');
-    for (ui16_1=MENU_PROMPT_LEN+1,
-	   ui16_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
-	 (ui16_1<LCD_MAX_COL) && (ui16_2<buf_idx); ui16_1++, ui16_2++) {
-      if (opt&MENU_ITEM_PASSWD) {
-	LCD_PUTCH('*');
-      } else {
-	LCD_PUTCH(buf[ui16_2]);
+    if (prev_helper) {
+      (item_type == MENU_ITEM_ID) ? LCD_PUT_UINT(prev_helper) :
+	LCD_PUT_FLOAT(prev_helper);
+    } else {
+      for (ui16_1=MENU_PROMPT_LEN+1,
+	     ui16_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
+	   (ui16_1<LCD_MAX_COL) && (ui16_2<buf_idx); ui16_1++, ui16_2++) {
+	if (opt&MENU_ITEM_PASSWD) {
+	  LCD_PUTCH('*');
+	} else {
+	  LCD_PUTCH(buf[ui16_2]);
+	}
       }
     }
     LCD_refresh();
@@ -317,7 +332,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     arg->value.integer.i8  = prev_helper&0xFF;
     arg->value.integer.i16 = prev_helper;
     arg->value.integer.i32 = prev_helper;
-    item_type = MENU_ITEM_ID;
     menu_error = 0;
   } else if ( (MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type) ) {
     val = 0;
@@ -326,10 +340,15 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 	val *= 10;
 	val += buf[ui16_1] - '0';
 	menu_error = 0;
-      } else {
+      } else if (MENU_ITEM_ID == item_type) {
 	break;
-      }
+      } else if (('.' == buf[ui16_1]) && (2 == ui16_1) && (MENU_ITEM_FLOAT == item_type)) {
+	/* skip */
+      } else break;
     }
+    /* Float is always returned with two decimal digits */
+    if (('.' != buf[2]) && (MENU_ITEM_FLOAT == item_type))
+      val *= 100;
     arg->value.integer.i8  = val&0xFF;
     arg->value.integer.i16 = val;
     arg->value.integer.i32 = val;
@@ -409,12 +428,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   //move(0, 30); printw("GetOpot:'%s' err:%d", buf, menu_error);
 }
 
-#define soft_reset()        \
-  do {			    \
-    wdt_enable(WDTO_15MS);  \
-    for(;;) { }		    \
-  } while(0)
-
 const uint8_t menu_str2[] PROGMEM = "Yes\0No ";
 
 uint8_t
@@ -449,6 +462,30 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
     }
   }
   assert(0);
+}
+
+static void
+menuSprintD(uint8_t *s, uint32_t val)
+{
+  if (val>9)
+    menuSprintD(s+1, val/10);
+  s[0] = (('0'+(val%10)));
+}
+
+// Unverified
+static uint32_t floatPercentHelperValue;
+uint32_t
+menuFloatPercentHelper(uint8_t *str, uint16_t strlen, uint32_t prev)
+{
+  /* Quick check to proceed further */
+  if ((strlen < 2) || (str[strlen-1] != '%')) return 0;
+
+  /* */
+  uint32_t ui32_1;
+  SSCANF(str, ui32_1);
+  ui32_1 *= floatPercentHelperValue; ui32_1 /= 100;
+
+  return ui32_1;
 }
 
 /* Helper routine to obtain choice from user */
@@ -707,7 +744,7 @@ menuInit()
     ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
   }
   LCD_CLRLINE(0);
-  lcdD(ui16_3);
+  LCD_PUT_UINT(ui16_3);
   LCD_WR_NP((const char *)PSTR(" Bill Free"), 10);
   LCD_refresh();
 
@@ -744,21 +781,29 @@ menuInit()
   MenuMode = MENU_MRESET;
 }
 
+uint8_t menuScanFDotSeen;
 void
-menuScanF(char *str, uint16_t *ui16)
+menuScanF(char *str, uint32_t *ui32)
 {
+  if (3 == menuScanFDotSeen) return;
+
   if ((str[0] >= '0') && (str[0] <= '9')) {
-    *ui16 *= 10;
-    *ui16 += str[0]-'0';
-    menuScanF(str+1, ui16);
+    *ui32 *= 10;
+    *ui32 += str[0]-'0';
+    if (menuScanFDotSeen) menuScanFDotSeen++;
+    menuScanF(str+1, ui32);
+  } else if (str[0] == '.') {
+    menuScanFDotSeen = 1;
+    menuScanF(str+1, ui32);
   }
 }
 
-uint16_t
-menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
+uint32_t
+menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint32_t prev)
 {
   struct item it;
   uint16_t ui16_1;
+  uint32_t ui32_1;
 
   if (0 == strlen) return 0;
 
@@ -769,8 +814,8 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint16_t prev)
   if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
     ui16_1 = menuItemFind(NULL, str, &it, prev);
     if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
-      SSCANF((char *)str, &ui16_1);
-      //printf("id is %d", ui16_1);
+      SSCANF((char *)str, ui32_1);
+      ui16_1 = ui32_1;
       if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
 	ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
 	if (0xFF == (it.unused_crc ^ it.unused_crc_invert))
@@ -986,7 +1031,7 @@ menuBilling(uint8_t mode)
 
     /* Display item to be billed */
     LCD_CLRLINE(0);
-    lcdD(ui8_5+1);
+    LCD_PUT_UINT(ui8_5+1);
     LCD_PUTCH(' ');
     LCD_PUT_UINT(sl->it[0].id);
     LCD_PUTCH(':');
@@ -1245,7 +1290,6 @@ menuBilling(uint8_t mode)
 uint8_t
 menuAddItem(uint8_t mode)
 {
-#if MENU_ITEM_FUNC
   uint8_t ui8_1, ui8_2, ui8_3;
   uint16_t ui16_1, ui16_2, ui16_3;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
@@ -1259,20 +1303,18 @@ menuAddItem(uint8_t mode)
   assert(numValidItems <= ITEM_MAX);
 
   /* conditions required to modify */
-  if (mode & MENU_MODITEM) {
-    if ( (MENU_ITEM_ID != arg1.valid) ||
-	 (0 == arg1.value.integer.i16) ||
+  if (MENU_ITEM_ID == arg2.valid) {
+    if ( (0 == arg1.value.integer.i16) ||
 	 (arg1.value.integer.i16 > ITEM_MAX) )
       goto menuItemInvalidArg;
-    it->id = arg1.value.integer.i16;
-  } else if (numValidItems >= ITEM_MAX) {
-    LCD_ALERT(PSTR("Items Mem Full.."));
-    return MENU_RET_NOTAGAIN;
-  } else {
-    it->id = (MENU_ITEM_ID == arg2.valid) ? arg2.value.integer.i16 : 0;
+    it->id = arg2.value.integer.i16;
   }
 
   /* Find space to place item */
+  if (numValidItems >= ITEM_MAX) {
+    LCD_ALERT(PSTR("Items Mem Full.."));
+    return MENU_RET_NOTAGAIN;
+  }
   if ((0 == it->id) || (it->id > ITEM_MAX)) {
     ui16_2 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_ItemLastUsed));
     for (ui16_3=0; ui16_3<ITEM_MAX; ui16_3++) {
@@ -1351,50 +1393,60 @@ menuAddItem(uint8_t mode)
   /* Cost */
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
-  LCD_PUT_UINT(it->cost);
+  LCD_PUT_FLOAT(it->cost);
   arg1.valid = MENU_ITEM_NONE;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_PRICE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_FLOAT, NULL);
-  if (MENU_ITEM_FLOAT == arg1.valid) {
-    it->cost = arg1.value.integer.i32;
-  } else if (0 == it->is_disabled) {
+  if (MENU_ITEM_FLOAT != arg1.valid) {
     goto menuItemInvalidArg;
   }
+  it->cost = arg1.value.integer.i32;
 
   /* Discount */
+  floatPercentHelperValue = it->cost;
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
-  LCD_PUT_UINT(it->discount);
+  LCD_PUT_FLOAT(it->discount);
   arg2.valid = MENU_ITEM_NONE;
-  menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, NULL);
-  if (MENU_ITEM_FLOAT == arg2.valid) {
-    it->discount = arg2.value.integer.i32;
-  } else if (0 == it->is_disabled) {
-    goto menuItemInvalidArg;
-  }
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_DISCO*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT|MENU_ITEM_OPTIONAL, menuFloatPercentHelper);
+  it->discount = (MENU_ITEM_FLOAT == arg2.valid) ? arg2.value.integer.i32 : 0;
 
-  /* vat */
+  /* Taxes */
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
-  for (ui8_1=0; ui8_1<EPS_MAX_VAT_CHOICE; ui8_1++) {
-    ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*ui8_1)));
-    for (ui8_2=1; ui8_2<=4; ui8_2++) {
-      (choice+(ui8_1*MENU_PROMPT_LEN)+MENU_PROMPT_LEN-ui8_2)[0] = '0' + ui16_2%10;
-      ui16_2 /= (uint16_t)10;
-    }
-    for (; ui8_2<=MENU_PROMPT_LEN; ui8_2++) {
-      (choice+(ui8_1*MENU_PROMPT_LEN)+MENU_PROMPT_LEN-ui8_2)[0] = ' ';
-    }
-    if (ui8_1 == it->vat_sel) {
-      LCD_WR_N(choice+(ui8_1*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-    }
-  }
-  it->vat_sel = menuGetChoice(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), choice, MENU_PROMPT_LEN, EPS_MAX_VAT_CHOICE);
+  LCD_PUT_FLOAT(it->Vat);
+  arg2.valid = MENU_ITEM_NONE;
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT|MENU_ITEM_OPTIONAL, menuFloatPercentHelper);
+  it->Vat = (MENU_ITEM_FLOAT == arg2.valid) ? arg2.value.integer.i32 : 0;
+  LCD_CLRLINE(0);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_FLOAT(it->Tax1);
+  arg2.valid = MENU_ITEM_NONE;
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_TAX1*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT|MENU_ITEM_OPTIONAL, menuFloatPercentHelper);
+  it->Tax1 = (MENU_ITEM_FLOAT == arg2.valid) ? arg2.value.integer.i32 : 0;
+  //
+  LCD_CLRLINE(0);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_FLOAT(it->Tax2);
+  arg2.valid = MENU_ITEM_NONE;
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_TAX2*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT|MENU_ITEM_OPTIONAL, menuFloatPercentHelper);
+  it->Tax2 = (MENU_ITEM_FLOAT == arg2.valid) ? arg2.value.integer.i32 : 0;
+  //
+  LCD_CLRLINE(0);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_FLOAT(it->Tax3);
+  arg2.valid = MENU_ITEM_NONE;
+  menuGetOpt(menu_str1+(MENU_STR1_IDX_TAX3*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT|MENU_ITEM_OPTIONAL, menuFloatPercentHelper);
+  it->Tax3 = (MENU_ITEM_FLOAT == arg2.valid) ? arg2.value.integer.i32 : 0;
 
   /* choices */
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
-  LCD_WR_NP((const char *)menu_str2+((it->has_serv_tax)*4), 4);
-  it->has_serv_tax = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_S_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  LCD_PUT_UINT(it->has_weighing_mc);
+  it->has_weighing_mc = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_WMC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  LCD_CLRLINE(0);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_UINT(it->is_reverse_tax);
+  it->is_reverse_tax = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_IS_REV_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN<<1);
 
   /* Confirm */
   LCD_CLRLINE(0);
@@ -1410,35 +1462,22 @@ menuAddItem(uint8_t mode)
   for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++) {
     ui8_2 = _crc_ibutton_update(ui8_2, bufSS_ptr[ui8_1]);
   }
+  /* identify if we are modifying an old item or not */
+  if (0xFF == (it->unused_crc ^ it->unused_crc_invert))
+    numValidItems++;
   it->unused_crc = ui8_2;
   it->unused_crc_invert = ~ui8_2;
-
-  /* only valid items needs to be buffered */
-  menuIndexItem(it);
-  numValidItems = (0 == (mode & MENU_MODITEM)) ? numValidItems+1 : numValidItems;
-  assert(numValidItems <= ITEM_MAX);
 
   /* Now save item */
   ui8_3 = ee24xx_write_bytes(ui16_1, bufSS_ptr, ITEM_SIZEOF);
   assert(ITEM_SIZEOF == ui8_3);
 
-  /* index item */
-  uint8_t cn, cpc, cn3;
-  for (ui8_1=0, cn=cn3=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
-    cn = _crc_ibutton_update(cn, it->name[ui8_1]);
-    if (2 == ui8_1)
-      cn3 = cn;
-  }
-  for (ui8_1=0, cpc=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
-    cpc = _crc_ibutton_update(cpc, it->prod_code[ui8_1]);
-  }
-  itIdxs[it->id-1].crc_prod_code = cpc;
-  itIdxs[it->id-1].crc_name3 = cn3;
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
+  /* only valid items needs to be buffered */
+  menuIndexItem(it);
+  assert(numValidItems <= ITEM_MAX);
 
   /* Give +ve report */
   LCD_ALERT((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
-#endif
 
   return MENU_RET_NOTAGAIN;
 }
@@ -1446,18 +1485,14 @@ menuAddItem(uint8_t mode)
 /* Indexing at the following levels
 RAM:
    1. Complete product code
-   2. Complete name
+   2. First 3 letters of name
 Internal EEPROM:
-   3. First 3 letters of name
+   3. Complete name
  */
 void
 menuIndexItem(struct item *it)
 {
-  uint16_t ui16_1;
-  uint8_t ui8_1, ui8_2, ui8_3;
-
-  /* init */
-  ui16_1 = itemAddr(it->id);
+  uint8_t ui8_1;
 
   /* Delete indexing */
   if ( (0 == it->id) || (it->id > ITEM_MAX) || (it->is_disabled) ) {
@@ -1468,24 +1503,20 @@ menuIndexItem(struct item *it)
     return;
   }
 
-  /* */
-  for (ui8_1=0, ui8_2=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
-    it->prod_code[ui8_1] = toupper(it->prod_code[ui8_1]);
-    ui8_2 = _crc_ibutton_update(ui8_2, it->prod_code[ui8_1]);
-  }
-  itIdxs[it->id-1].crc_prod_code = ui8_2;
-  //  printf("prod_code:0x%0x\n", ui8_2);
-
-  /* */
-  for (ui8_1=0, ui8_2; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
-    it->name[ui8_1] = toupper(it->name[ui8_1]);
-    ui8_2 = _crc_ibutton_update(ui8_2, it->name[ui8_1]);
+  /* index item */
+  uint8_t cn, cpc, cn3, na;
+  for (ui8_1=0, cn=cn3=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+    na = toupper(it->name[ui8_1]);
+    cn = _crc_ibutton_update(cn, na);
     if (2 == ui8_1)
-      ui8_3 = ui8_2;
+      cn3 = cn;
   }
-  //  printf("name:0x%0x name[3]:0x%x\n", ui8_2, ui8_3);
-
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, ui8_2);
+  for (ui8_1=0, cpc=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+    cpc = _crc_ibutton_update(cpc, it->prod_code[ui8_1]);
+  }
+  itIdxs[it->id-1].crc_prod_code = cpc;
+  itIdxs[it->id-1].crc_name3 = cn3;
+  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
 }
 
 /* either name or prod_code be NULL
@@ -1559,7 +1590,6 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 uint8_t
 menuDelItem(uint8_t mode)
 {
-#if MENU_ITEM_FUNC
   uint16_t ui16_1, ui16_2;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
 
@@ -1578,7 +1608,6 @@ menuDelItem(uint8_t mode)
   ui16_1 = arg1.value.integer.i16;
   ui16_2 = itemAddr(ui16_1);
   ee24xx_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
-  //  ee24xx_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
   if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     return MENU_RET_NOTAGAIN;
 
@@ -1589,7 +1618,6 @@ menuDelItem(uint8_t mode)
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
   ee24xx_write_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, NULL, 4);
   numValidItems--;
-#endif
 
   return MENU_RET_NOTAGAIN;
 }
@@ -1615,6 +1643,8 @@ menuPrnF(uint32_t var)
 {
   menuPrnD(var/100);
   PRINTER_PRINT('.');
+  var %= 100;
+  if (var < 10) PRINTER_PRINT('0');
   menuPrnD(var%100);
 }
 
@@ -1881,14 +1911,14 @@ menuShowBill(uint8_t mode)
     /* Display bill */
     LCD_CLRLINE(0);
     LCD_PUTCH('#');
-    lcdD(sl->info.bill_id);
+    LCD_PUT_UINT(sl->info.bill_id);
     LCD_PUTCH(' ');
     LCD_PUTCH('R'); LCD_PUTCH('s');
-    lcdFd(sl->total);
+    LCD_PUT_FLOAT(sl->total);
     LCD_CLRLINE(LCD_MAX_ROW-1);
-    lcdD(sl->info.date_dd);
+    LCD_PUT_UINT(sl->info.date_dd);
     LCD_PUTCH('/');
-    lcdD(sl->info.date_mm);
+    LCD_PUT_UINT(sl->info.date_mm);
     LCD_WR_P(PSTR(" EscPrnDel"));
 
     /* according to user's wish */
@@ -2806,4 +2836,171 @@ menuUserLogin(uint8_t mode)
 #endif
 
   return MENU_RET_NOTAGAIN;
+}
+
+uint8_t
+menuSDLoadItem(uint8_t mode)
+{
+#if FF_ENABLE
+  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
+    LCD_ALERT(SKIP_INFO_PSTR);
+    return 0;
+  }
+  UINT  ret_size, ui1;
+  uint16_t ui16_1;
+  uint8_t ui8_1;
+
+  /* */
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE, FA_READ)) {
+    LCD_ALERT(PSTR("File open error"));
+    goto menuSDLoadItemExit;
+  }
+
+  /* check version string */
+  if (0 == f_size(&Fil)) {
+    LCD_ALERT(PSTR("File size error"));
+    goto menuSDLoadItemExit;
+  } else if (FR_OK != f_read(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size)) {
+    LCD_ALERT(PSTR("File1 error"));
+    goto menuSDLoadItemExit;
+  } else if (GIT_HASH_SMALL_LEN != ret_size) {
+    LCD_ALERT(PSTR("File2 error "));
+    goto menuSDLoadItemExit;
+  }
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++) {
+    if (GIT_HASH_SMALL[ui8_1] != bufSS[ui8_1]) {
+      LCD_ALERT(PSTR("Item VerMismatch"));
+      goto menuSDLoadItemExit;
+    }
+  }
+
+  /* Mark all other items as deleted : (0==id) */
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+    /* id 0 is invalid */
+    ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), NULL, BUFSS_SIZE);
+  }
+
+  /* Check for crc in file */
+  assert(FR_OK == f_lseek(&Fil, 0));
+  bufSS[BUFSS_SIZE-2] = 0, bufSS[BUFSS_SIZE-1] = 0;
+  ui8_1 = 0, ui16_1 = 0;
+  while (FR_OK == f_read(&Fil, bufSS, BUFSS_SIZE-2, &ret_size)) {
+    if (0 == ret_size) break;
+    if (0 != ui16_1) { /* skip first time */
+      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-2]);
+      ui16_1 = _crc16_update(ui16_1, bufSS[BUFSS_SIZE-1]);
+    }
+    for (ui1=0; ui1<(ret_size-2); ui1++) {
+      ui16_1 = _crc16_update(ui16_1, bufSS[ui1]);
+    }
+    bufSS[BUFSS_SIZE-1] = bufSS[ret_size-1];
+    bufSS[BUFSS_SIZE-2] = bufSS[ret_size-2];
+    ui8_1 = (ret_size + ui8_1) % ITEM_SIZEOF;
+  }
+  ret_size = bufSS[BUFSS_SIZE-2];
+  ret_size <<= 8;
+  ret_size |= bufSS[BUFSS_SIZE-1];
+  if ((0 == ui16_1) || (ui16_1 != ret_size) || (9 != ui8_1)) {
+    //printf("ui16_1:%x ret_size:%x, ui8_1:%d\n", ui16_1, ret_size, ui8_1);
+    LCD_ALERT_16N(PSTR("File3 error "), ui16_1);
+    goto menuSDLoadItemExit;
+  }
+
+  /* init indexes with 0s */
+  ee24xx_write_bytes((ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2), NULL, EEPROM_MAX_ADDRESS-ITEM_MAX_ADDR+1);
+
+  /* */
+  assert(FR_OK == f_lseek(&Fil, GIT_HASH_SMALL_LEN));
+  struct item *it = (void *)bufSS;
+  while (FR_OK == f_read(&Fil, bufSS, ITEM_SIZEOF, &ret_size)) {
+    if (ITEM_SIZEOF != ret_size) break; /* reached last */
+    if (0 == it->id) continue;
+    ui16_1 = menuItemAddr(it->id-1);
+    menuIndexItem(it);
+    ee24xx_write_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+  }
+  assert(2 == ret_size); /* crc would be pending */
+
+  /* when all goes well */
+  LCD_ALERT(PSTR("Item Loaded.."));
+
+ menuSDLoadItemExit:
+  /* */
+  f_mount(NULL, "", 0);
+#endif
+
+  return MENU_RET_NOERROR;
+}
+
+uint8_t
+menuSDSaveItem(uint8_t mode)
+{
+#if MENU_SDSAVE_EN && FF_ENABLE
+  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
+    LCD_ALERT(SKIP_INFO_PSTR);
+    return 0;
+  }
+  UINT  ret_size;
+  uint16_t ui16_1, ui16_2, signature;
+  struct item *it = (void *)bufSS;
+  uint8_t ui8_1;
+
+  /* init */
+  memset(&FS, 0, sizeof(FS));
+  memset(&Fil, 0, sizeof(Fil));
+
+  /* */
+  f_mount(&FS, ".", 1);
+  if (FR_OK != f_open(&Fil, SD_ITEM_FILE ".out", FA_WRITE)) {
+    LCD_ALERT(PSTR("File open error"));
+    goto menuSDSaveItemExit;
+  }
+
+  /* Add version string */
+  strncpy_P((char *)bufSS, PSTR(GIT_HASH_SMALL), GIT_HASH_SMALL_LEN);
+  signature = 0;
+  f_write(&Fil, bufSS, GIT_HASH_SMALL_LEN, &ret_size);
+  for (ui8_1=0; ui8_1<GIT_HASH_SMALL_LEN; ui8_1++)
+    signature = _crc16_update(signature, bufSS[ui8_1]);
+  assert(GIT_HASH_SMALL_LEN == ret_size);
+
+  /* */
+  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+    /* fix name, prod_code to uc */
+    for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
+      it->name[ui8_1] = toupper(it->name[ui8_1]);
+    }
+    for (ui8_1=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++) {
+      it->prod_code[ui8_1] = toupper(it->prod_code[ui8_1]);
+    }
+
+    /* */
+    if ((0 != it->id) && (! it->is_disabled)) {
+      for (ui16_2=0; ui16_2<ITEM_SIZEOF; ui16_2+=ret_size) {
+	f_write(&Fil, bufSS+ui16_2, ITEM_SIZEOF-ui16_2, &ret_size);
+      }
+      for (ui8_1=0; ui8_1<ITEM_SIZEOF; ui8_1++) {
+	signature = _crc16_update(signature, bufSS[ui8_1]);
+      }
+    }
+  }
+  bufSS[1] = signature; signature>>=8; bufSS[0] = signature;
+  f_write(&Fil, bufSS, 2, &ret_size);
+  assert(2 == ret_size);
+
+  /* when all goes well */
+  LCD_ALERT(PSTR("Item Saved.."));
+
+ menuSDSaveItemExit:
+  /* */
+  f_mount(NULL, "", 0);
+#endif
+
+  return MENU_RET_NOERROR;
 }

@@ -186,16 +186,19 @@ LCD_PUT_UINT16X(uint16_t ch)
 void
 LCD_PUT_UINT(uint32_t val)
 {
-  uint8_t ui8_1;
+  if (val>9)
+    LCD_PUT_UINT(val/10);
+  LCD_PUTCH(('0'+(val%10)));
+}
 
-  ui8_1 = val % 10;
-  ui8_1 += '0';
-
-  val /= 10;
-  if (val)
-    LCD_PUT_UINT(val);
-
-  LCD_PUTCH(ui8_1);
+void
+LCD_PUT_FLOAT(uint32_t val)
+{
+  LCD_PUT_UINT(val / 100);
+  LCD_PUTCH('.');
+  val %= 100;
+  if (val < 10) LCD_PUTCH('0');
+  LCD_PUT_UINT(val % 100);
 }
 
 void
@@ -219,22 +222,6 @@ lcd_alert_n(const char *str, uint32_t n)
     if (0 == ui2_t) break;
     LCD_PUTCH(ui2_t);
   }
-  lcdD(n);
+  LCD_PUT_UINT(n);
   LCD_refresh();
-}
-
-void
-lcdD(uint32_t var)
-{
-  if (var>9)
-    lcdD(var/10);
-  LCD_PUTCH(('0'+(var%10)));
-}
-
-void
-lcdFd(uint32_t var)
-{
-  lcdD(var/100);
-  LCD_PUTCH('.');
-  lcdD(var%100);
 }

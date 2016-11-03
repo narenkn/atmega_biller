@@ -124,7 +124,7 @@ Atmega128 Product:
 +40. firmware update routine to be updated
 +41. 250 items / bill
 +42. KOT option
-43. Calculator
++43. Calculator
 +44. Refund option
 +45. Admin 1, Cashier 4
 +46. Set hotkey option for items
@@ -134,7 +134,8 @@ Atmega128 Product:
 +50. Shortcuts for items : User created
 --51. Name in unicode for printing
 --52. Give hotkey for LCD refresh
-+53. Floating point input
+++53. Floating point input
++54. Paper Feed
 
 + : header enabled
 ++ : software coded
