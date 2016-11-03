@@ -13,11 +13,12 @@ struct sale_item {
   /* Option to hot override */
   uint32_t   cost;          /* XXXXX.YY * 100 */
   uint32_t   discount;      /* XXXXX.YY * 100 */
-  uint8_t    unused:2;
+  uint8_t    unused:3;
   uint8_t    has_common_discount:1;
   uint8_t    has_vat:1;
-  uint8_t    has_serv_tax:1;
-  uint8_t    vat_sel:3;
+  uint8_t    has_tax1:1;
+  uint8_t    has_tax2:1;
+  uint8_t    has_tax3:1;
   /* FIXME: Any change here should be reflected in menuBilling as well */
 } __attribute__((packed)); /* 13 bytes */
 
@@ -45,10 +46,14 @@ struct sale {
   uint16_t  crc;                         /*           2 */
   struct sale_info info;                 /*           8 */
   struct sale_item items[MAX_ITEMS_IN_BILL];/*12*13=156       45*14 = 630 */
-  uint32_t  t_stax;                      /*           4 */
-  uint32_t  t_discount;                  /*           4 */
+  uint32_t  t_tax1;                      /*           4 */
+  uint32_t  t_tax2;                      /*           4 */
+  uint32_t  t_tax3;                      /*           4 */
   uint32_t  t_vat;                       /*           4 */
+  uint32_t  t_discount;                  /*           4 */
   uint32_t  total;                       /*           4 */
+  uint32_t  t_cash_pay;                  /*           4 */
+  uint32_t  t_other_pay;                 /*           4 */
   struct item      it[1];                /*           0 (not stored) */
 } __attribute__((packed));               /* Tot=    184               662 */
 
@@ -130,7 +135,7 @@ void billingInit(void);
   ( ((curAddr+SALE_DATA_SIZEOF_NORM)<=EEPROM_SALE_END_ADDR) ?	\
     (curAddr+SALE_DATA_SIZEOF_NORM) : EEPROM_SALE_START_ADDR )
 
-#define EEPROM_BILL_HAS_ITEMS    1
+#define EEPROM_BILL_HAS_ITEMS    0
 
 #endif
 

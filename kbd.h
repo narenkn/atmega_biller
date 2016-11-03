@@ -129,7 +129,6 @@
 #define kbdGuiHit   (1<<5)
 #define kbdWinHit   (1<<6)
 
-#define KBD_HIT_BIT  kbdHit
 #define KBD_HIT      (keyHitData.KbdDataAvail & KBD_HIT_BIT)
 #define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & KBD_HIT_BIT))
 
@@ -143,6 +142,12 @@
     sleep_cpu();				\
     /* some event has to occur to come here */	\
     sleep_disable();				\
+    /* schedule regular code-check here */	\
+    if (0 == (timer2_beats%1000)) {		\
+    }						\
+    if (menuPendActs & MENU_PEND_LCD_REFRESH) { \
+      LCD_init();				\
+    }						\
   }						\
   LCD_bl_on
 #endif
@@ -152,7 +157,7 @@
 #define KCHAR_SHIFT_SZ     5
 #define KBD_SHIFT       0x80
 
-typedef volatile struct s_keyHitData {
+typedef struct s_keyHitData {
   uint8_t KbdData;
   uint8_t KbdDataAvail;
   uint8_t _kbdData;
@@ -162,7 +167,7 @@ typedef volatile struct s_keyHitData {
   uint64_t availBuf;
 } keyHitData_t;
 
-extern keyHitData_t keyHitData;
+extern volatile keyHitData_t keyHitData;
 
 void    KbdInit(void);
 void    KbdScan(void);

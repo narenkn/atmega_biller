@@ -192,8 +192,13 @@ const uint8_t menu_str1[] PROGMEM =
   ;
 
 /* */
-static uint8_t MenuMode;
+static uint8_t MenuMode = MENU_MRESET;
+static uint8_t LoginUserId = 0; /* 0 is invalid */
 uint8_t devStatus;   /* 0 is no err */
+
+/* Pending actions */
+#define MENU_PEND_LCD_REFRESH  (1<<0)
+uint8_t menuPendActs;
 
 /* Diagnosis */
 uint16_t diagStatus;
@@ -572,6 +577,35 @@ menuFactorySettings(uint8_t mode)
 			PSTR("Invoice"), EPS_CAPTION_SZ_MAX);
   LCD_PUTCH('.'); LCD_refresh();
 
+  /* user names & passwd needs to be reset */
+  eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users),
+			PSTR("admin   "), EPS_MAX_UNAME);
+  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
+    eeprom_update_byte_NP(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1),
+			  PSTR("user    "), EPS_MAX_UNAME);
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*ui8_1)+4), ((ui8_1>9)?'A'-10:'0')+ui8_1);
+  }
+  ui16_1 = 0;
+  ui16_1 = _crc16_update(ui16_1, 'a');
+  ui16_1 = _crc16_update(ui16_1, 'd');
+  ui16_1 = _crc16_update(ui16_1, 'm');
+  ui16_1 = _crc16_update(ui16_1, 'i');
+  ui16_1 = _crc16_update(ui16_1, 'n');
+  for (ui8_1=0; ui8_1<(EPS_MAX_UNAME-5); ui8_1++)
+    ui16_1 = _crc16_update(ui16_1, ' ');
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds), ui16_1);
+  LCD_PUTCH('.'); LCD_refresh();
+  ui16_1 = 0;
+  ui16_1 = _crc16_update(ui16_1, '1');
+  ui16_1 = _crc16_update(ui16_1, '2');
+  ui16_1 = _crc16_update(ui16_1, '3');
+  for (ui8_1=0; ui8_1<(EPS_MAX_UNAME-3); ui8_1++)
+    ui16_1 = _crc16_update(ui16_1, ' ');
+  for (ui8_1=1; ui8_1<=EPS_MAX_USERS; ui8_1++) {
+    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_1)), ui16_1);
+  }
+  LCD_PUTCH('.'); LCD_refresh();
+
   /* All numerical data */
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, RndOff), 50);
 
@@ -580,7 +614,8 @@ menuFactorySettings(uint8_t mode)
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_next_billaddr), EEPROM_SALE_START_ADDR);
   LCD_PUTCH('.'); LCD_refresh();
 
-  /* At the end */
+  /* At the end, log out the user */
+  menuUserLogout(mode|MENU_NOCONFIRM);
   LCD_CLRSCR; LCD_refresh();
 
   return 0;
@@ -591,7 +626,6 @@ menuInit()
 {
   uint16_t ui16_1, ui16_2, ui16_3;
   uint8_t ui8_1, ui8_2;
-  MenuMode = MENU_MRESET;
 
   /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
 #if UNICODE_ENABLE
@@ -609,6 +643,7 @@ menuInit()
   /* init global vars */
   devStatus = 0;
   diagStatus = 0;
+  menuPendActs = 0;
 
   /* Identify capability of device from serial number
      if byte0-4 of internal EEPROM is FAC7, then do factory
@@ -706,7 +741,7 @@ menuInit()
   }
   LCD_ALERT_N((const char *)PSTR("#Items:"), numValidItems);
 
-  MenuMode = MENU_MSUPER;
+  MenuMode = MENU_MRESET;
 }
 
 void
@@ -1170,6 +1205,8 @@ menuBilling(uint8_t mode)
   sl->info.time_hh = ((ui32_2>>FAT_HOUR_OFFSET)&FAT_HOUR_MASK);
   sl->info.time_mm = ((ui32_2>>FAT_MIN_OFFSET)&FAT_MIN_MASK);
   sl->info.time_ss = ((ui32_2>>FAT_SEC_OFFSET)&FAT_SEC_MASK);
+  for (ui8_2=0; ui8_2<EPS_MAX_UNAME; ui8_2++)
+    sl->info.user[ui8_2] = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
   /* Restart numbering if another day!! */
   if (0 == (mode & MENU_MODITEM)) {
@@ -2608,4 +2645,165 @@ menuMainStart:
 
   /* Forever stuck in this maze.. can't ever get out */
   goto menuMainStart;
+}
+
+/* Set others passwd : only admin can do this
+   arg1 : user name
+   arg2 : passwd
+ */
+uint8_t
+menuSetUserPasswd(uint8_t mode)
+{
+#if MENU_USER_ENABLE
+  uint8_t ui8_1, ui8_2, ui8_3;
+  uint16_t ui16_1;
+  assert(MENU_MSUPER == MenuMode);
+
+  /* where to replace it ? */
+  for (ui8_2=0, ui16_1=offsetof(struct ep_store_layout, unused_users)+EPS_MAX_UNAME;
+       ui8_2<(EPS_MAX_USERS*EPS_MAX_UNAME); ui8_2++, ui16_1++ ) {
+    bufSS[(LCD_MAX_COL*3)+ui8_2] = eeprom_read_byte((uint8_t *)ui16_1);
+  }
+  ui8_2 = menuGetChoice((const uint8_t *)PSTR("Replace?"), bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS) + 1;
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
+    LCD_ALERT(PSTR("Aborting!"));
+    return 0;
+  }
+
+  /* Check user name is unique before accepting */
+  for (ui8_3=1; ui8_3<=EPS_MAX_USERS; ui8_3++) {
+    if (ui8_2 == ui8_3) continue; /* skip choosen name */
+    ui16_1 = offsetof(struct ep_store_layout, unused_users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
+    for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
+      if (arg1.value.str.sptr[ui8_1] != eeprom_read_byte((uint8_t *)ui16_1+ui8_1))
+	break;
+    }
+    if (ui8_1>=EPS_MAX_UNAME) {
+      LCD_ALERT(PSTR("Err:User Exists"));
+      return 0;
+    }
+  }
+
+  /* modify at will */
+  for (ui8_3=0, ui16_1=offsetof(struct ep_store_layout, unused_users)+(ui8_2*EPS_MAX_UNAME);
+       ui8_3<EPS_MAX_UNAME; ui8_3++, ui16_1++) {
+    eeprom_update_byte((uint8_t *)(ui16_1), arg1.value.str.sptr[ui8_3]);
+  }
+  for (ui8_3=0, ui16_1=0; ui8_3<EPS_MAX_UNAME; ui8_3++) {
+    ui16_1 = _crc16_update(ui16_1, arg2.value.str.sptr[ui8_3]);
+  }
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_2)), ui16_1);
+
+  return 0;
+#endif
+}
+
+/* Set my password, arg1 is old passwd, arg2 is new passwd */
+uint8_t
+menuSetPasswd(uint8_t mode)
+{
+#if MENU_USER_ENABLE
+  uint16_t crc_old = 0, crc_new = 0;
+  uint8_t ui8_2, ui8_4;
+
+  /* */
+  assert(0 != LoginUserId);
+  assert(LoginUserId <= (EPS_MAX_USERS/*+1*/));
+  assert(MENU_MRESET != MenuMode);
+
+  /* Compute CRC on old password, check */
+  if (0 != (mode & (~MENU_MODEMASK) & MENU_MVALIDATE)) {
+    assert(MENU_ITEM_STR == arg1.valid);
+    for (ui8_4=0; ui8_4<arg1.value.str.len; ui8_4++) {
+      ui8_2 = (ui8_4<arg1.value.str.len) ? arg1.value.str.sptr[ui8_4] : ' ';
+      crc_old = _crc16_update(crc_old, ui8_2);
+    }
+    //printf(" crc_computed:0x%x\n", crc_old);
+
+    if (eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, unused_passwds[(LoginUserId-1)])) != crc_old) {
+      LCD_ALERT(PSTR("Passwd Wrong!!"));
+      return 0;
+    }
+  }
+
+  /* update mine only */
+  assert(MENU_ITEM_STR == arg2.valid);
+  for (ui8_4=0; ui8_4<arg2.value.str.len; ui8_4++) {
+    ui8_2 = (ui8_4 < arg2.value.str.len) ? arg2.value.str.sptr[ui8_4] : ' ';
+    crc_new = _crc16_update(crc_new, ui8_2);
+  }
+  //printf("updating crc:0x%x\n", crc_new);
+
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds)+((LoginUserId-1)*sizeof(uint16_t))), crc_new);
+  LCD_ALERT(PSTR("Passwd Updated"));
+#endif
+
+  return MENU_RET_NOTAGAIN;
+}
+
+/* Logout an user */
+uint8_t
+menuUserLogout(uint8_t mode)
+{
+#if MENU_USER_ENABLE
+  if ( (mode & MENU_NOCONFIRM) ||
+       (0 == menuGetYesNo((const uint8_t *)PSTR("Logout?"), 7)) ) {
+    LoginUserId = 0;
+    MenuMode = MENU_MRESET;
+  }
+#endif
+  return MENU_RET_NOTAGAIN;
+}
+
+/* Login an user */
+uint8_t
+menuUserLogin(uint8_t mode)
+{
+#if MENU_USER_ENABLE
+  uint16_t crc = 0;
+  uint8_t ui2, ui3, ui4;
+
+  assert(MENU_ITEM_STR == arg1.valid);
+  assert(MENU_ITEM_STR == arg2.valid);
+
+  for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
+    for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
+      ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+(ui2*EPS_MAX_UNAME)+ui3));
+      if (ui4 != arg1.value.str.sptr[ui3]) {
+	break;
+      } else if ((0 == ui3) && (0 == ui2) && (!isgraph(ui4)))
+	break;
+    }
+    if (EPS_MAX_UNAME == ui3)
+      goto menuUserLogin_found;
+  }
+  LCD_ALERT(PSTR("No user"));
+  LoginUserId = 0;
+  return 0;
+
+ menuUserLogin_found:
+  assert(ui2 < (EPS_MAX_USERS+1));
+  for (ui4=0; ui4<EPS_MAX_UNAME; ui4++) {
+    ui3 = arg2.value.str.sptr[ui4];
+    /* check isprintable? */
+    if (isprint(ui3)) {
+      crc = _crc16_update(crc, ui3);
+    }
+  }
+
+  if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
+#if 0
+    move(1, 0); printw("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
+#endif
+    LCD_ALERT(PSTR("Wrong Passwd"));
+    LoginUserId = 0;
+    return 0;
+  }
+
+  /* */
+  MenuMode = (0 == ui2) ? MENU_MSUPER : MENU_MNORMAL;
+  LoginUserId = ui2+1;
+#endif
+
+  return MENU_RET_NOTAGAIN;
 }

@@ -214,12 +214,12 @@ void
 lcd_alert_n(const char *str, uint32_t n)
 {
   LCD_CLRLINE(LCD_MAX_ROW-1);
-for (uint8_t ui1_t=0; (str) && (ui1_t < 10); ui1_t++) {
+  for (uint8_t ui1_t=0; (str) && (ui1_t < 10); ui1_t++) {
     uint8_t ui2_t = pgm_read_byte(str+ui1_t);
     if (0 == ui2_t) break;
     LCD_PUTCH(ui2_t);
   }
-lcdD(n);
+  lcdD(n);
   LCD_refresh();
 }
 

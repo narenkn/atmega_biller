@@ -261,23 +261,21 @@ class item:
       'name':['[ITEM_NAME_BYTEL]', 1*10, TYPE_STRING],
       'prod_code':['[ITEM_PROD_CODE_BYTEL]', 1*16, TYPE_STRING],
 ##      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
+      'Vat' : ['', 2, TYPE_UINT16],
+      'Tax1' : ['', 2, TYPE_UINT16],
+      'Tax2' : ['', 2, TYPE_UINT16],
+      'Tax3' : ['', 2, TYPE_UINT16],
       'unused_crc':['', 1, TYPE_UINT8],
       'unused_crc_invert':['', 1, TYPE_UINT8],
       'has_serv_tax':[':1', 0.1, TYPE_BIT],
       'has_common_discount':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
-      'vat_sel':[':2', 0.2, TYPE_BIT],
       'name_in_unicode':[':1', 0.1, TYPE_BIT],
       'has_vat':[':1', 0.1, TYPE_BIT],
       'is_disabled':[':1', 0.1, TYPE_BIT],
       'unused_find_best_match':[':1', 0.1, TYPE_BIT],
-      'unused_0':[':1', 0.1, TYPE_BIT],
-      'unused_1':[':1', 0.1, TYPE_BIT],
-      'unused_2':[':1', 0.1, TYPE_BIT],
-      'unused_3':[':1', 0.1, TYPE_BIT],
-      'unused_4':[':1', 0.1, TYPE_BIT],
-      'unused_5':[':1', 0.1, TYPE_BIT],
-      'unused_6':[':1', 0.1, TYPE_BIT],
+      'actual_tax':[':1', 0.1, TYPE_BIT],
+      'is_reverse_tax':[':1', 0.1, TYPE_BIT],
       }
     }
 
@@ -295,18 +293,15 @@ class ep_store_layout:
     'FOOTER_SZ_MAX' : 32*2,
     'SERIAL_NO_MAX' : 14, ## 12 + 2CRC
     'SCRATCH_MAX' : 16,
-    'EPS_MAX_VAT_CHOICE' : 4,
     'EPS_CAPTION_SZ_MAX' : 10,
-##    'EPS_MAX_USERS' : 15,
+    'EPS_MAX_USERS' : 4,
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
-    'ITEM_MAX' : 1000,
+    'ITEM_MAX' : 1500,
     }
   variables = {
     'uint16_t' : {
-      'Vat' : ['[EPS_MAX_VAT_CHOICE]', 2*4, TYPE_ARR, TYPE_UINT16],
-##      'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
-      'ServTax' : ['', 2, TYPE_UINT16],
+      'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
       'ComnDis' : ['', 2, TYPE_UINT16],
       'unused_DiagStat' : ['', 2, TYPE_UINT16],
       'unused_LastBillId' : ['', 2, TYPE_UINT16],
@@ -317,8 +312,8 @@ class ep_store_layout:
     'uint8_t' : {
       ## User options
       ## User 0 : is 'admin' + 15 usernames
-      ## 16 passwords
-##      'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 16*8, TYPE_STRING],
+      ## 5 passwords
+      'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 5*8, TYPE_STRING],
       'unused_itIdxName' : ['[ITEM_MAX]', 1000, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],

@@ -35,15 +35,25 @@ volatile uint8_t eeprom_setting0;
 void
 main_init(void)
 {
-#if LCD_TIMER2_REFRESH
-  /* setup timer 2 : need to get 5 sec pulse
-     # cycles to skip : (5*F_CPU)
-     # clock div is 1024, so we need to skip : (5*F_CPU)>>10
+  /* setup timer 2 : need to get 10ms callbacks
+     # cycles to skip : (F_CPU/100) : 
+     # clock div is 1024, so we need to skip : (F_CPU>>10)/100
+     for 8MHz : 
    */
-  TCCR2 |= (0x7 << CS20);
+  TCCR2 = (0<<FOC2)|(0<<WGM20)|(0<<COM21)|(0<<COM20)|(1<<WGM21)|(1<<CS22)|(0<<CS21)|(1<<CS20);
+
+  // Reset time
   TCNT2 = 0;
-  TIMSK |= (1 << TOIE2);
-#endif
+
+  /* 8MHz - is divided by prescalar 1024 :
+       we get 7812 pulses / second
+       to get 10ms pulse : 7812 / 100 = 78
+       so, OCR2 = 78-1;
+   */
+  OCR2  = 77;
+
+  // Enable interrupt on compare match
+  TIMSK |= (1<<OCIE2);
 
   /* For Buzzer */
   DDRA |= 0x80;
@@ -53,24 +63,16 @@ main_init(void)
   else EEPROM_SETTING0_ON(BUZZER);
 }
 
-#if LCD_TIMER2_REFRESH
-/* setup timer 2 : need to get 5 sec pulse
-   # cycles to skip : (5*F_CPU)
-   # clock div is 1024, so we need to skip : (5*F_CPU)>>10
-*/
-ISR(TIMER2_OVF_vect)
+/* is called every 10ms
+   to get 10 sec : 10/10m = 1000
+ */
+ISR(TIMER2_COMP_vect)
 {
-  static uint16_t timer2_beats=0;
-
   timer2_beats++;
-  if (timer2_beats < ((5*F_CPU)>>10))
-    return;
-  timer2_beats = 0;
 
-  LCD_init();
-  LCD_refresh();
+  /* FF */
+  disk_timerproc();
 }
-#endif
 
 #ifndef NO_MAIN
 
@@ -170,4 +172,52 @@ validDate(uint8_t day, uint8_t month, uint8_t year)
     max_days_in_month = 30;
 
   return (month<=11) && (day < max_days_in_month);
+}
+
+/*
+** Translation Table to decode (created by author)
+*/
+static const uint8_t cd64[] PROGMEM =
+  "|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
+
+/*
+** decodeblock
+**
+** decode 4 '6-bit' characters into 3 8-bit binary bytes
+*/
+static void
+b64decode( uint8_t *in, uint8_t *out )
+{   
+  out[ 0 ] = (in[0] << 2 | in[1] >> 4);
+  out[ 1 ] = (in[1] << 4 | in[2] >> 2);
+  out[ 2 ] = (((in[2] << 6) & 0xc0) | in[3]);
+}
+
+/*
+** decode
+**
+** decode a base64 encoded stream discarding padding, line breaks and noise
+*/
+static void
+decode( uint8_t *in, uint8_t *out )
+{
+  uint8_t len, in_idx, out_idx;
+  uint8_t ui1, v;
+
+  for (len=0, in_idx=out_idx=0; len<12;
+       len+=3, in_idx+=4, out_idx+=3) {
+    for (ui1=0; ui1<4; ui1++) {
+      v = in[in_idx+ui1];
+      v = (v < 43 || v > 122) ? (uint8_t) 0 :
+	pgm_read_byte (cd64+v-43);
+      if (v != 0) {
+	v = ((v == (uint8_t)'$') ? 0 : v - 61);
+	in[in_idx+ui1] = (uint8_t) (v - 1);
+      } else {
+	in[in_idx+ui1] = (uint8_t) 0;
+      }
+    }
+
+    b64decode (in+in_idx, out+out_idx);
+  }
 }

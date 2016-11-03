@@ -22,8 +22,6 @@
 #include "uart.h"
 
 static volatile uint8_t uart0TxBusy;
-static uint8_t uart0TxBitsLeft;
-static uint16_t uart0TxBuffer;
 volatile uint32_t uartWeight;
 volatile uint8_t  uartDecimalPlace;
 
@@ -157,6 +155,10 @@ uart0TransmitByte( uint8_t data )
     ; 			                /* Wait for empty transmit buffer */
   UDR1 = data; 			        /* Start transmition */
 }
+#if 0
+static uint8_t uart0TxBitsLeft;
+static uint16_t uart0TxBuffer;
+
 void
 uart1TransmitByte( uint8_t data )
 {
@@ -181,3 +183,16 @@ uart1TransmitBit(void)
   (uart0TxBuffer & 1) ? (PORTA |= _BV(4)) : (PORTA &= ~_BV(4));
   uart0TxBuffer >>= 1;
 }
+#else
+void
+uart1TransmitByte( uint8_t data )
+{
+  /* 1 start + 8 data + 2 stop */
+  uint8_t uart0TxBuffer = ((uint16_t)data << 1) | ((uint16_t)3<<9);
+  for (uint8_t ui_1=11; ui1; ui1--) {
+    (uart0TxBuffer & 1) ? (PORTA |= _BV(4)) : (PORTA &= ~_BV(4));
+    uart0TxBuffer >>= 1;
+    _delay_us(104);
+  }
+}
+#endif

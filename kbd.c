@@ -42,7 +42,7 @@ const uint8_t
 keyMap[] PROGMEM = {
   1,           2,            3,        ASCII_ESCAPE,
   4,           5,            6,        ASCII_LGUI,
-  7,           8,            9,        ASCII_SHIFT,
+  7,           8,            9,        ASCII_ALT,
   ASCII_LEFT,  0,  ASCII_RIGHT,        ASCII_ENTER
 };
 
@@ -138,18 +138,18 @@ keypadPushHit()
     keyHitData._kbdData--;
     keyHitData._kbdData &= 0xF;
     key = pgm_read_byte(keyMap+keyHitData._kbdData);
-    if (keyHitData.KbdDataAvail & KBD_LWIN_BIT) {
+    if (keyHitData.KbdDataAvail & kbdWinHit) {
       key = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
     } else if (keyHitData.KbdData < 10) {
       key = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & KBD_SHIFT_BIT)*5) ));
     } else if (ASCII_LGUI == keyHitData.KbdData) {
-      keyHitData.KbdDataAvail ^= KBD_LWIN_BIT;
+      keyHitData.KbdDataAvail |= kbdWinHit;
       goto keypadPushHitRet;
-    } else if (ASCII_SHIFT == keyHitData.KbdData) {
-      keyHitData.KbdDataAvail ^= KBD_SHIFT_BIT;
+    } else if (ASCII_ALT == keyHitData.KbdData) {
+      keyHitData.KbdDataAvail |= kbdAltHit;
       goto keypadPushHitRet;
     }
-    kbdPushKeyHit(key, KBD_HIT_BIT);
+    kbdPushKeyHit(key, kbdHit);
   }
 
  keypadPushHitRet:
