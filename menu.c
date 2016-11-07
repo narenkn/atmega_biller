@@ -207,7 +207,6 @@ static uint8_t LoginUserId = 0; /* 0 is invalid */
 uint8_t devStatus;   /* 0 is no err */
 
 /* Pending actions */
-#define MENU_PEND_LCD_REFRESH  (1<<0)
 uint8_t menuPendActs;
 
 /* Diagnosis */
@@ -658,6 +657,32 @@ menuFactorySettings(uint8_t mode)
   return 0;
 }
 
+// Uncoded
+// Unverfied
+void
+menuPendNewDay()
+{
+  uint16_t ui16_1, ui16_2, ui16_3;
+  struct sale *sl = ;
+
+  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+  for (ui16_1=0, ui16_2 = ui16_3; ui16_1<EEPROM_SALE_MAX_BILLS;
+       ui16_1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+    bill_read_bytes(ui16_2, (void *)sl, sizeof(struct sale_info)+4);
+    if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* not valid bill */
+      break;
+  }
+  if (0 == ui16_1) return;
+
+  /* Now save bill to SD */
+  for (ui16_2 = ui16_3; ui16_1;
+       ui16_1--, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+    bill_read_bytes(ui16_2, (void *)sl, sizeof(struct sale_info)+4);
+    assert (0xFFFF != (sl->crc ^ sl->crc_invert)); /* not valid bill */
+    /* FIXME: save to SD */
+  }
+}
+
 void
 menuInit()
 {
@@ -671,7 +696,7 @@ menuInit()
   assert(40 == ITEM_SIZEOF);
 #endif
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
-  assert ((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
+  assert ((SIZEOF_SALE+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
@@ -731,11 +756,11 @@ menuInit()
   }
 
   /* Report # of bills that could be made */
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
-  menuMemset((void *)sl, 0, SALE_SIZEOF);
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
+  menuMemset((void *)sl, 0, SIZEOF_SALE);
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
   for (ui16_1=0, ui16_3=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
-    ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    ee24xx_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
     if (0xFFFF != (sl->crc ^ sl->crc_invert)) { /* not valid bill */
       ui16_3++;
     } else
@@ -838,70 +863,83 @@ menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint32_t prev)
 }
 
 uint8_t
+menuVoidBilling(uint8_t mode)
+{
+  
+}
+
+/* Does 3 menu work
+   1. New KOT Bill
+     opt1 : Table
+   2. New Bill (including old KOT)
+     opt1 : Table/Optional
+   3. Modify Bill (only current date)
+     opt1 : Id/Optional
+   4. Void Bill
+     opt1 : Id/Optional
+ */
+uint8_t
 menuBilling(uint8_t mode)
 {
-  uint8_t ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
-  uint16_t ui16_1, ui16_2, ui16_3;
+  uint8_t ui8_1, ui8_2, ui8_3, ui8_4=0, ui8_5;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
   uint32_t ui32_1, ui32_2;
-  uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
 
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
-  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
-  if ((ui16_3 < EEPROM_SALE_START_ADDR) || (ui16_3 > EEPROM_SALE_END_ADDR)) {
-    ui16_3 = EEPROM_SALE_START_ADDR;
+  /* */
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+  assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+
+  /* check sufficient args */
+  ui8_1 = ui16_4 = 0;
+  if (MENU_ITEM_TABLE = arg1.valid) {
+    ui8_1 = arg1.value.integer.i16;
+  } else if (MENU_ITEM_ID = arg2.valid) {
+    ui16_4 = arg2.value.integer.i16;
+  }
+  if (MENU_KOTBILL == (mode & ~MENU_MODEMASK)) {
+    assert(ui8_1);
   }
 
-  /* memory requirements */
-  //  printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
-  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
-
-  /* load old bill */
-  if (mode & MENU_MODITEM) {
-    /* assume we have error */
-    ui8_4 = 0;
-
-    /* input validity */
-    if (MENU_ITEM_DATE != arg1.valid) {
-      timerDateGet(choice);
-      arg1.value.date.year = choice[2];
-      arg1.value.date.month = choice[1];
-      arg1.value.date.day = choice[0];
-      arg1.valid = MENU_ITEM_DATE;
-    }
-
+  /* Either of KOT, Modify or Void Bill */
+  if (0 != (mode & ~MENU_MODEMASK)) {
     /* iterate through all records */
-    ui16_2 = ui16_3;
-    for (ui8_1=0, ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
-      ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
-      ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
+      ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+      bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
       if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* not valid bill */
-	continue;
-      if ( ((MENU_ITEM_DATE == arg1.valid) &&
-	   (sl->info.date_yy == arg1.value.date.year) &&
-	   (sl->info.date_mm == arg1.value.date.month) &&
-	   (sl->info.date_dd == arg1.value.date.day)) ||
-	   ((MENU_ITEM_ID == arg2.valid) &&
-	    (sl->info.bill_id == arg2.value.integer.i16)) ) {
-	/* User consent */
-	LCD_ALERT(PSTR("Found Bill.."));
-	LCD_CLRLINE(0);
-	LCD_PUT_UINT(sl->info.bill_id);
-	LCD_WR_NP(PSTR(": Amt:"), 6);
-	LCD_PUT_UINT(sl->total);
-	if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
-	  goto menuModBillReturn;
-	else {
-	  ui8_1 = 1;
+	break;
+
+      /* User consent */
+      LCD_CLRLINE(0);
+      LCD_PUT_UINT(sl->info.id);
+      LCD_PUTCH(' '); LCD_PUTCH('#');
+      LCD_PUT_UINT(sl->info.n_items);
+      LCD_PUTCH(' ');
+      LCD_PUT_UINT(sl->info.time_hh);
+      LCD_PUTCH(':');
+      LCD_PUT_UINT(sl->info.time_mm);
+      LCD_PUTCH(':');
+      LCD_PUT_UINT(sl->info.time_ss);
+      LCD_CLRLINE(LCD_MAX_ROW-1);
+      if (MENU_KOTBILL == (mode & ~MENU_MODEMASK)) {
+	if (ui8_1 == sl->info.tableNo)
 	  break;
-	}
-      }
+      } else if ( ui16_4 ) {
+	if (ui16_4 == sl->info.id)
+	  break;
+      } else if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+	break;
     }
-    if (! ui8_1) {
-      LCD_ALERT(PSTR("Bill Not Found"));
+    if (ui16_1 >= EEPROM_SALE_MAX_BILLS) {
+      LCD_ALERT(PSTR("Bill Memory Full"));
       goto menuModBillReturn;
-    } else {
+    } else if (0xFFFF == (sl->crc ^ sl->crc_invert)) { /* got valid bill */
       //move(0, 0);
       //printw("info date:%d/%d mm:%d/%d day:%d/%d\n", sl->info.date_yy, arg1.value.date.year, sl->info.date_mm, arg1.value.date.month, sl->info.date_dd, arg1.value.date.day);
+    } else {
+      LCD_ALERT(PSTR("Bill Not Found"));
+      goto menuModBillReturn;
     }
 
     /* Now check all bill items, delete any non-existing item */
@@ -914,9 +952,9 @@ menuBilling(uint8_t mode)
       ui8_4++;
 
       /* */
-      ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
+      bill_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
       if ((0 == sl->it[0].id) || (sl->it[0].is_disabled)) {
-	LCD_ALERT_N(PSTR("No Item: "), itemId(sl->items[ui8_5].ep_item_ptr));
+	LCD_ALERT_N(PSTR("Item Deleted: "), itemId(sl->items[ui8_5].ep_item_ptr));
 	ui8_3++;
 	ui8_4--;
 	/* Delete item */
@@ -931,10 +969,13 @@ menuBilling(uint8_t mode)
       } else /* update item details */ {
 	sl->items[ui8_5].cost = sl->it[0].cost;
 	sl->items[ui8_5].discount = sl->it[0].discount;
-	sl->items[ui8_5].has_serv_tax = sl->it[0].has_serv_tax;
-	sl->items[ui8_5].has_common_discount = sl->it[0].has_common_discount;
-	sl->items[ui8_5].vat_sel = sl->it[0].vat_sel;
 	sl->items[ui8_5].has_vat = sl->it[0].has_vat;
+	sl->items[ui8_5].has_tax1 = sl->it[0].has_tax1;
+	sl->items[ui8_5].has_tax2 = sl->it[0].has_tax2;
+	sl->items[ui8_5].has_tax3 = sl->it[0].has_tax3;
+	sl->items[ui8_5].has_common_discount = sl->it[0].has_common_discount;
+	sl->items[ui8_5].is_reverse_tax = sl->it[0].is_reverse_tax;
+	sl->items[ui8_5].has_weighing_mc = sl->it[0].has_weighing_mc;
       }
     }
     if (0 == ui8_4) {
@@ -942,7 +983,7 @@ menuBilling(uint8_t mode)
       if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
 	sl->crc_invert = (0 != sl->crc) ? 0xFFFF : 0;
 	if (ui8_1) { /* delete bill */
-	  ee24xx_write_bytes(ui16_2, (void *)sl, 2);
+	  bill_write_bytes(ui16_2, (void *)sl, 2);
 	}
       }
       goto menuModBillReturn;
@@ -958,19 +999,14 @@ menuBilling(uint8_t mode)
     if (0xFF != ui8_4)
       return MENU_RET_NOTAGAIN;
   } else {
-    /* Prepare location to store.... */
-    ee24xx_read_bytes(ui16_3, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
-    if (0xFFFF == (sl->crc ^ sl->crc_invert)) { /* valid bill */
-      LCD_CLRLINE(0);
-      LCD_PUT_UINT(sl->info.bill_id);
-      LCD_WR_NP(PSTR(": Amt:"), 6);
-      LCD_PUT_UINT(sl->total);
-      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
-	return MENU_RET_NOTAGAIN;
-    }
-    menuMemset((void *)sl, 0, SALE_SIZEOF);
+    /* Check location to store.... */
+    bill_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
+    assert (0xFFFF != (sl->crc ^ sl->crc_invert)); /* valid bill */
+    menuMemset((void *)sl, 0, SIZEOF_SALE);
   }
 
+  /*FIXME: I was here */
+  /* Billing loop */
   for (ui8_5=0; ;) {
     /* already added item, just confirm */
     if (0 != sl->items[ui8_5].quantity)
@@ -1021,7 +1057,7 @@ menuBilling(uint8_t mode)
 
     /* Find item */
     assert( (ui16_2 > 0) && (ui16_2 <= ITEM_MAX) );
-    ee24xx_read_bytes(itemAddr(ui16_2), (uint8_t *)sl->it, ITEM_SIZEOF);
+    bill_read_bytes(itemAddr(ui16_2), (uint8_t *)sl->it, ITEM_SIZEOF);
     if ( (0 == sl->it[0].id) || (sl->it[0].is_disabled) ) {
       LCD_CLRLINE(0);
       LCD_WR_NP((const char *)PSTR("Invalid Item"), 12);
@@ -1067,7 +1103,7 @@ menuBilling(uint8_t mode)
       /* Display item for confirmation */
       LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      //ee24xx_read_bytes((uint16_t)(((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2))), bufSS, 7);
+      //bill_read_bytes((uint16_t)(((sl->items[ui8_5].ep_item_ptr)+(offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2))), bufSS, 7);
       LCD_PUT_UINT(sl->items[ui8_5].quantity);
       LCD_PUTCH('=');
       ui16_1 = sl->it[0].cost;
@@ -1158,7 +1194,7 @@ menuBilling(uint8_t mode)
 		  (ASCII_DOWN == keyHitData.KbdData) ) {
 	/* move to prev item to edit it */
 	ui8_5 ? --ui8_5 : sl->info.n_items-1;
-	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
+	bill_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
       } else if (ASCII_DEL == keyHitData.KbdData) {
 	/* delete the item */
 	for (ui8_2=ui8_5; sl->items[ui8_2+1].quantity>0; ui8_2++) {
@@ -1255,24 +1291,24 @@ menuBilling(uint8_t mode)
 
   /* Restart numbering if another day!! */
   if (0 == (mode & MENU_MODITEM)) {
-    sl->info.bill_id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
+    sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
     if ( (sl->info.date_yy != eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillYear)))) ||
 	 (sl->info.date_mm != eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillMonth)))) ||
 	 (sl->info.date_dd != eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillDate)))) ) {
-      sl->info.bill_id = 1;
+      sl->info.id = 1;
       eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillYear)), sl->info.date_yy);
       eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillMonth)), sl->info.date_mm);
       eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_lastBillDate)), sl->info.date_dd);
     }
-    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.bill_id);
+    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.id);
   }
 
   /* now save the data */
-  for (ui16_1=0, ui16_2=0; ui16_1<SALE_DATA_EXP_ITEMS_SIZEOF; ui16_1++)
+  for (ui16_1=0, ui16_2=0; ui16_1<SIZEOF_SALE_EXCEP_ITEMS; ui16_1++)
     ui16_2 = _crc16_update(ui16_2, ((uint8_t *)sl)[ui16_1]);
   sl->crc = ui16_2;
   sl->crc_invert = ~ui16_2;
-  ee24xx_write_bytes(ui16_3, (uint8_t *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+  bill_write_bytes(ui16_3, (uint8_t *)sl, SIZEOF_SALE_EXCEP_ITEMS);
 
   /* update next bill addr */
   ui16_3 = EEPROM_NEXT_SALE_RECORD(ui16_3);
@@ -1292,7 +1328,7 @@ menuAddItem(uint8_t mode)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
   uint16_t ui16_1, ui16_2, ui16_3;
-  struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
   uint8_t *bufSS_ptr = (void *) it;
   uint8_t choice[EPS_MAX_VAT_CHOICE*MENU_PROMPT_LEN];
 
@@ -1591,7 +1627,7 @@ uint8_t
 menuDelItem(uint8_t mode)
 {
   uint16_t ui16_1, ui16_2;
-  struct item *it = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   /* check validity of argument */
   if ( (MENU_ITEM_ID != arg1.valid) || (0 == arg1.value.integer.i16) ||
@@ -1753,7 +1789,7 @@ uint8_t
 menuBillReports(uint8_t mode)
 {
 #if FF_ENABLE
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
   uint16_t ui16_1, ui16_2;
   uint32_t ui32_1, ui32_2;
 
@@ -1804,7 +1840,7 @@ menuBillReports(uint8_t mode)
     }
 
     /* If version doesn't match, escape... */
-    f_read(&Fil, (bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2), 2, &ret_val);
+    f_read(&Fil, (bufSS+LCD_MAX_COL+LCD_MAX_COL), 2, &ret_val);
     assert(2 == ret_val);
     ui16_1 = bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2];
     ui16_1 <<= 8; ui16_1 |= bufSS[LCD_MAX_COL+2+LCD_MAX_COL+2+1];
@@ -1853,7 +1889,7 @@ menuShowBill(uint8_t mode)
 {
   uint8_t  ui8_1;
   uint16_t ui16_2, ui16_3;
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   /* */
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
@@ -1868,7 +1904,7 @@ menuShowBill(uint8_t mode)
 	ui16_3 = 0;
 	break;
       }
-      ee24xx_read_bytes(ui16_3, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+      ee24xx_read_bytes(ui16_3, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
       if (0xFFFF != (sl->crc ^ sl->crc_invert)) { /* not valid bill */
 	continue;
       }
@@ -1880,12 +1916,12 @@ menuShowBill(uint8_t mode)
 	if ( (sl->info.date_yy == arg1.value.date.year) &&
 	     (sl->info.date_mm == arg1.value.date.month) &&
 	     (sl->info.date_dd == arg1.value.date.day) &&
-	     (sl->info.bill_id == arg2.value.integer.i32) ) {
+	     (sl->info.id == arg2.value.integer.i32) ) {
 	  /* user wants this date's/id bill */
 	  break;
 	}
       } else if (MENU_ITEM_ID == arg2.valid) {
-	if (sl->info.bill_id == arg2.value.integer.i32) {
+	if (sl->info.id == arg2.value.integer.i32) {
 	  /* user provided bill id */
 	  break;
 	}
@@ -1911,7 +1947,7 @@ menuShowBill(uint8_t mode)
     /* Display bill */
     LCD_CLRLINE(0);
     LCD_PUTCH('#');
-    LCD_PUT_UINT(sl->info.bill_id);
+    LCD_PUT_UINT(sl->info.id);
     LCD_PUTCH(' ');
     LCD_PUTCH('R'); LCD_PUTCH('s');
     LCD_PUT_FLOAT(sl->total);
@@ -1955,7 +1991,7 @@ void
 menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index)
 {
 #if MENU_PRINTER_ENABLE
-  ee24xx_read_bytes(item_id, (void *)it, SALE_DATA_EXP_ITEMS_SIZEOF);
+  ee24xx_read_bytes(item_id, (void *)it, SIZEOF_SALE_EXCEP_ITEMS);
 #endif
 }
 
@@ -2198,14 +2234,14 @@ menuDelAllBill(uint8_t mode)
 {
   uint8_t ui8_1;
   uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+2+LCD_MAX_COL+2);
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
 #if MENU_DELBILL
   ui16_1 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)));
 
   /* memory requirements */
-  //printf("%d %d\n", (SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
-  assert((SALE_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
+  //printf("%d %d\n", (SIZEOF_SALE+LCD_MAX_COL+LCD_MAX_COL+4), BUFSS_SIZE);
+  assert((SIZEOF_SALE+LCD_MAX_COL+LCD_MAX_COL+4) <= BUFSS_SIZE);
 
   /* input validity */
   if ((MENU_ITEM_DATE != arg1.valid) && (MENU_ITEM_ID != arg2.valid)) {
@@ -2218,7 +2254,7 @@ menuDelAllBill(uint8_t mode)
   for (ui16_4=0, ui16_3=0; ui16_3<EEPROM_SALE_MAX_BILLS; ui16_3++, ui8_1 &= ~0x3) {
     ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
 
-    ee24xx_read_bytes(ui16_2, (void *)sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+    ee24xx_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
     if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* not valid bill */
       continue;
     if ( (MENU_ITEM_DATE == arg1.valid) &&
@@ -2227,7 +2263,7 @@ menuDelAllBill(uint8_t mode)
 	 (sl->info.date_dd == arg1.value.date.day) ) {
       ui8_1 |= 1;
     } else if ( (MENU_ITEM_ID == arg2.valid) &&
-		(sl->info.bill_id == arg2.value.integer.i16) ) {
+		(sl->info.id == arg2.value.integer.i16) ) {
       ui8_1 |= 2;
     }
     if (MENU_NOCONFIRM == (mode & ~MENU_MODEMASK)) {
@@ -2344,14 +2380,14 @@ menuRunDiag(uint8_t mode)
       ui8_1++;
       /* Write read check */
       srand(rand_seed);
-      for (ui8_2=0; ui8_2<SALE_DATA_EXP_ITEMS_SIZEOF; ui8_2++)
+      for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
 	bufSS[ui8_2] = rand();
-      ee24xx_write_bytes(ui16_2, bufSS, SALE_DATA_EXP_ITEMS_SIZEOF);
-      ee24xx_read_bytes(ui16_2, bufSS+SALE_DATA_EXP_ITEMS_SIZEOF, SALE_DATA_EXP_ITEMS_SIZEOF);
-      for (ui8_2=0; ui8_2<SALE_DATA_EXP_ITEMS_SIZEOF; ui8_2++)
-	if (bufSS[ui8_2] != bufSS[SALE_DATA_EXP_ITEMS_SIZEOF+ui8_2])
+      ee24xx_write_bytes(ui16_2, bufSS, SIZEOF_SALE_EXCEP_ITEMS);
+      ee24xx_read_bytes(ui16_2, bufSS+SIZEOF_SALE_EXCEP_ITEMS, SIZEOF_SALE_EXCEP_ITEMS);
+      for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
+	if (bufSS[ui8_2] != bufSS[SIZEOF_SALE_EXCEP_ITEMS+ui8_2])
 	  break;
-      diagStatus |= (ui8_2 >= SALE_DATA_EXP_ITEMS_SIZEOF) ? DIAG_MEM3 : 0;
+      diagStatus |= (ui8_2 >= SIZEOF_SALE_EXCEP_ITEMS) ? DIAG_MEM3 : 0;
     }
   }
 #undef EEPROM_CHECK_MAX
@@ -2583,7 +2619,7 @@ menuMainStart:
     menuGetOpt(menu_prompt_str+(pgm_read_byte(menu_prompts+(menu_selected<<1))*MENU_PROMPT_LEN), &arg1, pgm_read_byte(menu_args+(menu_selected<<1)), NULL);
     KBD_RESET_KEY;
     arg2.valid = MENU_ITEM_NONE;
-    arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
+    arg2.value.str.sptr = bufSS+LCD_MAX_COL;
     arg2.value.str.len = LCD_MAX_COL;
     menuGetOpt(menu_prompt_str+(pgm_read_byte(menu_prompts+(menu_selected<<1)+1)*MENU_PROMPT_LEN), &arg2, pgm_read_byte(menu_args+(menu_selected<<1)+1), NULL);
     //move(0, 0); printw("arg1.valid:%x arg2.valid:%x", arg1.valid, arg2.valid);

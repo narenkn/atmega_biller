@@ -122,7 +122,7 @@ Atmega128 Product:
 +38. User tests to be updated
 +39. flash : erase 4k page
 +40. firmware update routine to be updated
-+41. 250 items / bill
++41. 250 items / bill -- 75 items good for now
 +42. KOT option
 +43. Calculator
 +44. Refund option
@@ -136,6 +136,8 @@ Atmega128 Product:
 --52. Give hotkey for LCD refresh
 ++53. Floating point input
 +54. Paper Feed
++55. At end of billing, ask for 1 more copy to be printed
++56. Save and Edit bill further
 
 + : header enabled
 ++ : software coded

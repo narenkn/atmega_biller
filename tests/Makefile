@@ -16,7 +16,7 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DLCD_USE_FUNCTIONS=1
 CFLAGS = $(COMMON) $(CLINE_ARG)
 CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -DBUFSS_SIZE=272 -DDS1307=0
+CFLAGS += -DBUFSS_SIZE=1056 -DDS1307=0
 CFLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
 CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
 CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD

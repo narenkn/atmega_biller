@@ -25,7 +25,7 @@ class data_struct:
     print "struct %s {" % cl.name
     for t_var, tvars in sorted(cl.variables.items()):
       for var, s_var in sorted(tvars.items(), key=lambda x: x[1], reverse=True):
-        print "  %10s %25s%s;" % (t_var, var, s_var[0])
+        print "  %15s %25s%s;" % (t_var, var.replace(' ','').replace('%',''), s_var[0])
     print "} __attribute__((packed));"
     print "#define %s_SIZEOF sizeof(struct %s)" % (cl.name.upper(), cl.name)
 
@@ -267,10 +267,10 @@ class item:
 ##      'name_unicode':['[ITEM_NAME_UNI_BYTEL]', 1*16, TYPE_ARR, TYPE_UINT8],
       'unused_crc':['', 1, TYPE_UINT8],
       'unused_crc_invert':['', 1, TYPE_UINT8],
-      'unused0':[':1', 0.1, TYPE_BIT],
-      'unused1':[':1', 0.1, TYPE_BIT],
-      'unused2':[':1', 0.1, TYPE_BIT],
-      'unused3':[':1', 0.1, TYPE_BIT],
+      'has_vat':[':1', 0.1, TYPE_BIT],
+      'has_tax1':[':1', 0.1, TYPE_BIT],
+      'has_tax2':[':1', 0.1, TYPE_BIT],
+      'has_tax3':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
       'is_disabled':[':1', 0.1, TYPE_BIT],
       'unused_find_best_match':[':1', 0.1, TYPE_BIT],
@@ -301,42 +301,35 @@ class ep_store_layout:
   variables = {
     'uint16_t' : {
       'unused_passwds' : ['[EPS_MAX_USERS+1]', 2*16, TYPE_UINT16],
-      'ComnDis' : ['', 2, TYPE_UINT16],
+      'Common Disc%' : ['', 2, TYPE_UINT16],
       'unused_DiagStat' : ['', 2, TYPE_UINT16],
       'unused_LastBillId' : ['', 2, TYPE_UINT16],
       'unused_ItemLastUsed' : ['', 2, TYPE_UINT16],
-      'RndOff' : ['', 2, TYPE_UINT16],
+      'Round Off' : ['', 2, TYPE_UINT16],
       'unused_next_billaddr' : ['', 2, TYPE_UINT16],
+      'unused_todayStartAddr' : ['', 2, TYPE_UINT16],
       },
     'uint8_t' : {
       ## User options
       ## User 0 : is 'admin' + 15 usernames
       ## 5 passwords
       'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 5*8, TYPE_STRING],
-      'unused_itIdxName' : ['[ITEM_MAX]', 1000, TYPE_UINT8],
+      'unused_itIdxName' : ['[ITEM_MAX]', 1500, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
-      'currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
-      'b_pfix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
-      'caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
-      'shop_name' : ['[SHOP_NAME_SZ_MAX]', 16*2, TYPE_STRING],
+      'Currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'Bill Prefix' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
+      'Caption' : ['[EPS_CAPTION_SZ_MAX]', 10, TYPE_STRING],
+      'Shop Name' : ['[SHOP_NAME_SZ_MAX]', 16*2, TYPE_STRING],
       'unused_comp_name' : ['[COMPANY_NAME_MAX]', 16, TYPE_STRING],
-      'b_head' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
-      'b_foot' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
-      'key_buzz':['', 1, TYPE_UINT8],
-      'idle_wait' : ['', 1, TYPE_UINT8],
+      'Bill Header' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
+      'Bill Footer' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
+      'Key Beep On':['', 1, TYPE_UINT8],
       'unused_lastBillDate':['', 1, TYPE_UINT8],
       'unused_lastBillMonth':['', 1, TYPE_UINT8],
       'unused_lastBillYear':['', 1, TYPE_UINT8],
-      'unused_0' : [':1', 0.1, TYPE_BIT],
-      'unused_1':[':1', 0.1, TYPE_BIT],
-      'unused_2':[':1', 0.1, TYPE_BIT],
-      'unused_3':[':1', 0.1, TYPE_BIT],
-      'in_words':[':1', 0.1, TYPE_BIT],
-      'b_conf':[':1', 0.1, TYPE_BIT],
-      'b_copies':[':2', 0.2, TYPE_BIT],
-      }
     }
+  }
   def __init__(self, name):
     self.name = name
 
@@ -423,7 +416,6 @@ if "__main__" == __name__:
     print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n\n"
-    print "#define ITEM_MAX 1000\n"
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)

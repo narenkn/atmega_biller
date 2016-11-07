@@ -166,7 +166,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
 ## Our defines
-BUILD_FLAGS += -DLCD_USE_FUNCTIONS=1 -DBUFSS_SIZE=336 -DDS1307=0
+BUILD_FLAGS += -DLCD_USE_FUNCTIONS=1 -DBUFSS_SIZE=1056 -DDS1307=0
 BUILD_FLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
 BUILD_FLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
 BUILD_FLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD

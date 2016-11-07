@@ -31,11 +31,12 @@
 void
 billingInit(void)
 {
-  assert(8 == sizeof(struct sale_info));
+  assert(10 == sizeof(struct sale_info));
   assert(13 == sizeof(struct sale_item));
   assert(0 == (sizeof(struct item) & 0x3)); /* 4 byte aligned */
-  assert(SALE_DATA_EXP_ITEMS_SIZEOF >= (sizeof(struct sale)-ITEM_SIZEOF));
+  assert(SIZEOF_SALE_EXCEP_ITEMS >= (sizeof(struct sale)-ITEM_SIZEOF));
 #if NVFLASH_EN
   assert(0 == (SALE_DATA_SIZEOF_NORM%NVF_MIN_BLOCK_SZ));
 #endif
+  assert(SIZEOF_SALE_EXCEP_ITEMS <= BUFSS_SIZE);
 }

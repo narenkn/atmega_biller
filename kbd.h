@@ -148,6 +148,9 @@
     if (menuPendActs & MENU_PEND_LCD_REFRESH) { \
       LCD_init();				\
     }						\
+    if (menuPendActs & MENU_PEND_NEW_DAY) {	\
+      menuPendNewDay();				\
+    }						\
   }						\
   LCD_bl_on
 #endif
