@@ -92,6 +92,7 @@ typedef struct {
 #define MENU_NOCONFIRM   0x03
 #define MENU_KOTBILL     0x04
 #define MENU_VOIDBILL    0x05
+#define MENU_SHOWBILL    0x06
 #define MENU_REPO_BWISE  0x01
 #define MENU_REPO_VOID   0x02
 #define MENU_REPO_DUP    0x03
@@ -141,7 +142,7 @@ struct setting_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item     ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Show Bill       ") COL_JOIN MENU_FUNC(menuShowBill) COL_JOIN \
+  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_SHOWBILL)  MENU_NAME("View Old Bill   ") COL_JOIN MENU_FUNC(menuViewOldBill) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE,  MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Tally Cash      ") COL_JOIN MENU_FUNC(menuTallyCash) COL_JOIN \
     ARG1(MENU_PR_NONE,  MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
@@ -230,10 +231,9 @@ void menuIndexItem(struct item *it); // Unverified
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx); // Unverified
 
 /* billing routines */
-uint8_t menuVoidBilling(uint8_t mode); // unverified
 uint8_t menuBilling(uint8_t mode); // unverified
 uint8_t menuCalculator(uint8_t mode); // unverified
-uint8_t menuShowBill(uint8_t mode); // unverified
+uint8_t menuViewOldBill(uint8_t mode); // unverified
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
 void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
 void menuPrnD(uint32_t var);
@@ -261,6 +261,7 @@ uint8_t menuSDLoadItem(uint8_t mode); // Unverified
 uint8_t menuSDLoadSettings(uint8_t mode); // Unverified
 uint8_t menuSDSaveItem(uint8_t mode); // Unverified
 uint8_t menuSDSaveSettings(uint8_t mode); // Unverified
+uint8_t menuSDSaveBills(uint8_t mode); // Unverified
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode); // Unverified
@@ -280,7 +281,10 @@ extern  uint16_t         diagStatus;
 #define DIAG_BUZZER           (1<<8)
 
 #ifndef SD_BILLING_FILE
-#define SD_BILLING_FILE       "billing.dat"
+#define SD_BILLING_FILE       "billing.csv"
+#endif
+#ifndef SD_ITEM_FILE
+#define SD_ITEM_FILE          "items.csv"
 #endif
 
 #endif

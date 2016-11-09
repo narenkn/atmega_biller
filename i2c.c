@@ -668,13 +668,16 @@ ISR(TIMER0_COMP_vect)
   uint8_t max_days_in_month;
   
   // Increment time
-  if (++rtc_sec == 60) {
+  if (++rtc_sec >= 60) {
     rtc_sec = 0;
-    if (++rtc_min == 60) {
+    if (++rtc_min >= 60) {
       rtc_min = 0;
-      if (++rtc_hour == 24) {
+      if (++rtc_hour >= 24) {
 	rtc_hour = 0;
 	rtc_date++;
+
+	/* date rollover */
+	soft_reset();
 
 	/* find max time, keep date */
 	if (1 == rtc_month) {

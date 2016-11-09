@@ -306,7 +306,7 @@ class ep_store_layout:
       'unused_LastBillId' : ['', 2, TYPE_UINT16],
       'unused_ItemLastUsed' : ['', 2, TYPE_UINT16],
       'Round Off' : ['', 2, TYPE_UINT16],
-      'unused_next_billaddr' : ['', 2, TYPE_UINT16],
+      'unused_nextBillAddr' : ['', 2, TYPE_UINT16],
       'unused_todayStartAddr' : ['', 2, TYPE_UINT16],
       },
     'uint8_t' : {
@@ -325,9 +325,6 @@ class ep_store_layout:
       'Bill Header' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
       'Bill Footer' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
       'Key Beep On':['', 1, TYPE_UINT8],
-      'unused_lastBillDate':['', 1, TYPE_UINT8],
-      'unused_lastBillMonth':['', 1, TYPE_UINT8],
-      'unused_lastBillYear':['', 1, TYPE_UINT8],
     }
   }
   def __init__(self, name):

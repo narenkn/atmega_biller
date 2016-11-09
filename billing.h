@@ -2,11 +2,11 @@
 #define BILLING_H
 
 struct sale_item {
-  uint16_t   ep_item_ptr;   /* pointer to item in EEPROM */
-  uint16_t   quantity;      /* XXXX.YYY * 1000 could be in grams */
+  uint32_t   quantity;      /* XXXX.YYY * 1000 could be in grams */
   /* Option to hot override */
   uint32_t   cost;          /* XXXXX.YY * 100 */
   uint32_t   discount;      /* XXXXX.YY * 100 */
+  uint16_t   ep_item_ptr;   /* pointer to item in EEPROM */
   uint8_t    dup_bill_issued:1;
   uint8_t    has_common_discount:1;
   uint8_t    has_vat:1;
@@ -16,12 +16,13 @@ struct sale_item {
   uint8_t    is_reverse_tax:1;
   uint8_t    has_weighing_mc:1;
   /* FIXME: Any change here should be reflected in menuBilling as well */
-} __attribute__((packed)); /* 13 bytes */
+} __attribute__((packed)); /* 14 bytes */
 
 /* */
 struct sale_info {
   uint8_t   n_items;
   uint8_t   unused0;
+  uint8_t   user[EPS_MAX_UNAME];
   uint16_t  id;
 
   uint16_t  date_yy:7;
@@ -33,16 +34,18 @@ struct sale_info {
   uint16_t  time_ss:5;
 } __attribute__((packed));
 
-#define MAX_ITEMS_IN_BILL        ((1024-5-10-32)/sizeof(struct sale_item))
+#define MAX_SIZEOF_1BILL         1024
+#define MAX_ITEMS_IN_BILL        ((MAX_SIZEOF_1BILL-4-10-32)/sizeof(struct sale_item))
 struct sale {
   uint16_t  crc_invert;                  /*             2 */
   uint16_t  crc;                         /*             2 */
-  struct sale_info info;                 /*             8 */
+  struct sale_info info;                 /*            16 */
   uint8_t   tableNo;                     /*             1 */
+  uint8_t   unused;                      /*             1 */
   /* how may bills inside 1024 bytes ?
      1024 - 32 - 12 = 980
      980 / 13 = 75 */
-  struct sale_item items[MAX_ITEMS_IN_BILL];/* 75*13= 975 */
+  struct sale_item items[MAX_ITEMS_IN_BILL];/* 69*14= 966 */
   uint32_t  t_tax1;                      /*             4 */
   uint32_t  t_tax2;                      /*             4 */
   uint32_t  t_tax3;                      /*             4 */

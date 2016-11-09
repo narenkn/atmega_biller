@@ -105,7 +105,7 @@ nvfInit()
   nvfWakeUp();
 
   /* all flash devices */
-  for (uint8_t id=0; id<NVF_MAX_DEVICES; id++) {
+  for (uint8_t id=0; id<NVF_NUM_DEVICES; id++) {
     if (JEDEC_ID != nvfReadDeviceId())
       return false;
 
@@ -260,16 +260,18 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 /// other things and later check if the chip is done with busy()
 /// note that any command will first wait for chip to become available using busy()
 /// so no need to do that twice
-static void
+void
 nvfChipErase(uint8_t sel)
 {
   _selected = sel;
   nvfCommand(SPIFLASH_CHIPERASE, true);
   nvfUnSelect();
+
+  while(nvfBusy());
 }
 
 /// erase a 4Kbyte block
-static void
+void
 nvfBlockErase4K(uint16_t addr)
 {
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
@@ -280,16 +282,18 @@ nvfBlockErase4K(uint16_t addr)
   spiTransmit(addr);
   spiTransmit(0);
   nvfUnSelect();
+
+  while(nvfBusy());
 }
 
-static void
+void
 nvfSleep()
 {
   nvfCommand(SPIFLASH_SLEEP, false);
   nvfUnSelect();
 }
 
-static void
+void
 nvfWakeUp()
 {
   nvfCommand(SPIFLASH_WAKE, false);

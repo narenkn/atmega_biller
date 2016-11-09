@@ -83,6 +83,11 @@
 #define NVF_PAGE_SIZE             256
 
 bool nvfInit();
+void nvfChipErase(uint8_t sel);
+void nvfBlockErase4K(uint16_t addr);
+void nvfSleep();
+void nvfWakeUp();
+
 uint16_t bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 
@@ -92,8 +97,14 @@ uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
  */
 #define NVF_MAX_DEVICES             4
 #define NVF_MAX_DEVICES_LOGN2       2
+#define NVF_NUM_DEVICES             1
+#define NVF_NUM_DEVICES_LOGN2       0
 
 /* */
+#define NVF_START_ADDRESS   ((uint16_t)0)
 #define NVF_MAX_ADDRESS     ((uint16_t)((0x3FFF<<NVF_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
+#define NVF_4K_MASK         ((uint16_t)(((1<<12)-1)>>NVF_MAX_DEVICES_LOGN2))
+#define NVF_4KBLOCK_4kAddr(addr)		\
+  (addr & ~NVF_4K_MASK)
 
 #endif

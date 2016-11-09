@@ -38,4 +38,6 @@ extern volatile uint8_t eeprom_setting0, eeprom_setting1;
     for(;;) { }		    \
   } while(0)
 
+#define WDT_RESET_WAKEUP (MCUCSR & _BV(WDRF))
+
 #endif
