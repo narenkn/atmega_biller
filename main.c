@@ -155,23 +155,48 @@ main(void)
 #endif
 
 uint8_t
-validDate(uint8_t day, uint8_t month, uint8_t year)
+validDate(date_t date)
 {
   uint8_t max_days_in_month;
-  uint32_t ui32_1;
 
-  if (1 == month) {
-    ui32_1 = year+1980;
-    max_days_in_month = ((0 == (ui32_1%4)) && (0 != (ui32_1%100)))? 29 : 28;
-  } else if ( (0 == month) || (2 == month) ||
-	    (4 == month) || (6 == month) ||
-	    (7 == month) || (9 == month) ||
-	    (11 == month) )
+  if (1 == date.month) {
+    max_days_in_month = ((0 == (date.year%4)) && (0 != (date.year%100)))? 29 : 28;
+  } else if ( (0 == date.month) || (2 == date.month) ||
+	      (4 == date.month) || (6 == date.month) ||
+	      (7 == date.month) || (9 == date.month) ||
+	      (11 == date.month) )
     max_days_in_month = 31;
   else
     max_days_in_month = 30;
 
-  return (month<=11) && (day < max_days_in_month);
+  return (date.month<=11) && (date.day < max_days_in_month);
+}
+
+void
+nextDate(date_t *date)
+{
+  uint8_t max_days_in_month;
+
+  /* next date */
+  (date->day)++;
+
+  /* find max time, keep date */
+  if (1 == date->month) {
+    max_days_in_month = ((0 == (date->year & 0x3)) && (0 != (date->year%100)))? 29 : 28;
+  } else if ( (0 == date->month) || (2 == date->month) ||
+	      (4 == date->month) || (6 == date->month) ||
+	      (7 == date->month) || (9 == date->month) ||
+	      (11 == date->month) )
+    max_days_in_month = 31;
+  else
+    max_days_in_month = 30;
+  if (date->day >= max_days_in_month) {
+    date->day = 0;
+    if (++(date->month) >= 12) {
+      date->month = 0;
+      (date->year)++;
+    }
+  }
 }
 
 /*

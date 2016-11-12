@@ -34,15 +34,14 @@
   "None    " /* 0 */    \
   "Id      " /* 1 */    \
   "Name    " /* 2 */    \
-  "OldPaswd" /* 3 */    \
-  "Password" /* 4 */    \
-  "Month   " /* 5 */    \
-  "TimeHHMM" /* 6 */    \
-  "Table   " /* 7 */    \
-  "DDMMYYYY" /* 8 */    \
-  "FrDDMMYY" /* 9 */    \
-  "ToDDMMYY" /*10 */    \
-  "Decimal " /*11 */
+  "Password" /* 3 */    \
+  "Month   " /* 4 */    \
+  "TimeHHMM" /* 5 */    \
+  "Table   " /* 6 */    \
+  "DDMMYYYY" /* 7 */    \
+  "FrDDMMYY" /* 8 */    \
+  "ToDDMMYY" /* 9 */    \
+  "Decimal " /*10 */
 
 #define MENU_PR_NONE         0
 #define MENU_PR_ID           1
@@ -50,10 +49,11 @@
 #define MENU_PR_PASS         3
 #define MENU_PR_MONTH        4
 #define MENU_PR_TIME         5
-#define MENU_PR_DATE         6
-#define MENU_PR_FROM_DATE    7
-#define MENU_PR_TO_DATE      8
-#define MENU_PR_FLOAT        9
+#define MENU_PR_TABLE        6
+#define MENU_PR_DATE         7
+#define MENU_PR_FROM_DATE    8
+#define MENU_PR_TO_DATE      9
+#define MENU_PR_FLOAT       10
 
 typedef struct {
   union {
@@ -63,15 +63,8 @@ typedef struct {
       uint16_t i16;
       uint32_t i32;
     } integer;
-    struct {
-      uint8_t day;
-      uint8_t month;
-      uint8_t year;
-    } date;
-    struct {
-      uint8_t min;
-      uint8_t hour;
-    } time;
+    date_t date;
+    time_t time;
     struct {
       uint16_t len;
       uint8_t *sptr;
@@ -93,6 +86,11 @@ typedef struct {
 #define MENU_KOTBILL     0x04
 #define MENU_VOIDBILL    0x05
 #define MENU_SHOWBILL    0x06
+#define MENU_HELPER_INIT 0x00
+#define MENU_HELPER_QUIT 0x08
+#define MENU_ITEM_SAVE   0x04
+#define MENU_ITEM_LOAD   0x08
+#define MENU_ITEM_REPORT 0x08
 #define MENU_REPO_BWISE  0x01
 #define MENU_REPO_VOID   0x02
 #define MENU_REPO_DUP    0x03
@@ -143,7 +141,7 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item     ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_SHOWBILL)  MENU_NAME("View Old Bill   ") COL_JOIN MENU_FUNC(menuViewOldBill) COL_JOIN \
-    ARG1(MENU_PR_FROM_DATE,  MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
+    ARG1(MENU_PR_DATE,  MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Tally Cash      ") COL_JOIN MENU_FUNC(menuTallyCash) COL_JOIN \
     ARG1(MENU_PR_NONE,  MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_BWISE) MENU_NAME("Bill Wise Report") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
@@ -152,11 +150,11 @@ struct setting_vars {
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_DUP) MENU_NAME("Duplicte BillRpt") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
-  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_MTAX) MENU_NAME("Tax Report      ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
+  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_TAX) MENU_NAME("Tax Report      ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
-  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_ITEM) MENU_NAME("Item In Bill Rept") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
-    ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
-  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete All Bill ") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
+  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_ITEM) MENU_NAME("Item In Bill Rept") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
+    ARG1(MENU_PR_NONE, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete All Bills") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
     ARG1(MENU_PR_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Modify Setting  ") COL_JOIN MENU_FUNC(menuSettingSet) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
@@ -172,14 +170,14 @@ struct setting_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Factory Reset   ") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Items      ") COL_JOIN MENU_FUNC(menuSDLoadItem) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Items      ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Export Items    ") COL_JOIN MENU_FUNC(menuSDSaveItem) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_SAVE) MENU_NAME("Export Items    ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Load Setting    ") COL_JOIN MENU_FUNC(menuSDLoadSettings) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Setting    ") COL_JOIN MENU_FUNC(menuSDLoadSettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Export Setting  ") COL_JOIN MENU_FUNC(menuSDSaveSettings) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) 
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Update Firmware  ") COL_JOIN MENU_FUNC(menuUpdateFirmware) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
 
@@ -198,9 +196,7 @@ extern uint8_t devStatus;
 
 /* Pending actions */
 #define MENU_PEND_LCD_REFRESH  (1<<0)
-#define MENU_PEND_NEW_DAY      (1<<1)
 extern uint8_t menuPendActs;
-void menuPendNewDay(void);
 
 /* Helper routines */
 typedef uint32_t (*menuGetOptHelper)(uint8_t *str, uint16_t strlen, uint32_t prev);
@@ -236,8 +232,6 @@ uint8_t menuCalculator(uint8_t mode); // unverified
 uint8_t menuViewOldBill(uint8_t mode); // unverified
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
 void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
-void menuPrnD(uint32_t var);
-void menuPrnF(uint32_t var);
 void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
 
 /* User option routines */
@@ -248,18 +242,18 @@ void menuSettingUint16(uint16_t addr, const uint8_t *quest);
 void menuSettingUint8(uint16_t addr, const uint8_t *quest);
 void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
 #endif
-uint8_t menuSetDateTime(uint8_t mode);
+uint8_t menuSetDateTime(uint8_t mode); // Unverified
 uint8_t menuSettingSet(uint8_t mode);
 uint8_t menuSetHotKey(uint8_t mode); // Unverified
 
 /* Report routines */
+uint8_t menuItemReport(uint8_t mode); // Unverified
 uint8_t menuBillReports(uint8_t mode); // Unverified
 uint8_t menuDelAllBill(uint8_t mode); // Unverified
 
 /* SD routines */
-uint8_t menuSDLoadItem(uint8_t mode); // Unverified
 uint8_t menuSDLoadSettings(uint8_t mode); // Unverified
-uint8_t menuSDSaveItem(uint8_t mode); // Unverified
+uint8_t menuSDIterItem(uint8_t mode); // Unverified
 uint8_t menuSDSaveSettings(uint8_t mode); // Unverified
 uint8_t menuSDSaveBills(uint8_t mode); // Unverified
 
@@ -279,12 +273,5 @@ extern  uint16_t         diagStatus;
 #define DIAG_KEYPAD           (1<<6)
 #define DIAG_WEIGHING_MC      (1<<7)
 #define DIAG_BUZZER           (1<<8)
-
-#ifndef SD_BILLING_FILE
-#define SD_BILLING_FILE       "billing.csv"
-#endif
-#ifndef SD_ITEM_FILE
-#define SD_ITEM_FILE          "items.csv"
-#endif
 
 #endif

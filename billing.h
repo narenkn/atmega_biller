@@ -7,7 +7,7 @@ struct sale_item {
   uint32_t   cost;          /* XXXXX.YY * 100 */
   uint32_t   discount;      /* XXXXX.YY * 100 */
   uint16_t   ep_item_ptr;   /* pointer to item in EEPROM */
-  uint8_t    dup_bill_issued:1;
+  uint8_t    unused0:1;
   uint8_t    has_common_discount:1;
   uint8_t    has_vat:1;
   uint8_t    has_tax1:1;
@@ -21,11 +21,13 @@ struct sale_item {
 /* */
 struct sale_info {
   uint8_t   n_items;
-  uint8_t   unused0;
   uint8_t   user[EPS_MAX_UNAME];
   uint16_t  id;
 
-  uint16_t  date_yy:7;
+  uint16_t  unused0:1;
+  uint16_t  dup_bill_issued:1;
+  uint16_t  is_void:1;
+  uint16_t  date_yy:12;
   uint16_t  date_mm:4;
   uint16_t  date_dd:5;
 

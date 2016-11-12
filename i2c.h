@@ -25,23 +25,6 @@
 #define TIMER_ADDR_MONTH           5
 #define TIMER_ADDR_YEAR            6
 
-#if DS1307
-
-void timerDateSet(uint8_t year, uint8_t month, uint8_t date);
-void timerDateGet(uint8_t *ymd);
-void timerTimeSet(uint8_t hour, uint8_t min);
-void timerTimeGet(uint8_t *hms);
-
-uint8_t  i2c_start(void);
-uint8_t  i2c_repeatStart(void);
-uint8_t  i2c_sendAddress(uint8_t);
-uint8_t  i2c_sendData(uint8_t);
-uint8_t  i2c_receiveData_ACK(void);
-uint8_t  i2c_receiveData_NACK(void);
-void     i2c_stop(void);
-
-#else /* 32KHz RTC implemented */
-
 // External crystal frequency
 #define RTC_F           32768
 
@@ -55,32 +38,21 @@ extern volatile uint8_t rtc_date;
 extern volatile uint8_t rtc_month;
 extern volatile uint8_t rtc_year;
 
-#define timerDateSet(year, month, date)		\
-  rtc_year = year-1980;				\
-  rtc_month = month%12;				\
-  rtc_date = date%31
+#define timerDateSet(date)			\
+  rtc_year = date.year;				\
+  rtc_month = date.month%12;			\
+  rtc_date = date.day%31
 
-#define timerDateGet(ymd)				\
-  ymd[2] = rtc_year;					\
-  ymd[1] = rtc_month;					\
-  ymd[0] = rtc_date;					\
-  ymd[2] = (((ymd[2]>>4) & 0x0F)*10) + (ymd[2]&0x0F);	\
-  ymd[1] = (((ymd[1]>>4) & 0x0F)*10) + (ymd[1]&0x0F);	\
-  ymd[0] = (((ymd[0]>>4) & 0x0F)*10) + (ymd[0]&0x0F)
+#define timerDateGet(date)			\
+  date = {rtc_date, rtc_month, rtc_year}
 
-#define timerTimeSet(hour, min)			\
-  rtc_hour = hour;				\
-  rtc_min = min
+#define timerTimeSet(time)			\
+  rtc_hour = time.hour;				\
+  rtc_min = time.min;				\
+  rtc_sec = time.sec
 
-#define timerTimeGet(hms)				\
-  hms[2] = rtc_hour;					\
-  hms[1] = rtc_min;					\
-  hms[0] = rtc_sec;					\
-  hms[2] = (((hms[2]>>4) & 0x0F)*10) + (hms[2]&0x0F);	\
-  hms[1] = (((hms[1]>>4) & 0x0F)*10) + (hms[1]&0x0F);	\
-  hms[0] = (((hms[0]>>4) & 0x0F)*10) + (hms[0]&0x0F)
-
-#endif
+#define timerTimeGet(time)			\
+  time = {rtc_hour, rtc_min, rtc_sec}
 
 void     i2c_init(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);

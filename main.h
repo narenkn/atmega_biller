@@ -22,7 +22,20 @@ void main_init(void);
 #define  FAT_YEAR_MASK          0x7F
 
 extern volatile uint16_t timer2_beats=0;
-uint8_t  validDate(uint8_t day, uint8_t month, uint8_t year);
+
+typedef struct {
+  uint8_t day;
+  uint8_t month;
+  uint16_t year;
+} date_t;
+typedef struct {
+  uint8_t hour;
+  uint8_t min;
+  uint8_t sec;
+} time_t;
+
+uint8_t  validDate(date_t date);
+void nextDate(date_t *date);
 
 void eeprom_setting2ram(void);
 

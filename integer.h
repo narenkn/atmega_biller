@@ -29,6 +29,7 @@ typedef uint32_t        UINT;
 /* These types MUST be 32 bit */
 typedef int32_t         LONG;
 typedef uint32_t        DWORD;
+typedef uint64_t        QWORD;
 
 #endif
 
