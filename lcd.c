@@ -16,8 +16,8 @@
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
-#include "menu.h"
 #include "main.h"
+#include "menu.h"
 
 #ifdef UNIT_TEST
 uint8_t    lcd_col_idx;
@@ -153,7 +153,7 @@ void
 LCD_BUSY(void)
 {
   static uint8_t busySign[] = "|/-\\", busyBit=0;
-  LCD_cmd(LCD_CMD_CUR_10|0xF);
+  LCD_cmd((LCD_CMD_CUR_10|0xF));
   LCD_PUTCH(busySign[busyBit]);
   busyBit++;
   busyBit &= ~0x3;

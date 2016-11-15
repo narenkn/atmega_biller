@@ -21,7 +21,7 @@ void main_init(void);
 #define  FAT_YEAR_OFFSET          25
 #define  FAT_YEAR_MASK          0x7F
 
-extern volatile uint16_t timer2_beats=0;
+extern volatile uint16_t timer2_beats;
 
 typedef struct {
   uint8_t day;

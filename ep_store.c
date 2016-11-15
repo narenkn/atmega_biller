@@ -16,8 +16,8 @@
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
-#include "menu.h"
 #include "main.h"
+#include "menu.h"
 
 struct ep_store_layout EEMEM ep_store;
 

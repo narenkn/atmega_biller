@@ -24,11 +24,11 @@
 #include "uart.h"
 #include "a1micro2mm.h"
 #if FF_ENABLE
+#include "diskio.h"
 #include "ff.h"
 #endif
-#include "menu.h"
 #include "main.h"
-
+#include "menu.h"
 
 volatile uint8_t eeprom_setting0;
 
@@ -58,14 +58,15 @@ main_init(void)
   /* For Buzzer */
   DDRA |= 0x80;
   eeprom_setting0 = 0;
-  uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
+  /*uint8_t ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, key_buzz));
   if (ui8_1) EEPROM_SETTING0_OFF(BUZZER);
-  else EEPROM_SETTING0_ON(BUZZER);
+  else */EEPROM_SETTING0_ON(BUZZER);
 }
 
 /* is called every 10ms
    to get 10 sec : 10/10m = 1000
  */
+volatile uint16_t timer2_beats=0;
 ISR(TIMER2_COMP_vect)
 {
   timer2_beats++;

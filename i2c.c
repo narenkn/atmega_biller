@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <util/crc16.h>
 #include <avr/eeprom.h>
+#include <avr/wdt.h>
 #include <util/twi.h>
 
 #include "ep_ds.h"
@@ -17,8 +18,8 @@
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
-#include "menu.h"
 #include "main.h"
+#include "menu.h"
 
 //************************************************************
 //    ******** FUNCTIONS FOR I2C COMMUNICATION  *******
@@ -548,7 +549,7 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 #if DEBUG
     printf(" => %d\n", rv);
 #endif
-    if (rv == -1)
+    if (rv == (uint16_t)-1)
       return -1;
     eeaddr += (rv>>2);
     len -= rv;
@@ -567,27 +568,28 @@ ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 uint32_t
 get_fattime (void)
 {
-  uint8_t buf[3];
+  date_t   date;
+  time_t   time;
   uint32_t dtFat;
 
   /* Process date */
-  timerDateGet(buf);
-  dtFat = buf[2];
+  timerDateGet(date);
+  dtFat = date.year;
   dtFat <<= 4;
-  dtFat |= buf[1];
+  dtFat |= date.month;
   dtFat <<= 5;
-  dtFat |= buf[0];
+  dtFat |= date.day;
 
   /* Process time */
-  timerTimeGet(buf);
+  timerTimeGet(time);
   dtFat <<= 5;
-  dtFat |= buf[0];
+  dtFat |= time.hour;
   dtFat <<= 6;
-  dtFat |= buf[1];
+  dtFat |= time.min;
   /* FAT32 fromat accepts dates with 2sec resolution
      (e.g. value 5 => 10sec) */
   dtFat <<= 5;
-  dtFat |= buf[2]>>1;
+  dtFat |= time.sec>>1;
 
   return dtFat;
 }

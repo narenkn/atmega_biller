@@ -189,7 +189,7 @@ uart1TransmitByte( uint8_t data )
 {
   /* 1 start + 8 data + 2 stop */
   uint8_t uart0TxBuffer = ((uint16_t)data << 1) | ((uint16_t)3<<9);
-  for (uint8_t ui_1=11; ui1; ui1--) {
+  for (uint8_t ui1=11; ui1; ui1--) {
     (uart0TxBuffer & 1) ? (PORTA |= _BV(4)) : (PORTA &= ~_BV(4));
     uart0TxBuffer >>= 1;
     _delay_us(104);

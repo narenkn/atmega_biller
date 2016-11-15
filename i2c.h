@@ -36,23 +36,23 @@ extern volatile uint8_t rtc_min;
 extern volatile uint8_t rtc_hour;
 extern volatile uint8_t rtc_date;
 extern volatile uint8_t rtc_month;
-extern volatile uint8_t rtc_year;
+extern volatile uint16_t rtc_year;
 
 #define timerDateSet(date)			\
   rtc_year = date.year;				\
   rtc_month = date.month%12;			\
   rtc_date = date.day%31
 
-#define timerDateGet(date)			\
-  date = {rtc_date, rtc_month, rtc_year}
+#define timerDateGet(d)				\
+  d.day = rtc_date, d.month = rtc_month, d.year = rtc_year
 
 #define timerTimeSet(time)			\
   rtc_hour = time.hour;				\
   rtc_min = time.min;				\
   rtc_sec = time.sec
 
-#define timerTimeGet(time)			\
-  time = {rtc_hour, rtc_min, rtc_sec}
+#define timerTimeGet(t)					\
+  t.hour = rtc_hour, t.min = rtc_min, t.sec = rtc_sec
 
 void     i2c_init(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);

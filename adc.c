@@ -1,5 +1,11 @@
 #include <stdint.h>
 #include <avr/io.h>
+#include <util/delay.h>
+#include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+#include <util/crc16.h>
+#include <avr/eeprom.h>
+#include <avr/sleep.h>
 #include "adc.h"
 
 void
@@ -26,6 +32,4 @@ ISR(ADC_vect)
   batVcc = 123; /* 1.23 V_bg */
   batVcc *= 255;
   batVcc /= adc_data;
-
-  return batVcc;
 }

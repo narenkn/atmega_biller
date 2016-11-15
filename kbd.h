@@ -128,8 +128,8 @@
 #define kbdCtrlHit  (1<<4)
 #define kbdCapsHit  (1<<5)
 
-#define KBD_HIT      (keyHitData.KbdDataAvail & KBD_HIT_BIT)
-#define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & KBD_HIT_BIT))
+#define KBD_HIT      (keyHitData.KbdDataAvail & kbdHit)
+#define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & kbdHit))
 extern const uint8_t keyMapR[] PROGMEM;
 
 #ifdef UNIT_TEST
@@ -147,9 +147,6 @@ extern const uint8_t keyMapR[] PROGMEM;
     }						\
     if (menuPendActs & MENU_PEND_LCD_REFRESH) { \
       LCD_init();				\
-    }						\
-    if (menuPendActs & MENU_PEND_NEW_DAY) {	\
-      menuPendNewDay();				\
     }						\
   }						\
   LCD_bl_on
@@ -181,6 +178,15 @@ extern const uint8_t ps2code2ascii[] PROGMEM;
 extern const uint8_t ps2code2asciiE0[] PROGMEM;
 extern const uint8_t keyChars[] PROGMEM;
 
-extern uint8_t kbdStatus, bitC, drC;
+#define LENOF_DR    4
+typedef struct {
+  uint8_t kbdStatus;
+  uint8_t bitC;
+  uint8_t drC;
+  uint8_t KeyData;
+  uint8_t kbdTransL;
+  uint8_t kbdDr[LENOF_DR];
+} ps2LineStat_t;
+extern ps2LineStat_t kbd0, kbd1, kbd2;
 
 #endif

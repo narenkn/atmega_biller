@@ -54,8 +54,8 @@
 #include "uart.h"
 #include "spi.h"
 #include "a1micro2mm.h"
-#include "menu.h"
 #include "main.h"
+#include "menu.h"
 
 //uint8_t SPIFlash::UNIQUEID[8];
 
@@ -74,12 +74,12 @@ static uint8_t _selected = 0;
 static void nvfCommand(uint8_t cmd, bool isWrite);
 static uint8_t nvfReadStatus();
 static bool nvfBusy();
-static void nvfChipErase(uint8_t sel);
-static void nvfBlockErase4K(uint16_t address);
+void nvfChipErase(uint8_t sel);
+void nvfBlockErase4K(uint16_t address);
 static uint32_t nvfReadDeviceId();
   
-static void nvfSleep();
-static void nvfWakeUp();
+void nvfSleep();
+void nvfWakeUp();
 static void nvfSelect();
 static void nvfUnSelect();
 

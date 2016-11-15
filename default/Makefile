@@ -173,7 +173,7 @@ BUILD_FLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
 BUILD_FLAGS += -DMENU_DELBILL=1               # Delete bill
 BUILD_FLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
 BUILD_FLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
-BUILD_FLAGS += -DFF_ENABLE=0                  # Enable SD file system
+BUILD_FLAGS += -DFF_ENABLE=1                  # Enable SD file system
 BUILD_FLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
 BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
 BUILD_FLAGS += -DUNICODE_ENABLE=0             # Unicode in device
