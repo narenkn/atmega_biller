@@ -32,8 +32,8 @@
 #if FF_ENABLE
 #include "ff.h"
 #endif
-#include "menu.h"
 #include "main.h"
+#include "menu.h"
 
 #define ROW_JOIN
 #define COL_JOIN
@@ -566,10 +566,10 @@ menuFactorySettings(uint8_t mode)
     arg2.valid = MENU_ITEM_TIME;
   }
   if (MENU_ITEM_DATE == arg1.valid) {
-    timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
+    timerDateSet(arg1.value.date);
   }
   if (MENU_ITEM_TIME == arg2.valid) {
-    timerTimeSet(arg1.value.time.hour, arg1.value.time.min);
+    timerTimeSet(arg1.value.time);
   }
 
   /* Show progress */
@@ -2199,8 +2199,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = max_chars;
 
-  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
-  LCD_PUTCH(':');
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   for (ui16_1=0; ui16_1<max_chars; ui16_1++) {
     ui8_1 = eeprom_read_byte((uint8_t *)(addr+ui16_1));
     arg1.value.str.sptr[ui16_1] = isgraph(ui8_1) ? ui8_1 : ' ';
@@ -2323,27 +2322,31 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
 uint8_t
 menuSetDateTime(uint8_t mode)
 {
-  uint8_t ui8_a[3];
-
-  timerDateGet(ui8_a);
+  date_t date;
+  timerDateGet(date);
   LCD_CLRLINE(0);
-  LCD_WR_P((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN));
-  LCD_PUT_UINT(ui8_a[0]);
-  LCD_PUT_UINT(ui8_a[1]);
-  LCD_PUT_UINT(ui8_a[2]);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_UINT(date.day);
+  LCD_PUTCH('/');
+  LCD_PUT_UINT(date.month);
+  LCD_PUTCH('/');
+  date.year %= 100;
+  LCD_PUT_UINT(date.year);
   MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
   if (MENU_ITEM_DATE == arg1.valid) {
-    timerDateSet(arg1.value.date.year, arg1.value.date.month, arg1.value.date.day);
+    timerDateSet(arg1.value.date);
   }
 
-  timerTimeGet(ui8_a);
+  time_t time;
+  timerTimeGet(time);
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("Old:"));
-  LCD_PUT_UINT(ui8_a[0]);
-  LCD_PUT_UINT(ui8_a[1]);
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
+  LCD_PUT_UINT(time.hour);
+  LCD_PUTCH(':');
+  LCD_PUT_UINT(time.min);
   MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_PR_TIME, NULL);
   if (MENU_ITEM_TIME == arg2.valid) {
-    timerTimeSet(arg2.value.time.hour, arg2.value.time.min);
+    timerTimeSet(arg2.value.time);
   }
 
   return MENU_RET_NOTAGAIN;
@@ -2612,27 +2615,22 @@ menuRunDiag(uint8_t mode)
   LCD_WR_NP((const char *)PSTR("Diagnosis Timer"), 15);
   _delay_ms(1000);
   {
-    uint8_t buf3[3];
+    timer_t time; date_t date;
     for (ui8_1=0; ui8_1<10; ui8_1++) {
-      timerDateGet(buf3);
+      timerDateGet(date);
       LCD_CLRLINE(LCD_MAX_ROW-1);
-      LCD_PUTCH(('0'+((buf3[0]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[0]&0xF)));
+      LCD_PUT_UINT(date.day);
       LCD_PUTCH(('/'));
-      LCD_PUTCH(('0'+((buf3[1]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[1]&0xF)));
+      LCD_PUT_UINT(date.month);
       LCD_PUTCH(('/'));
-      LCD_PUTCH(('0'+((buf3[2]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[2]&0xF)));
-      timerTimeGet(buf3);
-      LCD_PUTCH(('0'+((buf3[0]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[0]&0xF)));
+      date.year %= 100;
+      LCD_PUT_UINT(date.year);
+      timerTimeGet(time);
+      LCD_PUT_UINT(time.hour);
       LCD_PUTCH(':');
-      LCD_PUTCH(('0'+((buf3[1]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[1]&0xF)));
+      LCD_PUT_UINT(time.min);
       LCD_PUTCH(':');
-      LCD_PUTCH(('0'+((buf3[2]>>4)&0xF)));
-      LCD_PUTCH(('0'+(buf3[2]&0xF)));
+      LCD_PUT_UINT(time.sec);
       LCD_refresh();
       _delay_ms(500);
     }
@@ -3305,19 +3303,19 @@ menuCheckDateFromTo(uint8_t mode)
 {
   /* if dates not provided assume today */
   {
-    uint8_t ymd[3];
-    timerDateGet(ymd);
+    date_t date;
+    timerDateGet(date);
     if (MENU_ITEM_DATE != arg1.valid) {
       arg1.valid = MENU_ITEM_DATE;
-      arg1.value.date.day = ymd[0];
-      arg1.value.date.month = ymd[1];
-      arg1.value.date.year = ymd[2];
+      arg1.value.date.day = date.day;
+      arg1.value.date.month = date.month;
+      arg1.value.date.year = date.year;
     }
     if (MENU_ITEM_DATE != arg2.valid) {
       arg2.valid = MENU_ITEM_DATE;
-      arg2.value.date.day = ymd[0];
-      arg2.value.date.month = ymd[1];
-      arg2.value.date.year = ymd[2];
+      arg2.value.date.day = date.day;
+      arg2.value.date.month = date.month;
+      arg2.value.date.year = date.year;
     }
   }
 

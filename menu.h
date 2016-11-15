@@ -41,7 +41,8 @@
   "DDMMYYYY" /* 7 */    \
   "FrDDMMYY" /* 8 */    \
   "ToDDMMYY" /* 9 */    \
-  "Decimal " /*10 */
+  "OldPass?" /*10 */    \
+  "Decimal " /*11 */
 
 #define MENU_PR_NONE         0
 #define MENU_PR_ID           1
@@ -53,7 +54,8 @@
 #define MENU_PR_DATE         7
 #define MENU_PR_FROM_DATE    8
 #define MENU_PR_TO_DATE      9
-#define MENU_PR_FLOAT       10
+#define MENU_PR_OLDPASS     10
+#define MENU_PR_FLOAT       11
 
 typedef struct {
   union {
