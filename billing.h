@@ -24,7 +24,7 @@ struct sale_info {
   uint8_t   user[EPS_MAX_UNAME];
   uint16_t  id;
 
-  uint16_t  unused0:1;
+  uint16_t  is_deleted:1;
   uint16_t  dup_bill_issued:1;
   uint16_t  is_void:1;
   uint16_t  date_yy:12;

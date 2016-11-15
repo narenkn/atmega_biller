@@ -150,6 +150,16 @@ LCD_WR_NP(const char *str, uint8_t len)
 }
 
 void
+LCD_BUSY(void)
+{
+  static uint8_t busySign[] = "|/-\\", busyBit=0;
+  LCD_cmd(LCD_CMD_CUR_10|0xF);
+  LCD_PUTCH(busySign[busyBit]);
+  busyBit++;
+  busyBit &= ~0x3;
+}
+
+void
 LCD_PUT_UINT8X(uint8_t ch)
 {
   uint8_t ui2_a = (ch>>4) & 0xF;

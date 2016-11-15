@@ -121,16 +121,16 @@
 #define KBD_RESET_KEY							\
   keyHitData.hbCnt-=keyHitData.hbCnt?1:0, keyHitData.KbdData=(keyHitData.hitBuf>>(keyHitData.hbCnt<<3)), keyHitData.KbdDataAvail=(keyHitData.availBuf>>(keyHitData.hbCnt<<3))
 
-#define kbdHit      (1<<0)
-#define kbdShiftHit (1<<1)
-#define kbdCtrlHit  (1<<2)
-#define kbdAltHit   (1<<3)
-#define kbdCapsHit  (1<<4)
-#define kbdGuiHit   (1<<5)
-#define kbdWinHit   (1<<6)
+#define kbdAltHit   (1<<0)
+#define kbdWinHit   (1<<1)
+#define kbdHit      (1<<2)
+#define kbdShiftHit (1<<3)
+#define kbdCtrlHit  (1<<4)
+#define kbdCapsHit  (1<<5)
 
 #define KBD_HIT      (keyHitData.KbdDataAvail & KBD_HIT_BIT)
 #define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & KBD_HIT_BIT))
+extern const uint8_t keyMapR[] PROGMEM;
 
 #ifdef UNIT_TEST
 # define KBD_GETCH KbdGetCh()
@@ -171,6 +171,7 @@ typedef struct s_keyHitData {
 } keyHitData_t;
 
 extern volatile keyHitData_t keyHitData;
+extern volatile uint8_t keypadMultiKeyModeOff;
 
 void    KbdInit(void);
 void    KbdScan(void);

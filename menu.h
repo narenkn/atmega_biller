@@ -97,6 +97,7 @@ typedef struct {
 #define MENU_REPO_TAX    0x04
 #define MENU_REPO_ITWISE 0x05
 #define MENU_REPO_ITEM   0x06
+#define MENU_REPO_REDO   0x08
 #define MENU_MODEMASK    0xE0
 
 /* Implementation of Hierarchical menu : Every menu item could be associated
@@ -131,7 +132,7 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL|MENU_VOIDBILL)  MENU_NAME("Reopen Void Bill ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL)  MENU_NAME("Calculator      ") COL_JOIN MENU_FUNC(menuCalculator) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_TABLE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MODITEM)  MENU_NAME("Modify Bill     ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Add Item        ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
@@ -155,10 +156,10 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_ITEM) MENU_NAME("Item In Bill Rept") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
     ARG1(MENU_PR_NONE, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete All Bills") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
-    ARG1(MENU_PR_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
+    ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Modify Setting  ") COL_JOIN MENU_FUNC(menuSettingSet) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Set Hot Key     ") COL_JOIN MENU_FUNC(menuSetHotKey) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MREDOCALL) MENU_NAME("Set Hot Key     ") COL_JOIN MENU_FUNC(menuSetHotKey) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MVALIDATE) MENU_NAME("Change Password ") COL_JOIN MENU_FUNC(menuSetPasswd) COL_JOIN \
     ARG1(MENU_PR_OLDPASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) COL_JOIN ARG2(MENU_PR_PASS, MENU_ITEM_STR|MENU_ITEM_PASSWD) ROW_JOIN \
@@ -173,10 +174,6 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Items      ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_SAVE) MENU_NAME("Export Items    ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Setting    ") COL_JOIN MENU_FUNC(menuSDLoadSettings) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Export Setting  ") COL_JOIN MENU_FUNC(menuSDSaveSettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Update Firmware  ") COL_JOIN MENU_FUNC(menuUpdateFirmware) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
@@ -212,6 +209,9 @@ void menuScanF(char *str, uint32_t *ui32);
   menuScanF(str_p, &ui32);			\
   if (menuScanFDotSeen < 2) ui32 *= 10;		\
   if (menuScanFDotSeen < 3) ui32 *= 10
+#define SSCAND(str_p, ui32)			\
+  *(ui32) = 0;					\
+  menuScanF(str_p, &ui32)
 extern uint8_t menuScanFDotSeen;
 
 /* User routines*/
@@ -228,7 +228,7 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified
-uint8_t menuCalculator(uint8_t mode); // unverified
+uint8_t menuCalculator(uint8_t mode);
 uint8_t menuViewOldBill(uint8_t mode); // unverified
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
 void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
@@ -247,15 +247,12 @@ uint8_t menuSettingSet(uint8_t mode);
 uint8_t menuSetHotKey(uint8_t mode); // Unverified
 
 /* Report routines */
-uint8_t menuItemReport(uint8_t mode); // Unverified
 uint8_t menuBillReports(uint8_t mode); // Unverified
 uint8_t menuDelAllBill(uint8_t mode); // Unverified
 
 /* SD routines */
-uint8_t menuSDLoadSettings(uint8_t mode); // Unverified
 uint8_t menuSDIterItem(uint8_t mode); // Unverified
-uint8_t menuSDSaveSettings(uint8_t mode); // Unverified
-uint8_t menuSDSaveBills(uint8_t mode); // Unverified
+uint8_t menuSDSaveBillDat(uint8_t mode); // Unverified
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode); // Unverified

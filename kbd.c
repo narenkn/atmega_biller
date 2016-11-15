@@ -47,14 +47,23 @@ keyMap[] PROGMEM = {
 };
 
 const uint8_t
-keyMapLGui[] PROGMEM = {
-  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_DEL,
-  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UP,
-  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_DOWN,
-  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
+keyMapR[] PROGMEM = {
+  'N','u','1',  'N','u','2',  'N','u','3',  'E','s','c',
+  'N','u','4',  'N','u','5',  'N','u','6',  'W','i','n',
+  'N','u','7',  'N','u','8',  'N','u','9',  'A','l','t',
+  ' ','<','-',  'N','u','0',  ' ','<','-',  '<','=','|'
 };
 
-keyHitData_t keyHitData;
+//const uint8_t
+//keyMapLGui[] PROGMEM = {
+//  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_DEL,
+//  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UP,
+//  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_DOWN,
+//  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
+//};
+
+volatile keyHitData_t keyHitData;
+volatile uint8_t keypadMultiKeyModeOff;
 
 #if defined (__AVR_ATmega32__)
 /* Known device */
@@ -83,6 +92,7 @@ KbdInit(void)
 
   /* No data yet */
   KBD_RESET_KEY;
+  keypadMultiKeyModeOff = 0;
 
   /* setup timer 1 */
   TCCR1A = 0; // set entire TCCR1A register to 0
@@ -138,8 +148,10 @@ keypadPushHit()
     keyHitData._kbdData--;
     keyHitData._kbdData &= 0xF;
     key = pgm_read_byte(keyMap+keyHitData._kbdData);
-    if (keyHitData.KbdDataAvail & kbdWinHit) {
-      key = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
+    if (keypadMultiKeyModeOff) {
+      key = keyHitData.KbdData;
+    } else if (keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) {
+      key = keyHitData._kbdData;
     } else if (keyHitData.KbdData < 10) {
       key = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & KBD_SHIFT_BIT)*5) ));
     } else if (ASCII_LGUI == keyHitData.KbdData) {
@@ -149,7 +161,8 @@ keypadPushHit()
       keyHitData.KbdDataAvail |= kbdAltHit;
       goto keypadPushHitRet;
     }
-    kbdPushKeyHit(key, kbdHit);
+    kbdPushKeyHit(key, keyHitData.KbdDataAvail|kbdHit);
+    keyHitData.KbdDataAvail = 0;
   }
 
  keypadPushHitRet:
@@ -234,6 +247,7 @@ ISR(INT2_vect)
   if (0 == keyHitData.count) {
     keyHitData._kbdData = kbdData;
     keyHitData.count = 1;
+    if (keypadMultiKeyModeOff) keypadPushHit();
   } else if (keyHitData._kbdData != kbdData) {
     /* diff key, miss any previous key that's pending */
     keypadPushHit();

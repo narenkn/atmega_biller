@@ -132,6 +132,7 @@ void LCD_WR(char *str);
 void LCD_WR_N(uint8_t *str, uint8_t len);
 void LCD_WR_P(const char *str);
 void LCD_WR_NP(const char *str, uint8_t len);
+void LCD_BUSY(void);
 
 void LCD_PUT_UINT8X(uint8_t ch);
 void LCD_PUT_UINT16X(uint16_t ch);

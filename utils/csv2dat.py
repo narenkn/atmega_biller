@@ -297,6 +297,7 @@ class ep_store_layout:
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
     'ITEM_MAX' : 1500,
+    'NUM_HOT_KEYS' : 16*3,
     }
   variables = {
     'uint16_t' : {
@@ -308,6 +309,7 @@ class ep_store_layout:
       'Round Off' : ['', 2, TYPE_UINT16],
       'unused_nextBillAddr' : ['', 2, TYPE_UINT16],
       'unused_todayStartAddr' : ['', 2, TYPE_UINT16],
+      'unused_HotKey' : ['[NUM_HOT_KEYS]', 16*3, TYPE_UINT16],
       },
     'uint8_t' : {
       ## User options
