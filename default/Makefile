@@ -80,7 +80,7 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c ff.c menu.c main.c
+SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c menu.c ff.c main.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -167,9 +167,9 @@ CFLAGS += $(CSTANDARD)
 
 ## Our defines
 BUILD_FLAGS += -DLCD_USE_FUNCTIONS=1 -DBUFSS_SIZE=1056 -DDS1307=0
-BUILD_FLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
+BUILD_FLAGS += -DMENU_USER_ENABLE=1           # 8 different Users, login
 BUILD_FLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
-BUILD_FLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
+BUILD_FLAGS += -DMENU_SDSAVE_EN=1             # Save/restore from/to SD
 BUILD_FLAGS += -DMENU_DELBILL=1               # Delete bill
 BUILD_FLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
 BUILD_FLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils

@@ -69,13 +69,13 @@ class data_struct:
         if TYPE_ARR == s_var[2]:
           for idx in range(0, s_var[1], s_var[3]):
             num_vars += 1;
-            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s)+(%d*%d)}, \\" % (self.get_type(s_var[3]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var, idx/s_var[3], s_var[3])
+            print "\t{%s, %d, %d, \"%s[%d]\", offsetof(struct ep_store_layout, %s)+(%d*%d)}, \\" % (self.get_type(s_var[3]), s_var[3], int((s_var[1]*10)%10), var, idx/s_var[3], var.replace(' ','').replace('%',''), idx/s_var[3], s_var[3])
         elif TYPE_BIT == s_var[2]:
           num_vars += 1;
           print "\t{%s, %d, %d, \"%s\", %d}, \\" % (self.get_type(s_var[2]), int((s_var[1]*10)%10), int((goffset*10)%10), var, int(goffset))
         else:
           num_vars += 1;
-          print "\t{%s, %d, %d, \"%s\", offsetof(struct ep_store_layout, %s)}, \\" % (self.get_type(s_var[2]), int(s_var[1]), int((s_var[1]*10)%10), var, var)
+          print "\t{%s, %d, %d, \"%s\", offsetof(struct ep_store_layout, %s)}, \\" % (self.get_type(s_var[2]), int(s_var[1]), int((s_var[1]*10)%10), var, var.replace(' ','').replace('%',''))
         assert (s_var[1]<256), "size holder overflow"
         if int(((goffset+s_var[1]) * 10) % 10) > 8:
           goffset += 1
@@ -273,7 +273,7 @@ class item:
       'has_tax3':[':1', 0.1, TYPE_BIT],
       'has_weighing_mc':[':1', 0.1, TYPE_BIT],
       'is_disabled':[':1', 0.1, TYPE_BIT],
-      'unused_find_best_match':[':1', 0.1, TYPE_BIT],
+      'has_common_discount':[':1', 0.1, TYPE_BIT],
       'is_reverse_tax':[':1', 0.1, TYPE_BIT],
       }
     }
@@ -317,6 +317,7 @@ class ep_store_layout:
       ## 5 passwords
       'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 5*8, TYPE_STRING],
       'unused_itIdxName' : ['[ITEM_MAX]', 1500, TYPE_UINT8],
+      'unused_crc_prod_code' : ['[ITEM_MAX]', 1500, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'Currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],

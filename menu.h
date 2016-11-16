@@ -204,15 +204,15 @@ void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptH
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
 uint32_t menuFloatPercentHelper(uint8_t *str, uint16_t strlen, uint32_t prev); // Unverified
-void menuScanF(char *str, uint32_t *ui32);
+void menuScanF(uint8_t *str, uint32_t *ui32);
 #define SSCANF(str_p, ui32)			\
-  *(ui32) = 0;					\
+  ui32 = 0;					\
   menuScanFDotSeen = 0;				\
   menuScanF(str_p, &ui32);			\
   if (menuScanFDotSeen < 2) ui32 *= 10;		\
   if (menuScanFDotSeen < 3) ui32 *= 10
 #define SSCAND(str_p, ui32)			\
-  *(ui32) = 0;					\
+  ui32 = 0;					\
   menuScanF(str_p, &ui32)
 extern uint8_t menuScanFDotSeen;
 
@@ -251,6 +251,7 @@ uint8_t menuSetHotKey(uint8_t mode); // Unverified
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
 uint8_t menuDelAllBill(uint8_t mode); // Unverified
+uint8_t menuTallyCash(uint8_t mode); // Unverified
 
 /* SD routines */
 uint8_t menuSDIterItem(uint8_t mode); // Unverified
@@ -272,5 +273,9 @@ extern  uint16_t         diagStatus;
 #define DIAG_KEYPAD           (1<<6)
 #define DIAG_WEIGHING_MC      (1<<7)
 #define DIAG_BUZZER           (1<<8)
+
+#ifndef SD_ITEM_FILE
+#define SD_ITEM_FILE "items.csv"
+#endif
 
 #endif

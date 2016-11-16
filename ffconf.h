@@ -25,7 +25,7 @@
 /   3: f_lseek() function is removed in addition to 2. */
 
 
-#define	_USE_STRFUNC	0
+#define	_USE_STRFUNC	1
 /* This option switches string functions, f_gets(), f_putc(), f_puts() and
 /  f_printf().
 /
@@ -134,7 +134,7 @@
 /  This option has no effect when _LFN_UNICODE == 0. */
 
 
-#define _FS_RPATH	0
+#define _FS_RPATH	1
 /* This option configures support of relative path.
 /
 /   0: Disable relative path and remove related functions.
