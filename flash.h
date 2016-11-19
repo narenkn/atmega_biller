@@ -80,9 +80,9 @@
 
 /* address 23 is don't care for 8MBytes, some code is written that way */
 #define JEDEC_ID                  0x014017
-#define NVF_PAGE_SIZE             256
+#define NVF_PAGE_SIZE             (1<<8)
 
-bool nvfInit();
+void nvfInit();
 void nvfChipErase(uint8_t sel);
 void nvfBlockErase4K(uint16_t addr);
 void nvfSleep();

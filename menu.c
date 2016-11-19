@@ -348,21 +348,23 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     arg->value.integer.i32 = prev_helper;
     menu_error = 0;
   } else if ( (MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type) ) {
+    uint8_t seenDecimal = 0;
     val = 0;
     for (ui16_1=0; ui16_1<buf_idx; ui16_1++) {
-      if ((buf[ui16_1] >= '0') && (buf[ui16_1] <= '9')) {
+      if ((buf[ui16_1] >= '0') && (buf[ui16_1] <= '9') && (seenDecimal < 3)) {
 	val *= 10;
 	val += buf[ui16_1] - '0';
 	menu_error = 0;
-      } else if (MENU_ITEM_ID == item_type) {
-	break;
-      } else if (('.' == buf[ui16_1]) && (2 == ui16_1) && (MENU_ITEM_FLOAT == item_type)) {
+	seenDecimal += seenDecimal;
+      } else if (('.' == buf[ui16_1]) && (MENU_ITEM_FLOAT == item_type)) {
+	seenDecimal = 1;
 	/* skip */
       } else break;
     }
     /* Float is always returned with two decimal digits */
-    if (('.' != buf[2]) && (MENU_ITEM_FLOAT == item_type))
-      val *= 100;
+    if (MENU_ITEM_FLOAT == item_type)
+      for (seenDecimal=(0==seenDecimal)?1:seenDecimal; seenDecimal<3; seenDecimal+=seenDecimal)
+	val *= 10;
     arg->value.integer.i8  = val&0xFF;
     arg->value.integer.i16 = val;
     arg->value.integer.i32 = val;
@@ -375,31 +377,31 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     }
     if (0 == menu_error) {
       /* Date */
-      val = 0;
       if (MENU_ITEM_DATE == item_type) {
-	val |= (buf[0] - '0') & 0x3; /* max: 3 */
-	val <<= 4;
-	val |= (buf[1] - '0') % 10; /* max: 9 */
-	if ((0 == val) || (val > 0x31)) menu_error++;
+	val = (buf[0] - '0'); /* max: 3 */
+	val *= 10;
+	val += (buf[1] - '0'); /* max: 9 */
+	if ((0 == val) || (val > 31)) menu_error++;
 	arg->value.date.day = val;
 	buf += 2;
       }
       /* Month */
-      val = 0;
-      val |= (buf[0] - '0') & 0x1; /* max: 1 */
-      val <<= 4;
-      val |= (buf[1] - '0') % 13; /* max: 2 */
-      if ((0 == val) || (val > 0x12)) menu_error++;
+      val = (buf[0] - '0'); /* max: 1 */
+      val *= 10;
+      val += (buf[1] - '0'); /* max: 2 */
+      if ((0 == val) || (val > 12)) menu_error++;
       arg->value.date.month = val;
       buf += 2;
       /* Year */
-      val = 0;
+      val = (buf[0] - '0');
+      val *= 10;
+      val += (buf[1] - '0');
+      val *= 10;
+      val += (buf[2] - '0');
+      val *= 10;
+      val += (buf[3] - '0');
       buf += 2;
-      val |= (buf[0] - '0') & 0xF; /* max: 3 */
-      val <<= 4;
-      val |= (buf[1] - '0') % 10; /* max: 9 */
-      buf += 2;
-      if (val < 0x16) menu_error++;
+      if ((val < 2000) || (val > 2099)) menu_error++;
       arg->value.date.year = val;
     }
   } else if (MENU_ITEM_TIME == item_type) {
@@ -411,20 +413,18 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     }
     if (0 == menu_error) {
       /* Hour */
-      val = 0;
-      val |= (buf[0] - '0') % 3; /* max: 2 */
-      val <<= 4;
-      val |= (buf[1] - '0') % 4; /* max: 3 */
+      val = (buf[0] - '0');
+      val *= 10;
+      val += (buf[1] - '0');
       buf += 2;
-      if (val>0x23) menu_error++;
+      if (val>23) menu_error++;
       arg->value.time.hour = val;
       /* Mins */
-      val = 0;
-      val |= (buf[0] - '0') % 7; /* max: 6 */
-      val <<= 4;
-      val |= (buf[1] - '0') % 10; /* max: 10 */
+      val = (buf[0] - '0');
+      val *= 10;
+      val += (buf[1] - '0');
       buf += 2;
-      if (val > 0x59) menu_error++;
+      if (val > 59) menu_error++;
       arg->value.time.min = val;
     }
   } else if (MENU_ITEM_STR == item_type) {
@@ -478,9 +478,8 @@ menuGetYesNo(const uint8_t *quest, uint8_t size)
   assert(0);
 }
 
-// Unverified
 static uint32_t floatPercentHelperValue;
-uint32_t
+static uint32_t
 menuFloatPercentHelper(uint8_t *str, uint16_t strlen, uint32_t prev)
 {
   /* Quick check to proceed further */
@@ -558,7 +557,7 @@ menuFactorySettings(uint8_t mode)
   }
 
   /* date, time */
-#ifdef UNIT_TEST
+#if UNIT_TEST
   ui8_1 = 1;
 #else
   ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Set Date/Time?"), 11);
@@ -682,7 +681,7 @@ menuInit()
 
   /* csv2dat depends on this number (ITEM_MAX/ITEM_MAX_ADDR) */
   assert ((ITEM_SIZEOF+LCD_MAX_COL+LCD_MAX_COL+4) < BUFSS_SIZE);
-  assert ((SIZEOF_SALE+LCD_MAX_COL+LCD_MAX_COL) < BUFSS_SIZE);
+  assert ((SIZEOF_SALE_EXCEP_ITEMS+LCD_MAX_COL+LCD_MAX_COL) <= BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
   assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
@@ -728,7 +727,7 @@ menuInit()
       }
       continue;
     } else if (devStatus & DS_DEV_INVALID) {
-#ifndef UNIT_TEST
+#if !UNIT_TEST
       return; /* Invalid device */
 #endif
     }
@@ -799,7 +798,7 @@ menuScanF(uint8_t *str, uint32_t *ui32)
   }
 }
 
-uint32_t
+static uint32_t
 menuItemGetOptHelper(uint8_t *str, uint16_t strlen, uint32_t prev)
 {
   struct item it;
@@ -865,7 +864,7 @@ menuBilling(uint8_t mode)
 
   /* check sufficient args */
   ui8_1 = ui16_4 = 0;
-  if (MENU_ITEM_TABLE == arg1.valid) {
+  if (MENU_ITEM_ID == arg1.valid) {
     ui8_1 = arg1.value.integer.i16;
   } else if (MENU_ITEM_ID == arg2.valid) {
     ui16_4 = arg2.value.integer.i16;
@@ -1344,7 +1343,7 @@ menuAddItem(uint8_t mode)
       ui16_2++; ui16_2 = (ui16_2<=ITEM_MAX) ? ui16_2 : 1; /* next id */
       if (0xFF == itIdxs[ui16_2-1].crc_name3) {
 	ui16_1 = itemAddr(ui16_2);
-	ee24xx_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+(ITEM_SIZEOF>>2)-1, 4);
+	ee24xx_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
 	if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
 	  /* found space */
 	  it->id = ui16_2;
@@ -1493,8 +1492,8 @@ menuAddItem(uint8_t mode)
 
   /* Confirm */
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("Item: "));
-  LCD_WR_N(it->name, (ITEM_NAME_BYTEL+4)>LCD_MAX_COL ? (LCD_MAX_COL-4) : ITEM_NAME_BYTEL);
+  LCD_WR_P(PSTR("Item:"));
+  LCD_WR_N(it->name, ((ITEM_NAME_BYTEL+5)>LCD_MAX_COL) ? (LCD_MAX_COL-5) : ITEM_NAME_BYTEL);
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return 0;
 
@@ -1506,7 +1505,7 @@ menuAddItem(uint8_t mode)
     ui8_2 = _crc_ibutton_update(ui8_2, bufSS_ptr[ui8_1]);
   }
   /* identify if we are modifying an old item or not */
-  if (0xFF == (it->unused_crc ^ it->unused_crc_invert))
+  if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     numValidItems++;
   it->unused_crc = ui8_2;
   it->unused_crc_invert = ~ui8_2;
@@ -2035,7 +2034,7 @@ menuCalculator(uint8_t mode)
       LCD_CLRLINE(1);
       LCD_PUT_UINT(calc->rhs[0].oper);
       uint8_t ui8_1 = sprintf_P((char *)(bufSS+LCD_MAX_COL), PSTR("%d"), calc->rhs[0].oper);
-      LCD_cmd((LCD_CMD_CUR_20|(0x10-ui8_1))); /* FIXME: This was doing wrong */
+      LCD_cmd((LCD_CMD_CUR_20|(0x10-ui8_1)));
       LCD_WR((char *)(bufSS+LCD_MAX_COL));
 
       /* wait for user */
@@ -2232,7 +2231,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
   LCD_WR_N(arg1.value.str.sptr, LCD_MAX_COL-4);
 
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_STR, NULL);
-#ifndef UNIT_TEST
+#if !UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
@@ -2259,7 +2258,7 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
 
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
-#ifndef UNIT_TEST
+#if !UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
@@ -2282,7 +2281,7 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
 
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
-#ifndef UNIT_TEST
+#if !UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
@@ -2305,7 +2304,7 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
 
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
-#ifndef UNIT_TEST
+#if !UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
@@ -2329,7 +2328,7 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
 
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
-#ifndef UNIT_TEST
+#if !UNIT_TEST
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
     return;
 #endif
@@ -2362,7 +2361,7 @@ menuSetDateTime(uint8_t mode)
     timerDateSet(arg1.value.date);
   }
 
-  time_t time;
+  s_time_t time;
   timerTimeGet(time);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
@@ -2679,7 +2678,7 @@ menuRunDiag(uint8_t mode)
   LCD_WR_NP((const char *)PSTR("Diagnosis Timer"), 15);
   _delay_ms(1000);
   {
-    time_t time; date_t date;
+    s_time_t time; date_t date;
     for (ui8_1=0; ui8_1<10; ui8_1++) {
       timerDateGet(date);
       LCD_CLRLINE(LCD_MAX_ROW-1);
@@ -2903,12 +2902,12 @@ menuMainStart:
     if ( (arg1.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)))) || (MENU_ITEM_OPTIONAL&pgm_read_byte(menu_args+(menu_selected<<1))) ) {
       if ( (arg2.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)+1))) || (MENU_ITEM_OPTIONAL&pgm_read_byte(menu_args+(menu_selected<<1)+1)) ) {
 	menuRet |= MENU_RET_CALLED;
-#ifdef UNIT_TEST_MENU_1
+#if UNIT_TEST_MENU_1
 	UNIT_TEST_MENU_1(menu_selected);
 #else
 	if (0 == (devStatus & DS_DEV_INVALID)) {
 	  //printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
-#ifdef UNIT_TEST
+#if UNIT_TEST
 	  menuRet |= (menu_handlers[menu_selected])(pgm_read_byte(menu_mode+menu_selected));
 #else
 	  menuRet |= ((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
@@ -2975,7 +2974,7 @@ menuMainStart:
   }
 
   LCD_refresh();
-#ifdef UNIT_TEST
+#if UNIT_TEST
   //move(0, 0);
   //printw("menu_selhier:%d  menu_selected:%d LoginUserId:%d MenuMode:0x%x", menu_selhier, menu_selected, LoginUserId, MenuMode);
 
@@ -3016,7 +3015,7 @@ menuSetUserPasswd(uint8_t mode)
   /* Check user name is unique before accepting */
   for (ui8_3=1; ui8_3<=EPS_MAX_USERS; ui8_3++) {
     if (ui8_2 == ui8_3) continue; /* skip choosen name */
-    ui16_1 = offsetof(struct ep_store_layout, unused_users) + (((uint16_t)EPS_MAX_USERS) * ui8_3);
+    ui16_1 = offsetof(struct ep_store_layout, unused_users) + (((uint16_t)EPS_MAX_UNAME) * ui8_3);
     for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
       if (arg1.value.str.sptr[ui8_1] != eeprom_read_byte((uint8_t *)ui16_1+ui8_1))
 	break;
@@ -3036,6 +3035,7 @@ menuSetUserPasswd(uint8_t mode)
     ui16_1 = _crc16_update(ui16_1, arg2.value.str.sptr[ui8_3]);
   }
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (sizeof(uint16_t)*ui8_2)), ui16_1);
+  LCD_ALERT(PSTR("Passwd Updated"));
 #endif
 
   return MENU_RET_NOTAGAIN;
@@ -3155,7 +3155,6 @@ static uint8_t
 menuSDLoadItemHelper(uint8_t mode)
 {
   static uint16_t id;
-  uint8_t ui8_1;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
   uint8_t ret;
 
@@ -3600,7 +3599,100 @@ menuSDSaveBillDat(uint8_t mode)
 uint8_t
 menuTallyCash(uint8_t mode)
 {
-  /* FIXME: not coded */
+  uint16_t ui16_1, ui16_2;
+  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
+  struct {
+    uint16_t numBills;
+    uint32_t t_tax;
+    uint32_t t_discount;
+    uint32_t total;
+    uint32_t  t_cash_pay;
+  } tallyCash;
+
+  /* init */
+  tallyCash.numBills = 0, tallyCash.t_tax = 0,
+    tallyCash.t_discount = 0, tallyCash.total = 0,
+    tallyCash.t_cash_pay = 0;
+
+  /* iterate SD records */
+#if FF_ENABLE
+  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
+    menuMemset(&FS, 0, sizeof(FS));
+    menuMemset(&Fil, 0, sizeof(Fil));
+    f_mount(&FS, ".", 1);
+  }
+  if (FR_OK != f_chdir("billdat")) {
+    goto menuTallyCashSDDone;
+  }
+
+  date_t date;
+  timerDateGet(date);
+  sprintf_P((char *)bufSS, PSTR("%02d-%02d-%02d.dat"), date.day, date.month, date.year);
+  if (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ)) {
+    return MENU_RET_NOTAGAIN;
+  }
+
+  /* iterate records */
+  while (!f_eof(&Fil)) {
+    /* Display this item */
+    UINT ret_val;
+    f_read(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
+    if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) goto menuTallyCashSDDone;
+    assert (0xFF == (sl->crc_invert ^ sl->crc));
+
+    /* update */
+    tallyCash.numBills++;
+    tallyCash.t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
+    tallyCash.t_discount += sl->t_discount;
+    tallyCash.total += sl->total;
+    tallyCash.t_cash_pay += sl->t_cash_pay;
+
+    /* */
+    f_read(&Fil, (void *)sl, MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
+    if ((MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS) != ret_val) goto menuTallyCashSDDone;
+  }
+
+  f_close(&Fil);
+  f_mount(NULL, "", 0);
+#endif
+
+ menuTallyCashSDDone:
+  /* iterate through records @ flash */
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+  assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+  for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
+    ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+    bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
+    if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* end-of valid bills */
+      break;
+
+    /* update */
+    tallyCash.numBills++;
+    tallyCash.t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
+    tallyCash.t_discount += sl->t_discount;
+    tallyCash.total += sl->total;
+    tallyCash.t_cash_pay += sl->t_cash_pay;
+  }
+
+  /* Display & Print */
+  LCD_CLRLINE(0);
+  LCD_PUTCH('#');
+  LCD_PUT_UINT(tallyCash.numBills);
+  LCD_WR_P(" Tax:");
+  LCD_PUT_UINT(tallyCash.t_tax);
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+  LCD_WR_P("Cash Rcvd:");
+  LCD_PUT_UINT(tallyCash.t_cash_pay);
+  KBD_RESET_KEY;
+  KBD_GETCH;
+  menuPrnHeader();
+  PRINTER_PSTR(PSTR("Daily Cash Report\n"));
+  PRINTER_PSTR(PSTR("#Bills   #TotTax   #TotDisc   #TotCashCollected"));
+  menuPrnD(tallyCash.numBills);
+  menuPrnD(tallyCash.t_tax);
+  menuPrnD(tallyCash.t_discount);
+  menuPrnD(tallyCash.t_cash_pay);
+
   return MENU_RET_NOTAGAIN;
 }
 
@@ -3610,4 +3702,3 @@ menuUpdateFirmware(uint8_t mode)
   /* FIXME: not coded */
   return MENU_RET_NOTAGAIN;
 }
-

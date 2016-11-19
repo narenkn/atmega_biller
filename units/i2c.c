@@ -1,6 +1,7 @@
 #include "i2c.h"
 
-uint8_t i2c_ymd[3], i2c_hm[3];
+date_t i2c_date;
+s_time_t i2c_time;
 
 #define NIBBLE_PACK(A, B) ((A<<4)|B)
 #define EEPROM_SIZE ((1<<16)<<EEPROM_MAX_DEVICES_LOGN2)
@@ -12,9 +13,9 @@ uint8_t i2c_bytes[EEPROM_SIZE];
 void
 i2c_init(void)
 {
-  i2c_ymd[0] = NIBBLE_PACK(0, 1);
-  i2c_ymd[1] = NIBBLE_PACK(0, 1);
-  i2c_ymd[2] = NIBBLE_PACK(1, 4);
+  i2c_date.day = 1;
+  i2c_date.month = 10;
+  i2c_date.year = 2016;
 
   uint32_t ui1;
   for (ui1=0; ui1<EEPROM_SIZE; ui1++)
@@ -99,11 +100,10 @@ ee24xx_read_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
   addr_t <<= 2;
   assert(0 == (num_bytes&0x3));
 
+  //  printf("ee24xx_read_bytes addr:%x num:%d\n", addr, num_bytes);
   for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
     if ((addr_t+n_bytes) >= EEPROM_SIZE) {
-      LCD_end();
-      if ((addr_t+n_bytes) >= EEPROM_SIZE)
-	assert((addr_t+n_bytes) < EEPROM_SIZE);
+      assert((addr_t+n_bytes) < EEPROM_SIZE);
     }
     data[n_bytes] = i2c_bytes[addr_t+n_bytes];
   }
@@ -117,35 +117,20 @@ ee24xx_read_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 #undef timerTimeGet
 
 void
-timerDateSet(uint8_t year, uint8_t month, uint8_t date)
+timerDateSet(date_t d)
 {
-  i2c_ymd[0] = date;
-  i2c_ymd[1] = month;
-  i2c_ymd[2] = year;
+  i2c_date = d;
 }
 
-void
-timerDateGet(uint8_t *ymd)
-{
-  ymd[0] = i2c_ymd[0];
-  ymd[1] = i2c_ymd[1];
-  ymd[2] = i2c_ymd[2];
-}
+#define timerDateGet(d)	d = i2c_date
 
 void
-timerTimeSet(uint8_t hour, uint8_t min)
+timerTimeSet(s_time_t _t)
 {
-  i2c_hm[1] = min;
-  i2c_hm[0] = hour;
+  i2c_time = _t;
 }
 
-void
-timerTimeGet(uint8_t *hm)
-{
-  hm[0] = i2c_hm[0];
-  hm[1] = i2c_hm[1];
-  hm[2] = i2c_hm[2];
-}
+#define timerTimeGet(t) t = i2c_time
 
 //******************************************************************
 //Function to get RTC date & time in FAT32 format
@@ -155,27 +140,28 @@ timerTimeGet(uint8_t *hm)
 uint32_t
 get_fattime (void)
 {
-  uint8_t buf[3];
+  date_t   date;
+  s_time_t   time;
   uint32_t dtFat;
 
   /* Process date */
-  timerDateGet(buf);
-  dtFat = buf[2];
+  timerDateGet(date);
+  dtFat = date.year;
   dtFat <<= 4;
-  dtFat |= buf[1];
+  dtFat |= date.month;
   dtFat <<= 5;
-  dtFat |= buf[0];
+  dtFat |= date.day;
 
   /* Process time */
-  timerTimeGet(buf);
+  timerTimeGet(time);
   dtFat <<= 5;
-  dtFat |= buf[0];
+  dtFat |= time.hour;
   dtFat <<= 6;
-  dtFat |= buf[1];
+  dtFat |= time.min;
   /* FAT32 fromat accepts dates with 2sec resolution
      (e.g. value 5 => 10sec) */
   dtFat <<= 5;
-  dtFat |= buf[2]>>1;
+  dtFat |= time.sec>>1;
 
   return dtFat;
 }

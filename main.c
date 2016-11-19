@@ -35,6 +35,7 @@ volatile uint8_t eeprom_setting0;
 void
 main_init(void)
 {
+#if !UNIT_TEST
   /* setup timer 2 : need to get 10ms callbacks
      # cycles to skip : (F_CPU/100) : 
      # clock div is 1024, so we need to skip : (F_CPU>>10)/100
@@ -54,6 +55,7 @@ main_init(void)
 
   // Enable interrupt on compare match
   TIMSK |= (1<<OCIE2);
+#endif
 
   /* For Buzzer */
   DDRA |= 0x80;
@@ -71,8 +73,10 @@ ISR(TIMER2_COMP_vect)
 {
   timer2_beats++;
 
+#if !UNIT_TEST
   /* FF */
   disk_timerproc();
+#endif
 }
 
 #ifndef NO_MAIN

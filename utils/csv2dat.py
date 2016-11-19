@@ -296,7 +296,7 @@ class ep_store_layout:
     'EPS_MAX_USERS' : 4,
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
-    'ITEM_MAX' : 1500,
+    'ITEM_MAX' : 1260,
     'NUM_HOT_KEYS' : 16*3,
     }
   variables = {
@@ -316,8 +316,8 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 5 passwords
       'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 5*8, TYPE_STRING],
-      'unused_itIdxName' : ['[ITEM_MAX]', 1500, TYPE_UINT8],
-      'unused_crc_prod_code' : ['[ITEM_MAX]', 1500, TYPE_UINT8],
+      'unused_itIdxName' : ['[ITEM_MAX]', 1260, TYPE_UINT8],
+      'unused_crc_prod_code' : ['[ITEM_MAX]', 1260, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'Currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],

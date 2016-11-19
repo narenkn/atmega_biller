@@ -569,7 +569,7 @@ uint32_t
 get_fattime (void)
 {
   date_t   date;
-  time_t   time;
+  s_time_t   time;
   uint32_t dtFat;
 
   /* Process date */

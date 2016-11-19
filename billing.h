@@ -16,7 +16,7 @@ struct sale_item {
   uint8_t    is_reverse_tax:1;
   uint8_t    has_weighing_mc:1;
   /* FIXME: Any change here should be reflected in menuBilling as well */
-} __attribute__((packed)); /* 14 bytes */
+} __attribute__((packed)); /* 15 bytes */
 
 /* */
 struct sale_info {
@@ -37,17 +37,16 @@ struct sale_info {
 } __attribute__((packed));
 
 #define MAX_SIZEOF_1BILL         1024
-#define MAX_ITEMS_IN_BILL        ((MAX_SIZEOF_1BILL-4-10-32)/sizeof(struct sale_item))
+#define MAX_ITEMS_IN_BILL        ((MAX_SIZEOF_1BILL-4-17-32)/sizeof(struct sale_item))
 struct sale {
   uint16_t  crc_invert;                  /*             2 */
   uint16_t  crc;                         /*             2 */
   struct sale_info info;                 /*            16 */
   uint8_t   tableNo;                     /*             1 */
-  uint8_t   unused;                      /*             1 */
   /* how may bills inside 1024 bytes ?
      1024 - 32 - 12 = 980
      980 / 13 = 75 */
-  struct sale_item items[MAX_ITEMS_IN_BILL];/* 69*14= 966 */
+  struct sale_item items[MAX_ITEMS_IN_BILL];/* 69*15=1104 */
   uint32_t  t_tax1;                      /*             4 */
   uint32_t  t_tax2;                      /*             4 */
   uint32_t  t_tax3;                      /*             4 */

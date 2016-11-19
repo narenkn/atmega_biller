@@ -19,7 +19,7 @@
 #include "main.h"
 #include "menu.h"
 
-#ifdef UNIT_TEST
+#if UNIT_TEST
 uint8_t    lcd_col_idx;
 # define   UNIT_TEST_INIT			\
   lcd_col_idx = 0

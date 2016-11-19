@@ -85,3 +85,11 @@ printerCompareStatus(char *golden)
 
   return ret;
 }
+
+void
+PRINTER_PSTR(const char *P)
+{
+  for (;P[0]; P++) {
+    putc(P[0], prn_outf);
+  }
+}

@@ -7,7 +7,7 @@
 void
 test_init()
 {
-  eeprom_update_block("My Shop", (uint16_t *)(offsetof(struct ep_store_layout, shop_name)), sizeof("My Shop")-1);
+  eeprom_update_block("My Shop", (uint16_t *)(offsetof(struct ep_store_layout, ShopName)), sizeof("My Shop")-1);
 }
 
 int

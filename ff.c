@@ -5911,7 +5911,6 @@ int f_putc (
 {
 	putbuff pb;
 
-
 	putc_init(&pb, fp);
 	putc_bfd(&pb, c);	/* Put the character */
 	return putc_flush(&pb);

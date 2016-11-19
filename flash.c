@@ -98,7 +98,7 @@ nvfUnSelect()
 }
 
 /// setup SPI, read device ID etc...
-bool
+void
 nvfInit()
 {
   nvfUnSelect();

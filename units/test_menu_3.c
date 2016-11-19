@@ -12,8 +12,8 @@ main(void)
 
   /* */
   assert_init();
-  menuInit();
   i2c_init();
+  menuInit();
   ep_store_init();
 
   /* menuSetPasswd */
@@ -69,7 +69,7 @@ main(void)
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<0; loop++) {
+  for (loop=0; loop<10; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -95,8 +95,8 @@ main(void)
       else
 	inp2[ui1] = 'a' + (rand()%26);
     }
-    if (0 == (rand()%5))
-      inp2[0] = ' ';
+    //    if (0 == (rand()%5))
+    //      inp2[0] = ' ';
     inp2[EPS_MAX_UNAME] = 0;
     INIT_TEST_KEYS(inp2);
     KBD_RESET_KEY;
@@ -156,8 +156,8 @@ main(void)
     } else {
       assert(((0 == ui2) ? MENU_MSUPER : MENU_MNORMAL) == MenuMode);
       assert(ui2+1 == LoginUserId);
-      //printf("ui2:%d LoginUserId:%d maxusers:%d\n", ui2, LoginUserId, EPS_MAX_USERS);
-      //printf("lcd:%s\n", lcd_buf[0]);
+      printf("ui2:%d LoginUserId:%d maxusers:%d\n", ui2, LoginUserId, EPS_MAX_USERS);
+      printf("lcd:%s\n", lcd_buf[0]);
     }
 
     /* check logout */

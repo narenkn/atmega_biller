@@ -1,4 +1,4 @@
-#define TEST_KEY_ARR_SIZE    1024
+#define TEST_KEY_ARR_SIZE    (BUFSS_SIZE+1024)
 
 #include "test_common.c"
 
@@ -51,6 +51,7 @@ main(int argc, char *argv[])
     inp[ui16_2] = 0;
     INIT_TEST_KEYS(inp);
     LCD_CLRLINE(0);
+    //printf("inp:%s\n", inp);
     menuSettingString(ui16_1, quest, ui16_2);
     /* check question */
     ui8_3 = (ui8_2 < MENU_PROMPT_LEN) ? ui8_2 : MENU_PROMPT_LEN;

@@ -52,8 +52,8 @@ main(void)
     }
     if (size <= (LCD_MAX_COL-9)) {
       assert(0 == strncmp(inp, lcd_buf[LCD_MAX_ROW-1]+9, size));
-#if 0
-      if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1], size)) {
+#if DEBUG
+      if (0 != strncmp(inp, lcd_buf[LCD_MAX_ROW-1]+9, size)) {
 	printf("size:%d lcd_buf:", size);
 	for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	  printf("%c ", lcd_buf[LCD_MAX_ROW-1][ui1]);
@@ -128,39 +128,62 @@ main(void)
     }
   }
 
+  /* test menuGetOpt::MENU_ITEM_FLOAT */
+  RESET_TEST_KEYS;
+  for (loop=0; loop<1000; loop++) {
+    RESET_TEST_KEYS;
+    //    printf("loop:%d\n", loop);
+    uint32_t r1 = rand() & 0xFFFFF, r2;
+    uint8_t  r3 = rand() % 100;
+    uint8_t  s[16], ui2;
+    r2 = r1;
+    sprintf(s, "%d.%d", r1, r3);
+    strcpy(inp, s);
+    INIT_TEST_KEYS(inp);
+    KBD_RESET_KEY;
+    menuGetOpt("lsjdflkjf", &arg1, MENU_ITEM_FLOAT, NULL);
+    r2 = arg1.value.integer.i32;
+    r1 *= 100;
+    r1 += (r3<10) ? r3*10 : r3;
+    assert(r2 == r1);
+    if (r2 != r1) {
+      printf("s:%s r2:%u r1:%d\n", s, r2, r1);
+    }
+  }
+
   /* test menuGetOpt::MENU_ITEM_DATE */
-  for (loop=0; loop<10; loop++) {
-    uint8_t date, month, year;
+  RESET_TEST_KEYS;
+  for (loop=0; loop<1000; loop++) {
+    uint8_t date, month;
+    uint16_t year = 2000;
     date = 1 + (rand() % 28);
     month = 1 + (rand() % 12);
-    year = rand() % 100;
+    year += rand() % 100;
     sprintf(inp, "%02d%02d%04d", date, month, year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("dflkjf", &arg1, MENU_ITEM_DATE, NULL);
     assert(MENU_ITEM_DATE == arg1.valid);
-    if ( (date != (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day)) ||
-	 (month != (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month)) ||
-	 (year != (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year)) ) {
+    if ( (date != arg1.value.date.day) ||
+	 (month != arg1.value.date.month) ||
+	 (year != arg1.value.date.year) ) {
       printf("string:%s\n", inp);
       printf("date:%x org:%d\n", arg1.value.date.day, date);
       printf("month:%x org:%d\n", arg1.value.date.month, month);
       printf("year:%x org:%d\n", arg1.value.date.year, year);
     }
-    printf("date:%d\n", (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day));
-    printf("month:%d\n", (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month));
-    printf("year:%d\n", (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year));
-    assert(date == (((arg1.value.date.day&0xF0)>>4)*10+arg1.value.date.day));
-    assert(month == (((arg1.value.date.month&0xF0)>>4)*10+arg1.value.date.month));
-    assert(year == (((arg1.value.date.year&0xF0)>>4)*10+arg1.value.date.year));
+    assert(date == arg1.value.date.day);
+    assert(month == arg1.value.date.month);
+    assert(year == arg1.value.date.year);
   }
 
   /* test menuGetOpt::MENU_ITEM_MONTH */
-  for (loop=0; loop<0; loop++) {
-    uint8_t month, year;
+  for (loop=0; loop<1000; loop++) {
+    uint8_t month;
+    uint16_t year = 2000;
     month = 1 + (rand() % 12);
-    year = rand() % 100;
-    sprintf(inp, "%02d%04d", month, 1980+year);
+    year += rand() % 100;
+    sprintf(inp, "%02d%04d", month, year);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("kjslfjklsdlff", &arg1, MENU_ITEM_MONTH, NULL);
@@ -174,7 +197,7 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_TIME */
-  for (loop=0; loop<0; loop++) {
+  for (loop=0; loop<1000; loop++) {
     uint8_t hour, min;
     hour = rand() % 24;
     min = rand() % 60;

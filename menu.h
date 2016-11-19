@@ -17,7 +17,6 @@
 #define MENU_ITEM_MONTH                4
 #define MENU_ITEM_FLOAT                5
 #define MENU_ITEM_TIME                 6
-#define MENU_ITEM_TABLE                7
 #define MENU_ITEM_TYPE_MASK         0x1F
 #define MENU_ITEM_OPTIONAL         (1<<7)
 #define MENU_ITEM_DONTCARE_ON_PREV (1<<6)
@@ -66,7 +65,7 @@ typedef struct {
       uint32_t i32;
     } integer;
     date_t date;
-    time_t time;
+    s_time_t time;
     struct {
       uint16_t len;
       uint8_t *sptr;
@@ -128,9 +127,9 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("User  Logout    ") COL_JOIN MENU_FUNC(menuUserLogout) COL_JOIN \
     ARG1(MENU_PR_ID,  MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID,  MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL)  MENU_NAME("New Bill        ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_TABLE|MENU_ITEM_OPTIONAL) ROW_JOIN \
+    ARG1(MENU_PR_TABLE, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL|MENU_KOTBILL)  MENU_NAME("New KOT Bill    ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
-    ARG1(MENU_PR_ID, MENU_ITEM_TABLE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
+    ARG1(MENU_PR_TABLE, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL|MENU_VOIDBILL)  MENU_NAME("Reopen Void Bill ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MREDOCALL)  MENU_NAME("Calculator      ") COL_JOIN MENU_FUNC(menuCalculator) COL_JOIN \
@@ -138,7 +137,7 @@ struct setting_vars {
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_MODITEM)  MENU_NAME("Modify Bill     ") COL_JOIN MENU_FUNC(menuBilling) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Add Item        ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
-    ARG1(MENU_PR_NAME, MENU_ITEM_STR|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
+    ARG1(MENU_PR_NAME, MENU_ITEM_STR) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete Item     ") COL_JOIN MENU_FUNC(menuDelItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MODITEM) MENU_NAME("Modify Item     ") COL_JOIN MENU_FUNC(menuAddItem) COL_JOIN \
@@ -203,7 +202,6 @@ void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
 uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
-uint32_t menuFloatPercentHelper(uint8_t *str, uint16_t strlen, uint32_t prev); // Unverified
 void menuScanF(uint8_t *str, uint32_t *ui32);
 #define SSCANF(str_p, ui32)			\
   ui32 = 0;					\
@@ -223,10 +221,10 @@ uint8_t menuUserLogout(uint8_t mode);
 uint8_t menuUserLogin(uint8_t mode);
 
 /* Item routines */
-uint8_t menuAddItem(uint8_t mode); // Unverified
-uint8_t menuDelItem(uint8_t mode); // Unverified
-void menuIndexItem(struct item *it); // Unverified
-uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx); // Unverified
+uint8_t menuAddItem(uint8_t mode);
+uint8_t menuDelItem(uint8_t mode);
+void menuIndexItem(struct item *it);
+uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified

@@ -23,7 +23,7 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #define sei()
 
 #ifndef TEST_KEY_ARR_SIZE
-#define TEST_KEY_ARR_SIZE    128
+#define TEST_KEY_ARR_SIZE    (BUFSS_SIZE+128)
 #endif
 #define NO_MAIN
 
@@ -36,9 +36,11 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #include "i2c.h"
 #include <avr/eeprom.h>
 #include "uart.h"
+#include "ff.c"
 #include "a1micro2mm.h"
-#include "menu.h"
+#include "flash.h"
 #include "main.h"
+#include "menu.h"
 
 //assert(SPM_PAGESIZE == (1<<(FLASH_PAGE_SIZE_LOGN+1)));
 
@@ -76,13 +78,23 @@ _crc_ibutton_update(uint8_t crc, uint8_t data)
   return crc;
 }
 
+#define _BV(n) (1<<n)
+
+//#undef  soft_reset
+//#define soft_reset()
+#undef  WDT_RESET_WAKEUP
+#define WDT_RESET_WAKEUP 0
+
+typedef fpos_t FSIZE_t;
+#define sprintf_P sprintf
+
 #include "lcd.c"
 #include "kbd.c"
 #include "ep_store.c"
 #include "i2c.c"
 #include "uart.c"
-//#include "ff.c"
 #include "a1micro2mm.c"
+#include "flash.c"
 #include "menu.c"
 #include "main.c"
 
@@ -124,6 +136,8 @@ common_init()
   /* time */
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
-  timerDateSet(tm.tm_year-80, tm.tm_mon+1, tm.tm_mday);
-  timerTimeSet(tm.tm_hour, tm.tm_min);
+  date_t d = {tm.tm_mday, tm.tm_mon, 1900+tm.tm_year};
+  timerDateSet(d);
+  s_time_t _t = {tm.tm_hour, tm.tm_min, 0};
+  timerTimeSet(_t);
 }

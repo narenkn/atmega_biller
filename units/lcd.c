@@ -110,6 +110,7 @@ LCD_WR_N(uint8_t *str, uint8_t len)
   }
   wrefresh(win);
   lcd_y += ui1_t;
+  //  if (lcd_y > LCD_MAX_COL)
   assert(lcd_y <= LCD_MAX_COL);
 }
 
@@ -225,16 +226,19 @@ LCD_PUTCH(uint8_t var)
 void
 LCD_PUT_UINT(uint32_t val)
 {
-  uint8_t ui8_1;
+  if (val>9)
+    LCD_PUT_UINT(val/10);
+  LCD_PUTCH(('0'+(val%10)));
+}
 
-  ui8_1 = val % 10;
-  ui8_1 += '0';
-
-  val /= 10;
-  if (val)
-    LCD_PUT_UINT(val);
-
-  LCD_PUTCH(ui8_1);
+void
+LCD_PUT_FLOAT(uint32_t val)
+{
+  LCD_PUT_UINT(val / 100);
+  LCD_PUTCH('.');
+  val %= 100;
+  if (val < 10) LCD_PUTCH('0');
+  LCD_PUT_UINT(val % 100);
 }
 
 void
@@ -257,21 +261,15 @@ lcd_alert_n(const char *str, uint32_t n)
     if (0 == ui2_t) break;
     LCD_PUTCH(ui2_t);
   }
-  lcdD(n);
+  LCD_PUT_UINT(n);
 }
 
 void
-lcdD(uint32_t var)
+LCD_BUSY(void)
 {
-  if (var>9)
-    lcdD(var/10);
-  LCD_PUTCH(('0'+(var%10)));
-}
-
-void
-lcdFd(uint32_t var)
-{
-  lcdD(var/100);
-  LCD_PUTCH('.');
-  lcdD(var%100);
+  static uint8_t busySign[] = "|/-\\", busyBit=0;
+  LCD_cmd((LCD_CMD_CUR_10|0xF));
+  LCD_PUTCH(busySign[busyBit]);
+  busyBit++;
+  busyBit &= ~0x3;
 }

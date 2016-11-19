@@ -28,11 +28,17 @@
 # define LCD_CMD_DEC_CUR
 # define LCD_CMD_INC_CUR       assert(0)
 # define LCD_CMD_DISON_CURON   assert(0)
-# define LCD_CMD_CUR_10        lcd_buf_p = (uint8_t *)lcd_buf
-# define LCD_CMD_CUR_20        lcd_buf_p = &(lcd_buf[1][0])
+# define LCD_CMD_CUR_10        0x80
+# define LCD_CMD_CUR_20        0xC0
 # define LCD_CMD_2LINE_5x7     assert(0)
 # define LCD_ACT_LINE2         assert(0)
-# define LCD_cmd(CMD)          CMD
+# define LCD_cmd(CMD)					\
+  do {							\
+  if ((CMD >= 0x80) & (CMD <= 0x8F))			\
+    lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0x80);	\
+  else if ((CMD >= 0xC0) & (CMD <= 0xCF))		\
+    lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0xC0);	\
+  } while (0)
 # define LCD_idle_drive
 
 #define LCD_refresh()          // FIXME: put debug info
@@ -120,7 +126,7 @@
 
 #define LCD_refresh()        // Nothing
 
-#endif // #ifdef UNIT_TEST
+#endif // #if UNIT_TEST
 
 // Not working
 //#define LCD_CLRSCR  LCD_cmd(LCD_CMD_CLRSCR)

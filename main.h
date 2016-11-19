@@ -32,7 +32,7 @@ typedef struct {
   uint8_t hour;
   uint8_t min;
   uint8_t sec;
-} time_t;
+} s_time_t;
 
 uint8_t  validDate(date_t date);
 void nextDate(date_t *date);

@@ -132,7 +132,7 @@
 #define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & kbdHit))
 extern const uint8_t keyMapR[] PROGMEM;
 
-#ifdef UNIT_TEST
+#if UNIT_TEST
 # define KBD_GETCH KbdGetCh()
 #else
 # define KBD_GETCH				\

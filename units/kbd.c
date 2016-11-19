@@ -4,7 +4,7 @@
 #ifndef  __UNITS_KBD_C
 #define  __UNITS_KBD_C
 
-keyHitData_t keyHitData;
+volatile keyHitData_t keyHitData;
 
 uint16_t test_key_idx = -1;
 uint8_t test_key_arr_idx = 0;
@@ -32,6 +32,14 @@ const uint8_t keyChars[] = {
   '7', 's', 't', 'u', '&', 'S', 'T', 'U', '/',
   '8', 'v', 'w', 'x', '*', 'V', 'W', 'X', '<',
   '9', 'y', 'z', '(', '-', 'Y', 'Z', '=', '>',
+};
+
+const uint8_t
+keyMapR[] PROGMEM = {
+  'N','u','1',  'N','u','2',  'N','u','3',  'E','s','c',
+  'N','u','4',  'N','u','5',  'N','u','6',  'W','i','n',
+  'N','u','7',  'N','u','8',  'N','u','9',  'A','l','t',
+  ' ','<','-',  'N','u','0',  ' ','<','-',  '<','=','|'
 };
 
 void
@@ -139,7 +147,7 @@ KbdIsShiftPressed(void)
 #include <ncurses/ncurses.h>
 #include "kbd.h"
 
-keyHitData_t keyHitData;
+volatile keyHitData_t keyHitData;
 
 //extern PROGMEM uint8_t ps2code2ascii[];
 //extern PROGMEM uint8_t ps2code2asciiE0[];
@@ -157,6 +165,14 @@ keyChars[] PROGMEM = {
   '7', 's', 't', 'u', '&', 'S', 'T', 'U', '/',
   '8', 'v', 'w', 'x', '*', 'V', 'W', 'X', '<',
   '9', 'y', 'z', '(', '-', 'Y', 'Z', '=', '>',
+};
+
+const uint8_t
+keyMapR[] PROGMEM = {
+  'N','u','1',  'N','u','2',  'N','u','3',  'E','s','c',
+  'N','u','4',  'N','u','5',  'N','u','6',  'W','i','n',
+  'N','u','7',  'N','u','8',  'N','u','9',  'A','l','t',
+  ' ','<','-',  'N','u','0',  ' ','<','-',  '<','=','|'
 };
 
 /* ASCII_UNDEF in this table signifies good character */

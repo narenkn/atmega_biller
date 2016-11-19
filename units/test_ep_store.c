@@ -9,7 +9,7 @@
 
 #include <avr/pgmspace.h>
 
-#define TEST_KEY_ARR_SIZE 128
+#define TEST_KEY_ARR_SIZE (BUFSS_SIZE+128)
 
 #include "lcd.h"
 #include "i2c.h"

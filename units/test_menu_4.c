@@ -16,17 +16,17 @@ make_item(struct item *ri1, uint8_t rand_save)
   RESET_TEST_KEYS;
 
   /* Construct a random item name */
-  for (ui1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
-    ri1->name[ui1] = ' ';
-  }
   ui3 = (rand() % (ITEM_NAME_BYTEL>>1)) + (ITEM_NAME_BYTEL>>1);
   for (ui1=0; ui1<ui3; ui1++) {
     inp5[0][ui1] = ' ' + (rand()%('~'-' '));
     ri1->name[ui1] = inp5[0][ui1];
   }
   inp5[0][ui1] = 0;
-  for (ui2=0;ui2<ITEM_NAME_BYTEL;ui2++) {
-    ri1->name[ui2] = toupper(ri1->name[ui2]);
+  for (ui1=0;ui1<ITEM_NAME_BYTEL;ui1++) {
+    ri1->name[ui1] = toupper(ri1->name[ui1]);
+  }
+  for (ui1=ui3; ui1<ITEM_NAME_BYTEL; ui1++) {
+    ri1->name[ui1] = ' ';
   }
   INIT_TEST_KEYS(inp5[0]);
 
@@ -43,16 +43,16 @@ make_item(struct item *ri1, uint8_t rand_save)
   INIT_TEST_KEYS(inp5[5]);
 
   /* Prod code */
-  for (ui1=0; ui1<ITEM_PROD_CODE_BYTEL; ui1++) {
-    ri1->prod_code[ui1] = ' ';
-  }
   ui2 = (rand() % (ITEM_PROD_CODE_BYTEL>>1)) + (ITEM_PROD_CODE_BYTEL>>1);
   for (ui1=0; ui1<ui2; ui1++) {
     ri1->prod_code[ui1] = inp[ui1] = '!' + (rand() % ('~'-'!'));
   }
   inp[ui2] = 0;
-  for (ui2=0;ui2<ITEM_PROD_CODE_BYTEL;ui2++) {
-    ri1->prod_code[ui2] = toupper(ri1->prod_code[ui2]);
+  for (ui1=0;ui1<ITEM_PROD_CODE_BYTEL;ui1++) {
+    ri1->prod_code[ui1] = toupper(ri1->prod_code[ui1]);
+  }
+  for (ui1=ui2; ui1<ITEM_PROD_CODE_BYTEL; ui1++) {
+    ri1->prod_code[ui1] = ' ';
   }
   INIT_TEST_KEYS(inp);
 
@@ -68,25 +68,74 @@ make_item(struct item *ri1, uint8_t rand_save)
   inp5[2][ui2] = 0;
   INIT_TEST_KEYS(inp5[2]);
 
-  /* vat */
-  ri1->vat_sel = rand() % EPS_MAX_VAT_CHOICE;
-  for (ui2=0; ui2<ri1->vat_sel; ui2++) {
-    inp3[ui2] = ASCII_RIGHT;
-  }
-  inp3[ui2] = 0;
+  /* tax'es */
+  ri1->Vat = rand() % 1000;
+  sprintf(inp3, "%d.%d", ri1->Vat/100, ri1->Vat%100);
   INIT_TEST_KEYS(inp3);
-
-  /* serv tax */
-  ri1->has_serv_tax = rand();
-  ui2 = 0;
-  for (ui2=0; ui2<ri1->has_serv_tax; ui2++) {
-    inp4[ui2] = ASCII_RIGHT;
-  }
-  inp4[ui2] = 0;
+  ri1->Tax1 = rand() % 10000;
+  sprintf(inp4, "%d.%d", ri1->Tax1/100, ri1->Tax1%100);
   INIT_TEST_KEYS(inp4);
+  ri1->Tax2 = rand() % 10000;
+  sprintf(inp4+LCD_MAX_COL, "%d.%d", ri1->Tax2/100, ri1->Tax2%100);
+  INIT_TEST_KEYS(inp4+LCD_MAX_COL);
+  ri1->Tax3 = rand() % 10000;
+  sprintf(inp4+LCD_MAX_COL+LCD_MAX_COL, "%d.%d", ri1->Tax3/100, ri1->Tax3%100);
+  INIT_TEST_KEYS(inp4+LCD_MAX_COL+LCD_MAX_COL);
+
+  /* Provide choices */
+  assert(TEST_KEY_ARR_SIZE > (8*LCD_MAX_COL));
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(1*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(1*LCD_MAX_COL)] = 0;
+  ri1->has_vat = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(1*LCD_MAX_COL)); /* VAT */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(2*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(2*LCD_MAX_COL)] = 0;
+  ri1->has_tax1 = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(2*LCD_MAX_COL)); /* Tax1 */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(3*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(3*LCD_MAX_COL)] = 0;
+  ri1->has_tax2 = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(3*LCD_MAX_COL)); /* Tax2 */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(4*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(4*LCD_MAX_COL)] = 0;
+  ri1->has_tax3 = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(4*LCD_MAX_COL)); /* Tax3 */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(5*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(5*LCD_MAX_COL)] = 0;
+  ri1->has_weighing_mc = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(5*LCD_MAX_COL)); /* has_weighing_mc */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(6*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(6*LCD_MAX_COL)] = 0;
+  ri1->is_reverse_tax = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(6*LCD_MAX_COL)); /* is_reverse_tax */
+  ui2 = rand() % (LCD_MAX_COL-1);
+  for (ui1=0; ui1<ui2; ui1++) {
+    inp5[4][ui1+(7*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
+  }
+  inp5[4][ui2+(7*LCD_MAX_COL)] = 0;
+  ri1->has_common_discount = (ui2 & 1) ? 0 : 1;
+  INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(7*LCD_MAX_COL)); /* has_common_discount */
 
   /* confirm save of item */
-  ui2 = rand_save ? rand()&16 : rand()&0xE;
+  ui2 = rand_save ? rand()&0xF : rand()&0xE;
   for (ui1=0; ui1<ui2; ui1++) {
     inp5[3][ui1] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
   }
@@ -97,8 +146,9 @@ make_item(struct item *ri1, uint8_t rand_save)
   arg1.valid = MENU_ITEM_NONE;
   arg1.value.str.sptr = bufSS;
   arg1.value.str.len = ITEM_NAME_BYTEL;
-  //printf("test_key[0]:'%s'\n", test_key[0]);
+  //  printf("test_key[0]:'%s'\n", test_key[0]);
   menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, NULL);
+  //  printf("test_key[0]:'%s'\n", arg1.value.str.sptr);
   arg2.valid = MENU_ITEM_NONE;
   arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
   arg2.value.str.len = ITEM_NAME_BYTEL;
@@ -119,7 +169,6 @@ make_item(struct item *ri1, uint8_t rand_save)
     assert(0 == strncmp(lcd_buf[0], "Items Mem Full..", LCD_MAX_COL));
     return;
   }
-
   if (!save) {
     return;
   }
@@ -169,20 +218,45 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   if (0 != ui1) {
     printf("ERROR: prod_code mismatch byte:%d\n", ui1);
   }
-  if (ri->vat_sel != rif.vat_sel) {
-    printf("ERROR: vat_sel mismatch Exp:'%d' Obt:'%d'\n", ri->vat_sel, rif.vat_sel);
+  if (ri->Vat != rif.Vat) {
+    printf("ERROR: Vat mismatch Exp:'%d' Obt:'%d'\n", ri->Vat, rif.Vat);
   }
-  if (ri->has_serv_tax != rif.has_serv_tax) {
-    printf("ERROR: serv_tax mismatch Exp:'%d' Obt:'%d'\n", ri->has_serv_tax, rif.has_serv_tax);
+  if (ri->Tax1 != rif.Tax1) {
+    printf("ERROR: Tax1 mismatch Exp:'%d' Obt:'%d'\n", ri->Tax1, rif.Tax1);
+  }
+  if (ri->Tax2 != rif.Tax2) {
+    printf("ERROR: Tax2 mismatch Exp:'%d' Obt:'%d'\n", ri->Tax2, rif.Tax2);
+  }
+  if (ri->Tax3 != rif.Tax3) {
+    printf("ERROR: Tax3 mismatch Exp:'%d' Obt:'%d'\n", ri->Tax3, rif.Tax3);
+  }
+  if (ri->has_vat != rif.has_vat) {
+    printf("ERROR: has_vat mismatch Exp:'%d' Obt:'%d'\n", ri->has_vat, rif.has_vat);
+  }
+  if (ri->has_tax1 != rif.has_tax1) {
+    printf("ERROR: has_tax1 mismatch Exp:'%d' Obt:'%d'\n", ri->has_tax1, rif.has_tax1);
+  }
+  if (ri->has_tax2 != rif.has_tax2) {
+    printf("ERROR: has_tax2 mismatch Exp:'%d' Obt:'%d'\n", ri->has_tax2, rif.has_tax2);
+  }
+  if (ri->has_tax3 != rif.has_tax3) {
+    printf("ERROR: has_tax3 mismatch Exp:'%d' Obt:'%d'\n", ri->has_tax3, rif.has_tax3);
+  }
+  if (ri->is_reverse_tax != rif.is_reverse_tax) {
+    printf("ERROR: is_reverse_tax mismatch Exp:'%d' Obt:'%d'\n", ri->is_reverse_tax, rif.is_reverse_tax);
+  }
+  if (ri->has_common_discount != rif.has_common_discount) {
+    printf("ERROR: has_common_discount mismatch Exp:'%d' Obt:'%d'\n", ri->has_common_discount, rif.has_common_discount);
   }
 
   /* */
   uint8_t cn, cpc, cn3;
   for (ui1=0, cn=0; ui1<ITEM_NAME_BYTEL; ui1++) {
     assert(ri->name[ui1] == rif.name[ui1]);
-    //    printf("ri->c:%c rif.c:%c\n", ri->name[ui1], rif.name[ui1]);
-    assert(ri->name[ui1] >= ' ');
+    if ((ri->name[ui1] < ' '))
+    assert((ri->name[ui1] >= ' '));
     assert(ri->name[ui1] < '~');
+    //printf("%d:%d\n", ui1, ri->name[ui1]);
     cn = _crc_ibutton_update(cn, ri->name[ui1]);
     if (2 == ui1)
       cn3 = cn;
@@ -192,9 +266,9 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   }
   assert(0 != ri->id);
   assert(ri->id <= ITEM_MAX);
-  assert(itIdxs[ri->id-1].crc_prod_code == cpc);
   assert(itIdxs[ri->id-1].crc_name3 == cn3);
-  assert(cn == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ri->id-1) );
+  assert(cn == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+(ri->id)-1) );
+  assert(cpc == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+(ri->id)-1) );
   //  printf("ee24xaddr:%x cpc:%x cn:%x\n", ee24x_addr, cpc, cn);
 }
 
@@ -215,7 +289,8 @@ main(int argc, char *argv[])
   else
     ui1 = atoi(argv[1]);
   printf("seed : %d\n", ui1);
-  srand(ui1);
+  //  srand(ui1);
+  srand(1);
 
   /* */
   common_init();
@@ -227,7 +302,7 @@ main(int argc, char *argv[])
 
   /* test init */
   for (ui1=0; ui1<EEPROM_SIZE; ui1++)
-    I2C_EEPROM_DIRECT_ASSIGN(ui1, rand());
+    I2C_EEPROM_DIRECT_ASSIGN(ui1, 0xFF);
   for (ui1=0; ui1<AVR_EEPROM_SIZE; ui1++)
     AVR_EEPROM_DIRECT_ASSIGN(ui1, rand());
   KBD_RESET_KEY;
@@ -247,7 +322,7 @@ main(int argc, char *argv[])
     compare_item(all_items+ui1, itemAddr(ui1+1));
   }
 
-  for (ui2=0; ui2<NUM_ITEMS2TEST; ui2++) {
+  for (ui2=0; ui2<1000; ui2++) {
     /* Now delete an item and check if the item was replaced */
     RESET_TEST_KEYS;
     ui1 = rand() % ITEM_MAX; ui1++;
@@ -267,7 +342,7 @@ main(int argc, char *argv[])
 
     /* check indexing */
     assert (0xFF == itIdxs[ui1-1].crc_name3);
-    assert (0xFF == itIdxs[ui1-1].crc_prod_code);
+    assert (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui1-1));
     assert (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui1-1));
 
     /* Now add item and check for validness*/
@@ -294,7 +369,6 @@ main(int argc, char *argv[])
     } else if (2 == ui4) {
       ui3 = menuItemFind(NULL, ri.prod_code, &ri1, 0);
     } else if (1 == ui4) {
-      ri1.unused_find_best_match = 1;
       ui3 = menuItemFind(tname, NULL, &ri1, 0);
     } else {
       ui3 = menuItemFind(ri.name, ri.prod_code, &ri1, 0);
@@ -332,4 +406,5 @@ main(int argc, char *argv[])
     }
     //    else printf("equal\n");
   }
+
 }

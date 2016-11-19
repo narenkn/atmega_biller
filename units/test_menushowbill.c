@@ -52,7 +52,7 @@ main()
       sl.crc_invert = ~(sl.crc);
       sl.info.bill_id = ui16_2+1;
       sl.total = rand() % 99999999;
-      ee24xx_write_bytes(ui16_3, (uint8_t *)&sl, SALE_DATA_EXP_ITEMS_SIZEOF);
+      ee24xx_write_bytes(ui16_3, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
       eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), ui16_3);
       vbill_idx[ui16_2] = ui16_3;
       idx[ui16_2] = ui16_2+1;

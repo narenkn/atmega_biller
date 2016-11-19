@@ -1,7 +1,7 @@
-
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "integer.h"
 #include "ffconf.h"
@@ -49,6 +49,7 @@ typedef enum {
 
 #if !_FS_READONLY
 #define	FA_WRITE			0x02
+#define	FA_OPEN_APPEND			0x03
 #define	FA_CREATE_NEW		0x04
 #define	FA_CREATE_ALWAYS	0x08
 #define	FA_OPEN_ALWAYS		0x10
@@ -108,7 +109,7 @@ FRESULT f_mount (
     return FR_OK;
   }
   /* mount */
-  strncat(fs->mount_path, path, FF_STR_LEN);
+  strcpy(fs->mount_path, path);
   fs->fs_type = 1;
   _fs = fs;
   return FR_OK;
@@ -121,7 +122,7 @@ FRESULT f_open (
 )
 {
   assert(NULL != _fs);
-  sprintf(fp->fpath, "%s", path);
+  strcpy(fp->fpath, path);
 
   /* */
   if (fp->is_active) {
@@ -130,7 +131,10 @@ FRESULT f_open (
   }
 
   /* */
-  fp->fs = fopen(fp->fpath, (((FA_READ|FA_WRITE)&mode)==(FA_READ|FA_WRITE)) ? "rb+" : (FA_READ&mode) ? "rb":"ab+");
+  fp->fs = fopen(fp->fpath,
+		 ( (((FA_READ|FA_WRITE)&mode)==(FA_READ|FA_WRITE)) ? "w+":
+		   (FA_READ&mode) ? "r":
+		   (FA_WRITE&mode) ? "w" : "r" ) );
   if (NULL == fp->fs) {
     printf("error:'%s' '%s'\n", strerror(errno), fp->fpath);
     return FR_DISK_ERR;
@@ -361,11 +365,12 @@ FRESULT f_mkdir (
 )
 {
   uint8_t fpath[FF_STR_LEN<<2];
-  
+
+  assert(_fs->fs_type);
   fpath[0] = 0;
   sprintf(fpath, "mkdir %s/%s", _fs->mount_path, path);
 
-  return 0 == system(fpath) ? FR_OK : FR_DISK_ERR;
+  return (0 == system(fpath)) ? FR_OK : FR_DISK_ERR;
 }
 
 
@@ -466,8 +471,10 @@ FRESULT f_forward (
 
 FRESULT f_mkfs (
 	const TCHAR* path,	/* Logical drive number */
-	BYTE sfd,			/* Partitioning rule 0:FDISK, 1:SFD */
-	UINT au				/* Allocation unit [bytes] */
+	BYTE opt,			/* Format option */
+	DWORD au,			/* Size of allocation unit [byte] */
+	void* work,			/* Pointer to working buffer */
+	UINT len			/* Size of working buffer */
 )
 {
   assert(0);
@@ -507,7 +514,7 @@ TCHAR* f_gets (
 )
 {
   assert(0);
-  return FR_DISK_ERR;
+  return NULL;
 }
 
 
