@@ -15,14 +15,21 @@ menu_handler(uint8_t ui)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
-  uint32_t loop, size;
-  uint8_t ui1, ui3;
+  uint32_t loop, size, ui32_1;
+  uint32_t ui1;
 
-  srand(time(NULL));
+  if ((argc == 1) || (0 == argv[1]))
+    ui32_1 = time(NULL);
+  else
+    ui32_1 = atoi(argv[1]);
+  printf("seed : %d\n", ui32_1);
+  srand(ui32_1);
 
   KbdInit();
+
+#define DEBUG 1
 
   /* test menuGetOpt::MENU_ITEM_STR */
   for (loop=0; loop<1000; loop++) {
@@ -41,7 +48,7 @@ main(void)
     menuGetOpt("Prompt 1", &arg1, MENU_ITEM_STR, NULL);
     assert(0 == strncmp("Prompt 1?", &(lcd_buf[1][0]), 9));
     if (0 != strncmp("Prompt 1?", &(lcd_buf[1][0]), 9)) {
-#ifdef DEBUG
+#if DEBUG
       for (ui1=0; ui1<LCD_MAX_COL; ui1++)
 	putchar(lcd_buf[0][ui1]);
       putchar('\n');
@@ -129,7 +136,6 @@ main(void)
   }
 
   /* test menuGetOpt::MENU_ITEM_FLOAT */
-  RESET_TEST_KEYS;
   for (loop=0; loop<1000; loop++) {
     RESET_TEST_KEYS;
     //    printf("loop:%d\n", loop);
@@ -198,10 +204,11 @@ main(void)
 
   /* test menuGetOpt::MENU_ITEM_TIME */
   for (loop=0; loop<1000; loop++) {
-    uint8_t hour, min;
+    uint8_t hour, min, sec;
     hour = rand() % 24;
     min = rand() % 60;
-    sprintf(inp, "%02d%02d", hour, min);
+    sec = rand() % 60;
+    sprintf(inp, "%02d%02d%02d", hour, min, sec);
     INIT_TEST_KEYS(inp);
     KBD_RESET_KEY;
     menuGetOpt("dflkjf", &arg1, MENU_ITEM_TIME, NULL);
@@ -209,6 +216,7 @@ main(void)
       printf("string:%s\n", inp);
       printf("hour:%d org:%d\n", arg1.value.time.hour, hour);
       printf("min:%d org:%d\n", arg1.value.time.min, min);
+      printf("sec:%d org:%d\n", arg1.value.time.sec, sec);
       printf("%s\n", lcd_buf[0]);
     }
     assert(0 == strncmp("dflkjf?", lcd_buf[1], 7));

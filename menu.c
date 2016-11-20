@@ -405,9 +405,9 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       arg->value.date.year = val;
     }
   } else if (MENU_ITEM_TIME == item_type) {
-    /* format HHMM */
+    /* format HHMMSS */
     menu_error = 0;
-    for (ui16_1=0; ui16_1<4; ui16_1++) {
+    for (ui16_1=0; ui16_1<6; ui16_1++) {
       if ((buf[ui16_1] < '0') || (buf[ui16_1] > '9'))
 	menu_error++;
     }
@@ -426,6 +426,13 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
       buf += 2;
       if (val > 59) menu_error++;
       arg->value.time.min = val;
+      /* Sec */
+      val = (buf[0] - '0');
+      val *= 10;
+      val += (buf[1] - '0');
+      buf += 2;
+      if (val > 59) menu_error++;
+      arg->value.time.sec = val;
     }
   } else if (MENU_ITEM_STR == item_type) {
     menu_error = (0 == buf_idx) ? 1 : 0;
@@ -438,6 +445,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   } else if ((opt & MENU_ITEM_DONTCARE_ON_PREV) && (arg == &arg2)) {
   } else {
     arg->valid = MENU_ITEM_NONE;
+    assert(0);
   }
   //move(0, 30); printw("GetOpot:'%s' err:%d", buf, menu_error);
 }
@@ -2368,7 +2376,7 @@ menuSetDateTime(uint8_t mode)
   LCD_PUT_UINT(time.hour);
   LCD_PUTCH(':');
   LCD_PUT_UINT(time.min);
-  MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_PR_TIME, NULL);
+  MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
   if (MENU_ITEM_TIME == arg2.valid) {
     timerTimeSet(arg2.value.time);
   }
@@ -2464,6 +2472,7 @@ menuSetHotKey(uint8_t mode)
 	continue;
     }
   } while (0);
+
   /* now get the key combination */
   do {
     LCD_CLRLINE(LCD_MAX_ROW-1);
@@ -2479,12 +2488,14 @@ menuSetHotKey(uint8_t mode)
     _delay_ms(500);
   } while ( (keyHitData.KbdData >= 16) ||
 	    (0 == (keyHitData.KbdDataAvail & (kbdWinHit | kbdAltHit))) );
+
   /* assign */
   uint16_t idx = offsetof(struct ep_store_layout, unused_HotKey) +
     (((keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) << 4) * sizeof(uint16_t));
   eeprom_update_word((uint16_t *)idx, arg1.value.integer.i16);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
   _delay_ms(500);
+
   return 0;
 }
 

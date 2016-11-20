@@ -289,8 +289,7 @@ main(int argc, char *argv[])
   else
     ui1 = atoi(argv[1]);
   printf("seed : %d\n", ui1);
-  //  srand(ui1);
-  srand(1);
+  srand(ui1);
 
   /* */
   common_init();

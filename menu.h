@@ -12,11 +12,11 @@
  */
 #define MENU_ITEM_NONE                 0
 #define MENU_ITEM_ID                   1
-#define MENU_ITEM_DATE                 2
-#define MENU_ITEM_STR                  3
+#define MENU_ITEM_STR                  2
+#define MENU_ITEM_FLOAT                3
 #define MENU_ITEM_MONTH                4
-#define MENU_ITEM_FLOAT                5
-#define MENU_ITEM_TIME                 6
+#define MENU_ITEM_TIME                 5
+#define MENU_ITEM_DATE                 6
 #define MENU_ITEM_TYPE_MASK         0x1F
 #define MENU_ITEM_OPTIONAL         (1<<7)
 #define MENU_ITEM_DONTCARE_ON_PREV (1<<6)
@@ -242,7 +242,7 @@ void menuSettingUint16(uint16_t addr, const uint8_t *quest);
 void menuSettingUint8(uint16_t addr, const uint8_t *quest);
 void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset);
 #endif
-uint8_t menuSetDateTime(uint8_t mode); // Unverified
+uint8_t menuSetDateTime(uint8_t mode);
 uint8_t menuSettingSet(uint8_t mode);
 uint8_t menuSetHotKey(uint8_t mode); // Unverified
 

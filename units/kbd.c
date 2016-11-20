@@ -74,8 +74,10 @@ KbdGetCh(void)
       test_key[NUM_TEST_KEY_ARR-1] = NULL;
       test_key_arr_idx--;
       test_key_idx = 0;
-    } else
+    } else {
+      //      printf("returning here wrong!!\n");
       return;
+    }
   }
   assert(test_key_idx<=TEST_KEY_ARR_SIZE);
 
@@ -87,10 +89,10 @@ KbdGetCh(void)
   /* last char of pipe */
   if ((0 == test_key[0][test_key_idx]) && (0 == do_correct)) {
     assert (test_key_idx >= 0);
-    //printf("hack2 kbd.c sending:0x%x\n", keyHitData.KbdData);
     keyHitData.KbdData = ASCII_ENTER;
     keyHitData.KbdDataAvail = 1;
     test_key_idx = -1;
+    //printf("hack2 kbd.c sending:0x%x\n", keyHitData.KbdData);
     return;
   }
 
