@@ -5930,7 +5930,6 @@ int f_puts (
 {
 	putbuff pb;
 
-
 	putc_init(&pb, fp);
 	while (*str) putc_bfd(&pb, *str++);		/* Put the string */
 	return putc_flush(&pb);

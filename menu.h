@@ -90,8 +90,8 @@ typedef struct {
 #define MENU_HELPER_INIT 0x00
 #define MENU_HELPER_QUIT 0x08
 #define MENU_ITEM_SAVE   0x04
-#define MENU_ITEM_LOAD   0x08
-#define MENU_ITEM_REPORT 0x08
+#define MENU_ITEM_LOAD   0x02
+#define MENU_ITEM_REPORT 0x01
 #define MENU_REPO_BWISE  0x01
 #define MENU_REPO_VOID   0x02
 #define MENU_REPO_DUP    0x03
@@ -154,7 +154,7 @@ struct setting_vars {
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_TAX) MENU_NAME("Tax Report      ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
-  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_ITEM) MENU_NAME("Item In Bill Rept") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
+  MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_ITEM) MENU_NAME("Item In Bill Rept") COL_JOIN MENU_FUNC(menuSdIterItem) COL_JOIN \
     ARG1(MENU_PR_NONE, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER) MENU_NAME("Delete All Bills") COL_JOIN MENU_FUNC(menuDelAllBill) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
@@ -172,9 +172,9 @@ struct setting_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Factory Reset   ") COL_JOIN MENU_FUNC(menuFactorySettings) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Items      ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_LOAD) MENU_NAME("Load Items      ") COL_JOIN MENU_FUNC(menuSdIterItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
-  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_SAVE) MENU_NAME("Export Items    ") COL_JOIN MENU_FUNC(menuSDIterItem) COL_JOIN \
+  MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER|MENU_ITEM_SAVE) MENU_NAME("Export Items    ") COL_JOIN MENU_FUNC(menuSdIterItem) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_SETTINGS) MENU_MODE(MENU_MSUPER) MENU_NAME("Update Firmware  ") COL_JOIN MENU_FUNC(menuUpdateFirmware) COL_JOIN \
     ARG1(MENU_PR_ID, MENU_ITEM_NONE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE)
@@ -228,6 +228,7 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified
+uint8_t menuDelAllBill(uint8_t mode); // Unverified
 uint8_t menuCalculator(uint8_t mode);
 uint8_t menuViewOldBill(uint8_t mode); // unverified
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
@@ -248,12 +249,11 @@ uint8_t menuSetHotKey(uint8_t mode); // Unverified
 
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
-uint8_t menuDelAllBill(uint8_t mode); // Unverified
 uint8_t menuTallyCash(uint8_t mode); // Unverified
 
 /* SD routines */
-uint8_t menuSDIterItem(uint8_t mode); // Unverified
-uint8_t menuSDSaveBillDat(uint8_t mode); // Unverified
+uint8_t menuSdIterItem(uint8_t mode);
+uint8_t menuSdSaveBillDat(uint8_t mode); // Unverified
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode); // Unverified

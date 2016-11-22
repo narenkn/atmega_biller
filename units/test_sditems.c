@@ -1,8 +1,4 @@
 
-/* All Header overrides */
-#undef  SD_ITEM_FILE
-#define SD_ITEM_FILE "test_data/items_1.dat"
-
 #include "test_common.c"
 
 int

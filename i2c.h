@@ -135,6 +135,7 @@ uint8_t twst;
  */
 #define EEPROM_MAX_DEVICES             1
 #define EEPROM_MAX_DEVICES_LOGN2       0
+#define EEPROM_ADDR_SHIFT              2
 
 /* */
 #define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)

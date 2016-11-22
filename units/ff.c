@@ -530,8 +530,9 @@ int f_putc (
 	FIL* fp		/* Pointer to the file object */
 )
 {
-  assert(0);
-  return FR_DISK_ERR;
+  fputc(c, fp->fs);
+
+  return FR_OK;
 }
 
 

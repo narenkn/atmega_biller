@@ -46,7 +46,7 @@ uint8_t TIMSK, TCCR2, TCNT2;
 
 /* All Header overrides */
 #undef  SD_ITEM_FILE
-#define SD_ITEM_FILE "test_data/items_1.dat"
+#define SD_ITEM_FILE "run/items.csv"
 
 #ifndef  __UNITS_KBD_C
 #undef  LCD_ALERT

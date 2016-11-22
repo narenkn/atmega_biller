@@ -34,14 +34,21 @@
 # define LCD_ACT_LINE2         assert(0)
 # define LCD_cmd(CMD)					\
   do {							\
-  if ((CMD >= 0x80) & (CMD <= 0x8F))			\
+  if ((CMD >= 0x80) & (CMD <= 0x8F)) {			\
     lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0x80);	\
-  else if ((CMD >= 0xC0) & (CMD <= 0xCF))		\
+    lcd_x = 0;						\
+    lcd_y = CMD & 0xF;					\
+  } else if ((CMD >= 0xC0) & (CMD <= 0xCF)) {		\
     lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0xC0);	\
+    lcd_x = 1;						\
+    lcd_y = CMD & 0xF;					\
+  }							\
   } while (0)
 # define LCD_idle_drive
 
-#define LCD_refresh()          // FIXME: put debug info
+# define LCD_refresh()          // FIXME: put debug info
+
+# define KBD_GETCH_ALERT_N do { } while (0)
 
 #else
 
@@ -55,6 +62,8 @@
 # define LCD_CMD_CUR_MOVL      0x10   /* Move cursor to left one char */
 # define LCD_CMD_CUR_20        0xC0   /* Force cursor to the beginning of 2nd line */
 # define LCD_ACT_LINE2         0x3C   /* Activate second line */
+
+# define KBD_GETCH_ALERT_N     KBD_GETCH
 
 #if 8 == LCD_DPORT_SIZE
 
@@ -151,7 +160,7 @@ void LCD_PUTCH(uint8_t var);
   } while (0)
 #define LCD_ALERT_N(S, N)  do {			\
   lcd_alert_n(S, N);				\
-  KBD_GETCH;					\
+  KBD_GETCH_ALERT_N;				\
   } while (0)
 
 void lcd_alert(const char *str);

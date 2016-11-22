@@ -574,12 +574,13 @@ menuFactorySettings(uint8_t mode)
     MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
     MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
   } else { /* BCD format */
-    arg1.value.date.year = 0x15;
+    arg1.value.date.year = 2017;
     arg1.value.date.month = 1;
     arg1.value.date.day = 1;
     arg1.valid = MENU_ITEM_DATE;
     arg2.value.time.hour = 9;
     arg2.value.time.min = 0;
+    arg2.value.time.sec = 0;
     arg2.valid = MENU_ITEM_TIME;
   }
   if (MENU_ITEM_DATE == arg1.valid) {
@@ -605,8 +606,7 @@ menuFactorySettings(uint8_t mode)
     eeprom_update_byte((uint8_t *)ui16_1, 0);
   LCD_PUTCH('.'); LCD_refresh();
   for (ui16_1=0; ui16_1<SERIAL_NO_MAX; ui16_1++)
-    eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui16_1,
-		     bufSS[ui16_1]);
+    eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui16_1, bufSS[ui16_1]);
   LCD_PUTCH('.'); LCD_refresh();
 
   /* index to start searching for empty item */
@@ -692,8 +692,8 @@ menuInit()
   assert ((SIZEOF_SALE_EXCEP_ITEMS+LCD_MAX_COL+LCD_MAX_COL) <= BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
-  assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_MAX_DEVICES_LOGN2))>>EEPROM_MAX_DEVICES_LOGN2) == (offsetof(struct item, name)>>EEPROM_MAX_DEVICES_LOGN2));
-  assert(0 == (ITEM_SIZEOF % (1<<EEPROM_MAX_DEVICES_LOGN2)));
+  assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_ADDR_SHIFT))>>EEPROM_ADDR_SHIFT) == (offsetof(struct item, name)>>EEPROM_ADDR_SHIFT));
+  assert(0 == (ITEM_SIZEOF % (1<<EEPROM_ADDR_SHIFT)));
 
   /* init global vars */
   devStatus = 0;
@@ -719,25 +719,22 @@ menuInit()
     /* the CRC needs to be in the printable char set */
     if (ui16_2 == ui16_1) {
       ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
-      devStatus |= ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
+      devStatus = ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
         ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
     } else {
-      devStatus |= DS_DEV_INVALID;
+      devStatus = DS_DEV_INVALID;
     }
-    if ((devStatus & DS_DEV_INVALID) &&
+    if ((0 == loopCnt) && (devStatus & DS_DEV_INVALID) &&
         (0xFAC7051A == ui32_1)) { /* do factory setting */
       /* Serial # doesn't exist, load from addr 0 */
-      for (ui8_1=SERIAL_NO_MAX; ui8_1>0;) {
-        ui8_1--;
+      for (ui8_1=SERIAL_NO_MAX; ui8_1;) {
+	ui8_1--;
         ui8_2 = eeprom_read_byte((uint8_t *)(uint16_t)ui8_1+4);
-        eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1,
-                           ui8_2);
+        eeprom_update_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+ui8_1, ui8_2);
       }
       continue;
     } else if (devStatus & DS_DEV_INVALID) {
-#if !UNIT_TEST
       return; /* Invalid device */
-#endif
     }
     break;
   }
@@ -752,7 +749,7 @@ menuInit()
   /* Store away bills */
 #if NVFLASH_EN
   if (WDT_RESET_WAKEUP)
-    menuSDSaveBillDat(0);
+    menuSdSaveBillDat(0);
 #endif
 
   /* Re-scan and index all items */
@@ -884,7 +881,7 @@ menuBilling(uint8_t mode)
   /* Either of KOT, Modify or Void Bill */
   if (0 != (mode & ~MENU_MODEMASK)) {
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-    assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+   assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
 
     /* iterate through all records */
     for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
@@ -3163,7 +3160,7 @@ menuUserLogin(uint8_t mode)
 }
 
 static uint8_t
-menuSDLoadItemHelper(uint8_t mode)
+menuSdLoadItemHelper(uint8_t mode)
 {
   static uint16_t id;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
@@ -3200,24 +3197,31 @@ menuSDLoadItemHelper(uint8_t mode)
   UINT ret_size;
   uint32_t ui32_1;
 
-  f_read(&Fil, it->name, ITEM_NAME_BYTEL+1, &ret_size);
-  if (',' != it->name[ITEM_NAME_BYTEL]) return 1;
-  if ((ITEM_NAME_BYTEL+1) != ret_size) return 2;
-  if (0 != menuSdSCheckFix(it->name, ITEM_NAME_BYTEL)) return 3;
-
+  /* prod_code, name, cost, discount, has_vat, Vat, has_tax1, Tax1, has_tax2, Tax2, has_tax3, Tax3, is_reverse_tax, has_weighing_mc, has_common_discount */
   f_read(&Fil, it->prod_code, ITEM_PROD_CODE_BYTEL+1, &ret_size);
-  if (',' != it->prod_code[ITEM_PROD_CODE_BYTEL]) return 1;
-  if ((ITEM_PROD_CODE_BYTEL+1) != ret_size) return 2;
+  if ('#' == it->prod_code[0]) return 4; /* comment line */
+  if ((ITEM_PROD_CODE_BYTEL+1) != ret_size) return 1;
+  if (',' != it->prod_code[ITEM_PROD_CODE_BYTEL]) return 2;
   if (0 != menuSdSCheckFix(it->prod_code, ITEM_PROD_CODE_BYTEL)) return 3;
+
+  f_read(&Fil, it->name, ITEM_NAME_BYTEL+1, &ret_size);
+  if ((ITEM_NAME_BYTEL+1) != ret_size) return 1;
+  if (',' != it->name[ITEM_NAME_BYTEL]) return 2;
+  if (0 != menuSdSCheckFix(it->name, ITEM_NAME_BYTEL)) return 3;
 
   ret = menuSdScanF(&ui32_1, bufSS); it->cost = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->discount = ui32_1; ret |= menuSdSwallowComma();
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_vat = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->Vat = ui32_1; ret |= menuSdSwallowComma();
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_tax1 = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->Tax1 = ui32_1; ret |= menuSdSwallowComma();
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_tax2 = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->Tax2 = ui32_1; ret |= menuSdSwallowComma();
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_tax3 = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->Tax3 = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanD(&ui32_1, bufSS); it->is_reverse_tax = ui32_1; ret |= menuSdSwallowComma();
-  ret |= menuSdScanD(&ui32_1, bufSS); it->has_weighing_mc = ui32_1;
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_weighing_mc = ui32_1; ret |= menuSdSwallowComma();
+  ret |= menuSdScanD(&ui32_1, bufSS); it->has_common_discount = ui32_1;
 
   /* only when no errors */
   it->id = (0 == ret) ? ++id : 0;
@@ -3226,8 +3230,40 @@ menuSDLoadItemHelper(uint8_t mode)
   return (0 == ret) ? MENU_RET_NOERROR : 0xF;
 }
 
+#if UNIT_TEST
+static int
+f_puts_p (const uint8_t* str, FIL* fp)
+{
+  int len;
+
+  for (len=0; ;len++) {
+    uint8_t c = str[0];
+    if (0 == c) break;
+    f_putc(c, fp);
+    str++;
+  }
+
+  return len;
+}
+#else
+static int
+f_puts_p (const uint8_t* str, FIL* fp)
+{
+  putbuff pb;
+
+  putc_init(&pb, fp);
+  do {
+    uint8_t c = pgm_read_byte(str);
+    if (0 == c) break;
+    putc_bfd(&pb, c);
+    str++;
+  } while (1);
+  return putc_flush(&pb);
+}
+#endif
+
 static uint8_t
-menuSDSaveItemHelper(uint8_t mode)
+menuSdSaveItemHelper(uint8_t mode)
 {
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
@@ -3248,6 +3284,7 @@ menuSDSaveItemHelper(uint8_t mode)
       LCD_ALERT(PSTR("File open error"));
       return 1;
     }
+    f_puts_p(PSTR("## prod_code, name, cost, discount, has_vat, Vat, has_tax1, Tax1, has_tax2, Tax2, has_tax3, Tax3, is_reverse_tax, has_weighing_mc, has_common_discount"), &Fil); f_putc('\r', &Fil); f_putc('\n', &Fil);
     return 0;
   } else if (MENU_HELPER_QUIT == (mode & ~MENU_MODEMASK)) {
     /* */
@@ -3256,36 +3293,39 @@ menuSDSaveItemHelper(uint8_t mode)
     return 0;
   } else {
     /* format :
-       name, prod_code, cost, discount, Vat, Tax1, Tax2, Tax3, is_reverse_tax, has_weighing_mc
+       prod_code, name, cost, discount, has_vat, Vat, has_tax1, Tax1, has_tax2, Tax2, has_tax3, Tax3, is_reverse_tax, has_weighing_mc, has_common_discount
     */
     UINT  ret_size;
-    f_write(&Fil, it->name, ITEM_NAME_BYTEL, &ret_size); f_putc(',', &Fil);
-    assert(ITEM_NAME_BYTEL == ret_size);
     f_write(&Fil, it->prod_code, ITEM_PROD_CODE_BYTEL, &ret_size); f_putc(',', &Fil);
     assert(ITEM_PROD_CODE_BYTEL == ret_size);
+    f_write(&Fil, it->name, ITEM_NAME_BYTEL, &ret_size); f_putc(',', &Fil);
+    assert(ITEM_NAME_BYTEL == ret_size);
     menuSdF(it->cost); f_putc(',', &Fil);
     menuSdF(it->discount); f_putc(',', &Fil);
+    menuSdD(it->has_vat); f_putc(',', &Fil);
     menuSdF(it->Vat); f_putc(',', &Fil);
+    menuSdD(it->has_tax1); f_putc(',', &Fil);
     menuSdF(it->Tax1); f_putc(',', &Fil);
+    menuSdD(it->has_tax2); f_putc(',', &Fil);
     menuSdF(it->Tax2); f_putc(',', &Fil);
+    menuSdD(it->has_tax3); f_putc(',', &Fil);
     menuSdF(it->Tax3); f_putc(',', &Fil);
-    menuSdF(it->is_reverse_tax); f_putc(',', &Fil);
-    menuSdF(it->has_weighing_mc); f_putc('\r', &Fil); f_putc('\n', &Fil);
-    f_write(&Fil, (void *)it, ITEM_SIZEOF, &ret_size);
-    assert(ITEM_SIZEOF == ret_size);
+    menuSdD(it->is_reverse_tax); f_putc(',', &Fil);
+    menuSdD(it->has_weighing_mc); f_putc(',', &Fil);
+    menuSdD(it->has_common_discount);
+    f_putc('\r', &Fil); f_putc('\n', &Fil);
   }
 #endif
   return 0;
 }
 
-// Unverified
 static uint8_t
-menuSDReportItemHelper(uint8_t mode)
+menuSdReportItemHelper(uint8_t mode)
 {
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   if (MENU_HELPER_INIT == (mode & ~MENU_MODEMASK)) {
-    PRINTER_PSTR(PSTR("  id     name     prod_code    Rs.   Disc.   Vat  Tax1, Tax2, Tax3"));
+    PRINTER_PSTR(PSTR("  id     name     prod_code    Rs.   Disc.   Vat  Tax1, Tax2, Tax3\r\n"));
     return 0;
   }
   if (MENU_HELPER_QUIT == (mode & ~MENU_MODEMASK)) {
@@ -3293,6 +3333,7 @@ menuSDReportItemHelper(uint8_t mode)
   }
 
   /* body */
+  static uint32_t ui1=0;
   menuPrnD(it->id);
   PRINTER_PRINT(' ');
   for (uint8_t ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
@@ -3305,72 +3346,91 @@ menuSDReportItemHelper(uint8_t mode)
   PRINTER_PRINT(' ');
   menuPrnF(it->cost);
   PRINTER_PRINT(' ');
-  menuPrnD(it->discount);
+  menuPrnF(it->discount);
   PRINTER_PRINT(' ');
-  menuPrnD(it->Vat);
+  menuPrnF(it->Vat);
   PRINTER_PRINT(' ');
-  menuPrnD(it->Tax1);
+  menuPrnF(it->Tax1);
   PRINTER_PRINT(' ');
-  menuPrnD(it->Tax2);
+  menuPrnF(it->Tax2);
   PRINTER_PRINT(' ');
-  menuPrnD(it->Tax3);
+  menuPrnF(it->Tax3);
   PRINTER_PRINT('\n');
 
   return 0;
 }
 
 uint8_t
-menuSDIterItem(uint8_t mode)
+menuSdIterItem(uint8_t mode)
 {
-  uint16_t ui16_1, ui16_2;
+  uint16_t ui16_1, ui16_2, error = 0;
   uint8_t ui8_1 = 0;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   /* */
   if (MENU_ITEM_SAVE & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDSaveItemHelper(MENU_HELPER_INIT);
+    ui8_1 = menuSdSaveItemHelper(MENU_HELPER_INIT);
   } else if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDLoadItemHelper(MENU_HELPER_INIT);
+    ui8_1 = menuSdLoadItemHelper(MENU_HELPER_INIT);
   } else if (MENU_ITEM_REPORT & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDReportItemHelper(MENU_HELPER_INIT);
+    ui8_1 = menuSdReportItemHelper(MENU_HELPER_INIT);
   }
-  
+  ui8_1 ? error++ : 0;
+
+  /* delete all items for load */
+  if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
+    for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
+	 ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
+      ee24xx_write_bytes(ui16_1+(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)-1, NULL, 4);
+    }
+  }
+
   /* */
-  for (ui16_1=0; (0 == ui8_1) && (ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2));
-       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
+  for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
+       ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
     if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
-      ui8_1 = menuSDLoadItemHelper(mode);
-      if (0 == ui8_1) {
-	if (0 == it->id) {
-	  ee24xx_write_bytes(ui16_1+(offsetof(struct item, id)>>EEPROM_MAX_DEVICES_LOGN2), NULL, sizeof(uint16_t));
-	} else {
-	  ui16_2 = itemAddr(it->id);
-	  ee24xx_write_bytes(ui16_2, bufSS, ITEM_SIZEOF);
-	}
+      ui8_1 = menuSdLoadItemHelper(mode);
+      if ((0 == ui8_1 /* no err */) &&
+	  (it->id > 0) && (it->id <= ITEM_MAX)) {
+	ui16_1 = itemAddr(it->id);
+	ee24xx_write_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+      } else if (4 == ui8_1) { /* comment line */
+	ui8_1 = 0;
+      } else if (0 != ui8_1) {
+	error++;
       }
+
+      ui8_1 = 0; /* ignore errors during load */
       menuSdSwallowUntilNL();
       continue;
     }
-    ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
-    if ((0 == it->id) || (it->is_disabled))
+    ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+    if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
       continue;
     if (MENU_ITEM_SAVE & (mode & ~MENU_MODEMASK)) {
-      ui8_1 = menuSDSaveItemHelper(mode);
+      ui8_1 = menuSdSaveItemHelper(mode);
     } else if (MENU_ITEM_REPORT & (mode & ~MENU_MODEMASK)) {
-      ui8_1 = menuSDReportItemHelper(mode);
+      ui8_1 = menuSdReportItemHelper(mode);
+    } else {
+      assert(0);
     }
+    LCD_BUSY();
   }
 
   /* when all goes well */
   if (MENU_ITEM_SAVE & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDSaveItemHelper(MENU_HELPER_QUIT);
+    ui8_1 = menuSdSaveItemHelper(MENU_HELPER_QUIT);
     LCD_ALERT(PSTR("Item Saved.."));
   } else if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDLoadItemHelper(MENU_HELPER_QUIT);
+    ui8_1 = menuSdLoadItemHelper(MENU_HELPER_QUIT);
     LCD_ALERT(PSTR("Item Loaded.."));
   } else if (MENU_ITEM_REPORT & (mode & ~MENU_MODEMASK)) {
-    ui8_1 = menuSDReportItemHelper(MENU_HELPER_QUIT);
+    ui8_1 = menuSdReportItemHelper(MENU_HELPER_QUIT);
   }
+  ui8_1 ? error++ : 0;
+
+  /* */
+  LCD_ALERT_N(PSTR("#Errors:"), error);
 
   return MENU_RET_NOERROR;
 }
@@ -3543,7 +3603,7 @@ menuBillReports(uint8_t mode)
 }
 
 uint8_t
-menuSDSaveBillDat(uint8_t mode)
+menuSdSaveBillDat(uint8_t mode)
 {
   uint16_t ui16_1, ui16_2, ui16_3;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);

@@ -17,9 +17,7 @@ i2c_init(void)
   i2c_date.month = 10;
   i2c_date.year = 2016;
 
-  uint32_t ui1;
-  for (ui1=0; ui1<EEPROM_SIZE; ui1++)
-    i2c_bytes[ui1] = rand();
+  memset(i2c_bytes, 0xFF, EEPROM_SIZE);
 }
 
 uint8_t
@@ -83,7 +81,7 @@ ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 
   for (n_bytes=0; n_bytes<num_bytes; n_bytes++) {
     assert((addr_t+n_bytes) < EEPROM_SIZE);
-    i2c_bytes[addr_t+n_bytes] = (NULL == data) ? 0 : data[n_bytes];
+    i2c_bytes[addr_t+n_bytes] = (NULL == data) ? 0xFF : data[n_bytes];
     //if (NULL != data)
     //printf("i2c[%x] = %x\n", (addr_t+n_bytes), data[n_bytes]);
   }
