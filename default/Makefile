@@ -180,6 +180,7 @@ BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
 BUILD_FLAGS += -DUNICODE_ENABLE=0             # Unicode in device
 BUILD_FLAGS += -DLCD_TIMER2_REFRESH=0         # Timer2 intr to refresh LCD
 BUILD_FLAGS += -DNVFLASH_EN=1                 # Non Volatile Flash
+BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Printer Enable
 
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information

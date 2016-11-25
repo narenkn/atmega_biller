@@ -189,15 +189,16 @@ extern uint8_t devStatus;
 #define DS_DEV_1K   (1<<2)
 #define DS_DEV_5K   (1<<3)
 #define DS_DEV_20K  (1<<4)
-#define DS_DEV_INVALID (1<<5)
-#define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD)
+#define DS_NO_NVF   (1<<5)
+#define DS_DEV_INVALID (1<<6)
+#define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD|DS_NO_NVF)
 
 /* Pending actions */
 #define MENU_PEND_LCD_REFRESH  (1<<0)
 extern uint8_t menuPendActs;
 
 /* Helper routines */
-typedef uint32_t (*menuGetOptHelper)(uint8_t *str, uint16_t strlen, uint32_t prev);
+typedef uint32_t (*menuGetOptHelper)(uint8_t *str, uint16_t *strlen, uint32_t prev);
 void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
@@ -228,12 +229,12 @@ uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16
 
 /* billing routines */
 uint8_t menuBilling(uint8_t mode); // unverified
-uint8_t menuDelAllBill(uint8_t mode); // Unverified
+uint8_t menuDelAllBill(uint8_t mode);
 uint8_t menuCalculator(uint8_t mode);
 uint8_t menuViewOldBill(uint8_t mode); // unverified
-typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
-void menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index); // unverified
-void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem); // Unverified
+typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
+void menuPrnBillNvfHelper(uint16_t item_addr, struct item *it, uint16_t it_index);
+void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem);
 
 /* User option routines */
 #if MENU_SETTING_ENABLE
@@ -253,7 +254,7 @@ uint8_t menuTallyCash(uint8_t mode); // Unverified
 
 /* SD routines */
 uint8_t menuSdIterItem(uint8_t mode);
-uint8_t menuSdSaveBillDat(uint8_t mode); // Unverified
+uint8_t menuSdSaveBillDat(uint8_t mode);
 
 /* Other routines */
 uint8_t menuFactorySettings(uint8_t mode); // Unverified

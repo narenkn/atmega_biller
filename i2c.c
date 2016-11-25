@@ -620,19 +620,19 @@ ISR(TIMER0_COMP_vect)
 	soft_reset();
 
 	/* find max time, keep date */
-	if (1 == rtc_month) {
+	if (2 == rtc_month) {
 	  max_days_in_month = ((0 == (rtc_year & 0x3)) && (0 != (rtc_year%100)))? 29 : 28;
-	} else if ( (0 == rtc_month) || (2 == rtc_month) ||
-		    (4 == rtc_month) || (6 == rtc_month) ||
-		    (7 == rtc_month) || (9 == rtc_month) ||
-		    (11 == rtc_month) )
+	} else if ( (1 == rtc_month) || (3 == rtc_month) ||
+		    (5 == rtc_month) || (7 == rtc_month) ||
+		    (8 == rtc_month) || (10 == rtc_month) ||
+		    (12 == rtc_month) )
 	  max_days_in_month = 31;
 	else
 	  max_days_in_month = 30;
-	if (rtc_date >= max_days_in_month) {
-	  rtc_date = 0;
-	  if (++rtc_month >= 12) {
-	    rtc_month = 0;
+	if (rtc_date > max_days_in_month) {
+	  rtc_date = 1;
+	  if (++rtc_month > 12) {
+	    rtc_month = 1;
 	    rtc_year++;
 	  }
 	}

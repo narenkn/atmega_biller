@@ -123,6 +123,7 @@ FRESULT f_open (
 {
   assert(NULL != _fs);
   strcpy(fp->fpath, path);
+  //  printf("f_open called %s %p\n", path, fp);
 
   /* */
   if (fp->is_active) {
@@ -193,6 +194,7 @@ FRESULT f_close (
 	FIL *fp
 )
 {
+  //  printf("f_close called %p\n", fp);
   fclose(fp->fs);
   fp->is_active = 0;
 }
@@ -214,8 +216,8 @@ FRESULT f_chdir (
 	const TCHAR* path
 )
 {
-  assert(0);
-  return FR_DISK_ERR;
+  chdir(path);
+  return FR_OK;
 }
 
 

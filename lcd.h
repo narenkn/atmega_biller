@@ -20,7 +20,7 @@
 #define LCD_bl_off   PORTG &= ~_BV(2)
 #define LCD_WAS_ON  (PORTG & _BV(2))
 
-#ifdef  UNIT_TEST
+#if UNIT_TEST
 
 # define LCD_CMD_DISON_CURON_BLINKON assert(0)
 # define LCD_CMD_CLRSCR        lcd_clrscr()

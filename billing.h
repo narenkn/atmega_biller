@@ -46,7 +46,7 @@ struct sale {
   /* how may bills inside 1024 bytes ?
      1024 - 32 - 12 = 980
      980 / 13 = 75 */
-  struct sale_item items[MAX_ITEMS_IN_BILL];/* 69*15=1104 */
+  struct sale_item items[MAX_ITEMS_IN_BILL];/* 64*15= 960 */
   uint32_t  t_tax1;                      /*             4 */
   uint32_t  t_tax2;                      /*             4 */
   uint32_t  t_tax3;                      /*             4 */
@@ -56,7 +56,7 @@ struct sale {
   uint32_t  t_cash_pay;                  /*             4 */
   uint32_t  t_other_pay;                 /*             4 */
   struct item      it[1];                /*             0 (not stored) */
-} __attribute__((packed));               /* Tot=     1020 */
+} __attribute__((packed));               /* Tot=     1013 */
 
 /* constants */
 #define SIZEOF_SALE       sizeof(struct sale) /* 1020+52=1072 */

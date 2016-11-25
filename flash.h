@@ -82,7 +82,7 @@
 #define JEDEC_ID                  0x014017
 #define NVF_PAGE_SIZE             (1<<8)
 
-void nvfInit();
+bool nvfInit();
 void nvfChipErase(uint8_t sel);
 void nvfBlockErase4K(uint16_t addr);
 void nvfSleep();
@@ -102,9 +102,15 @@ uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 
 /* */
 #define NVF_START_ADDRESS   ((uint16_t)0)
-#define NVF_MAX_ADDRESS     ((uint16_t)((0x3FFF<<NVF_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
-#define NVF_4K_MASK         ((uint16_t)(((1<<12)-1)>>NVF_MAX_DEVICES_LOGN2))
-#define NVF_4KBLOCK_4kAddr(addr)		\
-  (addr & ~NVF_4K_MASK)
+#define NVF_END_ADDRESS     ((uint16_t)((0x3FFF<<NVF_NUM_DEVICES_LOGN2)|0xF)&0xFFFF)
+/* addr[15:0] : 15:14 - select device
+                13:0  - maps to 22:9 of 8M space which is 512 blocks
+   total blocks = 16k [of 512 blocks] (2^4*2^10*2^9)
+                = 32k [of 256 blocks]
+   for 4K size : 16 blocks of 256 sized blocks has to be cleared
+
+   addr[15:0] to convert 4K addr : loose 12LSB (already 9 bits not present)
+ */
+#define NVF_4KBLOCK_ADDR(addr) (addr & ~0x0007)
 
 #endif

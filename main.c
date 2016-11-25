@@ -114,7 +114,7 @@ main(void)
   ep_store_init();
   i2c_init();
 #if NVFLASH_EN
-  nvfInit();
+  devStatus |= nvfInit() ? 0 : DS_NO_NVF;
 #endif
   uartInit();
   printerInit();
@@ -164,17 +164,19 @@ validDate(date_t date)
 {
   uint8_t max_days_in_month;
 
-  if (1 == date.month) {
+  if (2 == date.month) {
     max_days_in_month = ((0 == (date.year%4)) && (0 != (date.year%100)))? 29 : 28;
-  } else if ( (0 == date.month) || (2 == date.month) ||
-	      (4 == date.month) || (6 == date.month) ||
-	      (7 == date.month) || (9 == date.month) ||
-	      (11 == date.month) )
+  } else if ( (1 == date.month) || (3 == date.month) ||
+	      (5 == date.month) || (7 == date.month) ||
+	      (8 == date.month) || (10 == date.month) ||
+	      (12 == date.month) )
     max_days_in_month = 31;
   else
     max_days_in_month = 30;
 
-  return (date.month<=11) && (date.day < max_days_in_month);
+  return (date.year >= 2016) &&
+    (date.month <= 12) && (date.month > 0) &&
+    (date.day <= max_days_in_month) && (date.day > 0);
 }
 
 void
@@ -186,19 +188,19 @@ nextDate(date_t *date)
   (date->day)++;
 
   /* find max time, keep date */
-  if (1 == date->month) {
+  if (2 == date->month) {
     max_days_in_month = ((0 == (date->year & 0x3)) && (0 != (date->year%100)))? 29 : 28;
-  } else if ( (0 == date->month) || (2 == date->month) ||
-	      (4 == date->month) || (6 == date->month) ||
-	      (7 == date->month) || (9 == date->month) ||
-	      (11 == date->month) )
+  } else if ( (1 == date->month) || (3 == date->month) ||
+	      (5 == date->month) || (7 == date->month) ||
+	      (8 == date->month) || (10 == date->month) ||
+	      (12 == date->month) )
     max_days_in_month = 31;
   else
     max_days_in_month = 30;
-  if (date->day >= max_days_in_month) {
-    date->day = 0;
-    if (++(date->month) >= 12) {
-      date->month = 0;
+  if (date->day > max_days_in_month) {
+    date->day = 1;
+    if (++(date->month) > 12) {
+      date->month = 1;
       (date->year)++;
     }
   }

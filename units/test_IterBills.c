@@ -511,7 +511,6 @@ main(int argc, char *argv[])
   menuInit();
   test_init2();
   nvfInit();
-  printerInit();
 
   /* test init */
 #define NUM_ITEMS2TEST  ITEM_MAX
@@ -520,9 +519,114 @@ main(int argc, char *argv[])
     make_item(all_items+ui1, 0);
   }
 
-  make_bill(all_sales+0, 0);
+  /* Check all items as per expectations */
+  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+    compare_item(all_items+ui1, itemAddr(ui1+1));
+  }
 
-  menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
+  #define TEST_LOOP 10
+  /* Test for all bills saved & retrieved */
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  date_t date;
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    timerDateSet(date);
+    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS; ui1++) {
+      make_bill(all_sales+ui1, 0);
+    }
 
-  return 0;
+    /* */
+    struct sale sl;
+    add_expect_assert("0 == __LINE__" ", " __FILE__);
+    make_bill(&sl, 0);
+    add_expect_assert("0 == __LINE__" ", " __FILE__);
+    make_bill(&sl, 0);
+    /* Save to file */
+    menuSdSaveBillDat(0);
+    /* test all bills are deleted */
+    uint16_t ui16_2 = 0;
+    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS;
+	 ui1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+      bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
+      assert (0xFFFF != (sl.crc ^ sl.crc_invert));
+      //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
+    }
+
+#if 0
+    /* check data in file */
+    sprintf(inp, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
+    FILE *inf = fopen(inp, "r");
+    printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
+    ssize_t ret;
+    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS; ui1++) {
+      ret = fread ((void *)&sl, 1, SIZEOF_SALE_EXCEP_ITEMS, inf);
+      if (0 == ret) break;
+      assert(SIZEOF_SALE_EXCEP_ITEMS == ret);
+      assert(0xFFFF == (sl.crc ^ sl.crc_invert));
+      compare_bills(all_sales+ui1, &sl);
+      /* load bills */
+      ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+      bill_write_bytes(ui16_2, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
+      ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+      eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
+      /* */
+      ret = fread ((void *)&sl, 1, MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS, inf);
+      if (0 == ret) break;
+      assert((MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS) == ret);
+    }
+    ret = fread ((void *)&sl, MAX_SIZEOF_1BILL, 1, inf);
+    assert(0 == ret);
+    fclose(inf);
+#endif
+
+    /* goto next date */
+    nextDate(&date);
+  }
+
+#if 1
+  /* */
+  char fn[32];
+  FILE *inf;
+
+  if (TEST_LOOP < 10) return MENU_RET_NOERROR;
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  /* choose a random range to delete */
+  uint8_t ui8_1 = rand() & 0x3;
+  uint8_t ui8_2 = ui8_1 + (rand() & 0x3);
+
+  RESET_TEST_KEYS;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    if (loop == ui8_1) {
+      sprintf(inp, "%02d%02d%04d", date.day, date.month, date.year);
+      INIT_TEST_KEYS(inp);
+    }
+    if (loop == ui8_2) {
+      sprintf(inp+LCD_MAX_COL, "%02d%02d%04d", date.day, date.month, date.year);
+      INIT_TEST_KEYS(inp+LCD_MAX_COL);
+    }
+    nextDate(&date);
+  }
+  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
+  menuDelAllBill(MENU_NOCONFIRM);
+  /* now check if the files are deleted */
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    sprintf(fn, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
+    printf("File %s : ", fn);
+    inf = fopen(fn, "r");
+    if ((ui8_1 <= loop) && (loop <= ui8_2)) {
+      printf("Deleted : %p\n", inf);
+      assert(NULL == inf);
+    } else {
+      printf("exists : %p\n", inf);
+      assert(NULL != inf);
+    }
+    fclose(inf);
+    nextDate(&date);
+  }
+#endif
+  
+  return MENU_RET_NOERROR;
 }

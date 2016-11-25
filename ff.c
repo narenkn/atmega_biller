@@ -5815,14 +5815,6 @@ TCHAR* f_gets (
 /* Put a character to the file                                           */
 /*-----------------------------------------------------------------------*/
 
-typedef struct {
-	FIL *fp;		/* Ptr to the writing file */
-	int idx, nchr;	/* Write index of buf[] (-1:error), number of chars written */
-	BYTE buf[64];	/* Write buffer */
-} putbuff;
-
-
-static
 void putc_bfd (		/* Buffered write with code conversion */
 	putbuff* pb,
 	TCHAR c
@@ -5877,8 +5869,6 @@ void putc_bfd (		/* Buffered write with code conversion */
 	pb->nchr++;
 }
 
-
-static
 int putc_flush (		/* Flush left characters in the buffer */
 	putbuff* pb
 )
@@ -5891,8 +5881,6 @@ int putc_flush (		/* Flush left characters in the buffer */
 	return EOF;
 }
 
-
-static
 void putc_init (		/* Initialize write buffer */
 	putbuff* pb,
 	FIL* fp

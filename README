@@ -138,6 +138,12 @@ Atmega128 Product:
 +54. Paper Feed
 +55. At end of billing, ask for 1 more copy to be printed
 +56. Save and Edit bill further
++57. day-change Reset should only be hit on certain places in sleep
++58. Software patch for restaurant, clothing, vehicle parking
++59. Table wise report, user wise report
++60. Testing : for all f_open modes
++61. i2c.c (get_fattime) FIXME: Year is offset by 1900 or 2000 ??
+
 
 + : header enabled
 ++ : software coded

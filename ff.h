@@ -279,6 +279,16 @@ int f_puts (const TCHAR* str, FIL* cp);								/* Put a string to the file */
 int f_printf (FIL* fp, const TCHAR* str, ...);						/* Put a formatted string to the file */
 TCHAR* f_gets (TCHAR* buff, int len, FIL* fp);						/* Get a string from the file */
 
+typedef struct {
+	FIL *fp;		/* Ptr to the writing file */
+	int idx, nchr;	/* Write index of buf[] (-1:error), number of chars written */
+	BYTE buf[64];	/* Write buffer */
+} putbuff;
+
+void putc_bfd (putbuff* pb, TCHAR c);
+void putc_init (putbuff* pb, FIL* fp);
+int putc_flush (putbuff* pb);
+
 #define f_eof(fp) ((int)((fp)->fptr == (fp)->obj.objsize))
 #define f_error(fp) ((fp)->err)
 #define f_tell(fp) ((fp)->fptr)

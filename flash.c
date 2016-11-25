@@ -98,7 +98,7 @@ nvfUnSelect()
 }
 
 /// setup SPI, read device ID etc...
-void
+bool
 nvfInit()
 {
   nvfUnSelect();
@@ -157,10 +157,11 @@ uint16_t
 bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 {
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
-  addr <<= NVF_MAX_DEVICES_LOGN2;
+  addr <<= NVF_MAX_DEVICES_LOGN2; addr >>= NVF_MAX_DEVICES_LOGN2;
+  addr <<= 1;
 
   nvfCommand(SPIFLASH_ARRAYREAD, false);
-  /* coded for 8Mbyte device where address[23] is don't care */
+  /* coded for 8Mbyte device, address[23] is don't care */
   spiTransmit(addr >> 8);
   spiTransmit(addr);
   spiTransmit(0); /* addr[7:0] */
@@ -231,7 +232,8 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   uint16_t maxBytesInPage;
 
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
-  addr <<= NVF_MAX_DEVICES_LOGN2;
+  addr <<= NVF_MAX_DEVICES_LOGN2; addr >>= NVF_MAX_DEVICES_LOGN2;
+  addr <<= 1;
 
   for (uint16_t idx=0, offset=0; _len>0; idx++)
   {
@@ -275,7 +277,8 @@ void
 nvfBlockErase4K(uint16_t addr)
 {
   _selected = addr >> (16 - NVF_MAX_DEVICES_LOGN2);
-  addr <<= NVF_MAX_DEVICES_LOGN2;
+  addr <<= NVF_MAX_DEVICES_LOGN2; addr >>= NVF_MAX_DEVICES_LOGN2;
+  addr <<= 1;
 
   nvfCommand(SPIFLASH_BLOCKERASE_4K, true); // Block Erase
   spiTransmit(addr >> 8);
