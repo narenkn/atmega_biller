@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "test_common.c"
+#include "common_incl.c"
 
 uint16_t ui16_1;
 

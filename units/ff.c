@@ -137,7 +137,7 @@ FRESULT f_open (
 		   (FA_READ&mode) ? "r":
 		   (FA_WRITE&mode) ? "w" : "r" ) );
   if (NULL == fp->fs) {
-    printf("error:'%s' '%s'\n", strerror(errno), fp->fpath);
+    //printf("error:'%s' '%s'\n", strerror(errno), fp->fpath);
     return FR_DISK_ERR;
   }
   fp->is_active = 1;

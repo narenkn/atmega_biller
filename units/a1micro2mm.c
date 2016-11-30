@@ -40,7 +40,7 @@ FILE *prn_outf = NULL;
 void
 printerInit(void)
 {
-  prn_outf = fopen("stdout.log", "w");
+  prn_outf = fopen("printer.out", "w");
 }
 
 void
@@ -69,7 +69,7 @@ printerCompareStatus(char *golden)
 
   fclose(prn_outf);
 
-  prn_outf = fopen("stdout.log", "r");
+  prn_outf = fopen("printer.out", "r");
   gp = golden;
   do {
     this_sz = fread(buf, 1, 512, prn_outf);
@@ -81,7 +81,7 @@ printerCompareStatus(char *golden)
   assert(file_size == golden_size);
 
   fclose(prn_outf);
-  prn_outf = fopen("stdout.log", "w");
+  prn_outf = fopen("printer.out", "w");
 
   return ret;
 }

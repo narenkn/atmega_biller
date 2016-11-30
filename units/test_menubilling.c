@@ -1,7 +1,7 @@
 
 #define  __UNITS_KBD_C
 #define  INCL_UNITS_KBD_NCURSES_C
-#include "test_common.c"
+#include "common_incl.c"
 
 void
 test_init1()

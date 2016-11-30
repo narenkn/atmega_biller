@@ -81,6 +81,11 @@ void PRINTER_PSTR(const char *P);
     }							\
   } while (0)
 
+#define PRINTER_PRINTN(STR, N)				\
+  for (uint8_t _ui8_1=0; _ui8_1<N; _ui8_1++) {		\
+    PRINTER_PRINT(STR[_ui8_1]);				\
+  }
+
 void printerInit(void);
 void printerDefineUserChar(uint8_t idx);
 uint8_t printerStatus(void);

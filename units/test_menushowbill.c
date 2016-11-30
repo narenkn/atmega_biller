@@ -1,5 +1,5 @@
 
-#include "test_common.c"
+#include "common_incl.c"
 
 #define MAX_VALID_BILLS 100
 uint16_t vbill_idx[MAX_VALID_BILLS];

@@ -2,7 +2,7 @@
 /* All Header overrides */
 #define SD_SETTINGS_FILE "test_data/settings_2.dat"
 
-#include "test_common.c"
+#include "common_incl.c"
 
 int
 main(void)

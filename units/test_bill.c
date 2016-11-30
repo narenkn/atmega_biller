@@ -1,4 +1,4 @@
-#include "test_common.c"
+#include "common_incl.c"
 
 /* place to store items */
 struct item all_items[ITEM_MAX];

@@ -1,4 +1,4 @@
-#include "test_common.c"
+#include "common_incl.c"
 
 /* tests user login/logout features */
 int

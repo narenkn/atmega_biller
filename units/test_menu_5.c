@@ -1,6 +1,6 @@
 #define TEST_KEY_ARR_SIZE    (BUFSS_SIZE+1024)
 
-#include "test_common.c"
+#include "common_incl.c"
 
 /* test setting set routines */
 

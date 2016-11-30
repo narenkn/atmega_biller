@@ -3,7 +3,7 @@
 #define UNIT_TEST_MENU_1 menu_handler
 void menu_handler(uint8_t ui);
 
-#include "test_common.c"
+#include "common_incl.c"
 
 void
 menu_handler(uint8_t ui)
