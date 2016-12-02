@@ -63,7 +63,6 @@ keyMapR[] PROGMEM = {
 //};
 
 volatile keyHitData_t keyHitData;
-volatile uint8_t keypadMultiKeyModeOff;
 ps2LineStat_t kbd0, kbd1, kbd2;
 
 #if defined (__AVR_ATmega32__)
@@ -79,7 +78,7 @@ ps2LineStat_t kbd0, kbd1, kbd2;
 #endif
 
 void
-KbdInit(void)
+kbdInit(void)
 {
   /* Reset state
      Port A   : output  (drive 0)
@@ -93,7 +92,6 @@ KbdInit(void)
 
   /* No data yet */
   KBD_RESET_KEY;
-  keypadMultiKeyModeOff = 0;
 
   /* setup timer 1 */
   TCCR1A = 0; // set entire TCCR1A register to 0
@@ -152,9 +150,7 @@ keypadPushHit()
     keyHitData._kbdData--;
     keyHitData._kbdData &= 0xF;
     key = pgm_read_byte(keyMap+keyHitData._kbdData);
-    if (keypadMultiKeyModeOff) {
-      key = keyHitData.KbdData;
-    } else if (keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) {
+    if (keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) {
       key = keyHitData._kbdData;
     } else if (keyHitData.KbdData < 10) {
       key = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & kbdShiftHit)*5) ));
@@ -251,7 +247,6 @@ ISR(INT2_vect)
   if (0 == keyHitData.count) {
     keyHitData._kbdData = kbdData;
     keyHitData.count = 1;
-    if (keypadMultiKeyModeOff) keypadPushHit();
   } else if (keyHitData._kbdData != kbdData) {
     /* diff key, miss any previous key that's pending */
     keypadPushHit();

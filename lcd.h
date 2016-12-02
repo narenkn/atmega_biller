@@ -5,7 +5,7 @@
 #define LCD_MAX_COL           16
 
 #if 8 == LCD_DPORT_SIZE
-# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= 0xF; PORTA |= val
+# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= 0xF; PORTA |= val & 0xF
 #elif 4 == LCD_DPORT_SIZE
 # define LCD_PORT(val)				\
   PORTA = (PORTA & ~0xF) | ((val) & 0xF)

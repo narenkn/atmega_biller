@@ -26,6 +26,10 @@ main()
   _delay_ms(1000);
 
 #if 1 // For Printer
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Printer Testing!"));
+  LCD_CLRLINE(1);
+  LCD_WR_P(PSTR("Sending HW..."));
   while (1) {
     uart0TransmitByte('H');
     //  _delay_ms(10);
@@ -38,10 +42,24 @@ main()
     uart0TransmitByte('o');
     //  _delay_ms(10);
     uart0TransmitByte(' ');
+    //  _delay_ms(10);
+    uart0TransmitByte('W');
+    //  _delay_ms(10);
+    uart0TransmitByte('o');
+    //  _delay_ms(10);
+    uart0TransmitByte('r');
+    //  _delay_ms(10);
+    uart0TransmitByte('l');
+    //  _delay_ms(10);
+    uart0TransmitByte('d');
+    //  _delay_ms(10);
+    uart0TransmitByte('!');
+    //  _delay_ms(10);
+    uart0TransmitByte('\n');
   }
 #endif
 
-#if 0 // Weighing machine
+#if 1 // Weighing machine
   set_sleep_mode(SLEEP_MODE_IDLE);
   cli();
   LCD_CLRLINE(1);

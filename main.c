@@ -110,7 +110,7 @@ main(void)
   _delay_ms(500);
 
   /* All other devices */
-  KbdInit();
+  kbdInit();
   ep_store_init();
   i2c_init();
 #if NVFLASH_EN

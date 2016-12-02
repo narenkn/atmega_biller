@@ -15,19 +15,19 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DLCD_USE_FUNCTIONS=1
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON) $(CLINE_ARG)
 CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=8000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
-CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -DBUFSS_SIZE=1056 -DDS1307=0
-CFLAGS += -DMENU_USER_ENABLE=0           # 8 different Users, login
-CFLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
-CFLAGS += -DMENU_SDSAVE_EN=0             # Save/restore from/to SD
-CFLAGS += -DMENU_DELBILL=1               # Delete bill
-CFLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
-CFLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
-CFLAGS += -DFF_ENABLE=0                  # Enable SD file system
-CFLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
-CFLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
-CFLAGS += -DUNICODE_ENABLE=0             # Unicode in device
-CFLAGS += -DNVFLASH_EN=1                 # Non Volatile Flash
+BUILD_FLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
+BUILD_FLAGS += -DBUFSS_SIZE=1056 -DDS1307=0
+BUILD_FLAGS += -DMENU_USER_ENABLE=1           # 8 different Users, login
+BUILD_FLAGS += -DMENU_SETTING_ENABLE=1        # Set menu items in device
+BUILD_FLAGS += -DMENU_SDSAVE_EN=1             # Save/restore from/to SD
+BUILD_FLAGS += -DMENU_DELBILL=1               # Delete bill
+BUILD_FLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
+BUILD_FLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
+BUILD_FLAGS += -DFF_ENABLE=1                  # Enable SD file system
+BUILD_FLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
+BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
+BUILD_FLAGS += -DUNICODE_ENABLE=0             # Unicode in device
+BUILD_FLAGS += -DNVFLASH_EN=1                 # Non Volatile Flash
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
@@ -35,9 +35,9 @@ ASMFLAGS += $(CFLAGS)
 ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
-BOOTLOAD = 0x7E00
+BOOTLOAD = 0xFE00
 LDFLAGS = $(COMMON)
-LDFLAGS +=  -Wl,-Map=$(SOURCE:.c=.map)
+LDFLAGS +=  -Wl,-Map=$(TARGET:.c=.map)
 LDFLAGS += -Wl,--section-start=.bootloader=$(BOOTLOAD)
 
 ## Intel Hex file production flags
@@ -64,6 +64,8 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
 
 ##
 include ../make.proj
+
+CFLAGS += $(BUILD_FLAGS)
 
 ##
 headers: ../ep_ds.h ../version.h 

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <ctype.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
@@ -29,7 +30,7 @@ main()
   LCD_init();
   LCD_bl_on;
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("Kbd Testing"));
+  LCD_WR_P(PSTR("Keypad Testing"));
   LCD_refresh();
   KbdInit();
 
@@ -46,8 +47,8 @@ main()
     KBD_RESET_KEY;
     KBD_GETCH;
     LCD_CLRLINE(0);
-    LCD_WR_P(PSTR("Kbd Testing:"));
-    if (keyHitData.KbdData <= '~') {
+    LCD_WR_P(PSTR("Keypad Testing:"));
+    if (isprint(keyHitData.KbdData)) {
       LCD_PUTCH(keyHitData.KbdData);
     } else if (ASCII_LEFT == keyHitData.KbdData) {
       LCD_WR_NP(PSTR("LEFT"), 4);

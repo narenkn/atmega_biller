@@ -36,4 +36,4 @@ headers : ../ep_ds.h ../version.h
 	python ../utils/csv2dat --to_dat --in_file $< --out_file $@
 
 clean:
-	-\rm -f core.* *~ $(TESTS)
+		-\rm -f core.* *~ $(TESTS)

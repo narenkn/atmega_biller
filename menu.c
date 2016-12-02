@@ -225,7 +225,7 @@ FIL   Fil;
 #endif
 
 /* Pending actions */
-uint8_t menuPendActs;
+volatile uint8_t menuPendActs;
 
 /* Diagnosis */
 uint16_t diagStatus;
@@ -1277,7 +1277,8 @@ menuBilling(uint8_t mode)
 	LCD_WR_P(PSTR("Skipped, Retry!"));
 	continue;
       }
-    } while (0);
+      break;
+    } while (1);
   }
 
  menuBillingBill:
@@ -1426,8 +1427,8 @@ menuAddItem(uint8_t mode)
 
   /* conditions required to modify */
   if (MENU_ITEM_ID == arg2.valid) {
-    if ( (0 == arg1.value.integer.i16) ||
-	 (arg1.value.integer.i16 > ITEM_MAX) )
+    if ( (0 == arg2.value.integer.i16) ||
+	 (arg2.value.integer.i16 > ITEM_MAX) )
       goto menuItemInvalidArg;
     it->id = arg2.value.integer.i16;
   }
@@ -2579,34 +2580,42 @@ menuSetHotKey(uint8_t mode)
     if ((0 == arg1.value.integer.i16) ||
 	(arg1.value.integer.i16 > ITEM_MAX))
       continue;
-    if (0xFF == itIdxs[arg1.value.integer.i16-1].crc_name3) {
-      if ( (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+arg1.value.integer.i16-1)) &&
-	   (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+arg1.value.integer.i16-1)) )
-	continue;
+    if ( (0xFF == itIdxs[arg1.value.integer.i16-1].crc_name3) &&
+	 (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+arg1.value.integer.i16-1)) &&
+	 (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+arg1.value.integer.i16-1)) ) {
+      continue;
     }
-  } while (0);
+    break;
+  } while (1);
 
   /* now get the key combination */
   do {
     LCD_CLRLINE(LCD_MAX_ROW-1);
     KBD_RESET_KEY;
+#if UNIT_TEST
+    keypadMultiKeyModeOff = 1;
+#endif
     KBD_GETCH;
+#if UNIT_TEST
+    keypadMultiKeyModeOff = 0;
+#endif
     if (keyHitData.KbdDataAvail & kbdWinHit) {
-      LCD_WR_NP((const char *)PSTR("Win+"), 4);
+      LCD_WR_P((const char *)PSTR("Win+"));
     }
     if (keyHitData.KbdDataAvail & kbdAltHit) {
-      LCD_WR_NP((const char *)PSTR("Alt+"), 4);
+      LCD_WR_P((const char *)PSTR("Alt+"));
     }
     LCD_WR_NP((const char *)(keyMapR+(3*keyHitData.KbdData)), 3);
     _delay_ms(500);
   } while ( (keyHitData.KbdData >= 16) ||
-	    (0 == (keyHitData.KbdDataAvail & (kbdWinHit | kbdAltHit))) );
+	    (0 == (keyHitData.KbdDataAvail & (kbdWinHit | kbdAltHit | kbdHit))) );
 
   /* assign */
   uint16_t idx = offsetof(struct ep_store_layout, unused_HotKey) +
+    (keyHitData.KbdData * sizeof(uint16_t)) +
     (((keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) << 4) * sizeof(uint16_t));
   eeprom_update_word((uint16_t *)idx, arg1.value.integer.i16);
-  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  LCD_ALERT((const char *)menu_str1+(MENU_STR1_IDX_SUCCESS*MENU_PROMPT_LEN));
   _delay_ms(500);
 
   return 0;

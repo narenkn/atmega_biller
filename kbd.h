@@ -170,8 +170,8 @@ typedef struct s_keyHitData {
 extern volatile keyHitData_t keyHitData;
 extern volatile uint8_t keypadMultiKeyModeOff;
 
-void    KbdInit(void);
-void    KbdScan(void);
+void    kbdInit(void);
+void    kbdScan(void);
 extern volatile uint8_t KbdData;
 extern volatile uint8_t KbdDataAvail;
 extern const uint8_t ps2code2ascii[] PROGMEM;

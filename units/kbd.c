@@ -5,6 +5,7 @@
 #define  __UNITS_KBD_C
 
 volatile keyHitData_t keyHitData;
+volatile uint8_t keypadMultiKeyModeOff;
 
 uint16_t test_key_idx = -1;
 uint8_t test_key_arr_idx = 0;
@@ -48,6 +49,7 @@ KbdInit(void)
   uint8_t ui2;
 
   test_key_idx = 0; test_key_arr_idx = 0;
+  keypadMultiKeyModeOff = 0;
 
   for (ui2=0; ui2<NUM_TEST_KEY_ARR; ui2++)
     test_key[ui2] = NULL;
@@ -79,10 +81,20 @@ KbdGetCh(void)
       return;
     }
   }
+  if (test_key_idx > TEST_KEY_ARR_SIZE)
   assert(test_key_idx<=TEST_KEY_ARR_SIZE);
 
   if (NULL == test_key[0]) {
     assert(0);
+    return;
+  }
+
+  /* User can enter special chars */
+  if (keypadMultiKeyModeOff) {
+    keyHitData.KbdData = test_key[0][test_key_idx];
+    test_key_idx++;
+    keyHitData.KbdDataAvail = test_key[0][test_key_idx];
+    test_key_idx++;
     return;
   }
 

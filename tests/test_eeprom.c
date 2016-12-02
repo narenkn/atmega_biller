@@ -23,14 +23,33 @@ main()
   uint8_t data[8] = {0x1, 0x3, 0x5, 0x8, 0x13, 0x21, 0x34, 0x55};
   uint8_t dread[8];
   uint8_t ui1;
-  ee24xx_write_bytes(0x3fff, data+4, 4);
-  ee24xx_read_bytes(0x3fff, dread, 4);
-  for (ui1=0; ui1<8; ui1++) {
+
+  /* Test 1 */
+  ee24xx_write_bytes(0, data, 4);
+  ee24xx_read_bytes(0, dread, 4);
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("24c512 MaxAddrT"));
+  for (ui1=0; ui1<4; ui1++) {
     LCD_CLRLINE(1);
     LCD_PUT_UINT8X(ui1);
-    LCD_PUTCH(' ');
-    LCD_PUT_UINT8X(data[ui1]);
     LCD_PUTCH(':');
+    LCD_PUT_UINT8X(data[ui1]);
+    LCD_WR_P(PSTR(" Vs "));
+    LCD_PUT_UINT8X(dread[ui1]);
+    _delay_ms(1000);
+  }
+
+  /* Test 2 */
+  ee24xx_write_bytes(EEPROM_MAX_ADDRESS-1, data+4, 4);
+  ee24xx_read_bytes(EEPROM_MAX_ADDRESS-1, dread+4, 4);
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("24c512 MaxAddrT"));
+  for (ui1=4; ui1<8; ui1++) {
+    LCD_CLRLINE(1);
+    LCD_PUT_UINT8X(ui1);
+    LCD_PUTCH(':');
+    LCD_PUT_UINT8X(data[ui1]);
+    LCD_WR_P(PSTR(" Vs "));
     LCD_PUT_UINT8X(dread[ui1]);
     _delay_ms(1000);
   }

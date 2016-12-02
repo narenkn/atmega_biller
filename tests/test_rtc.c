@@ -5,9 +5,6 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
-#include "lcd.h"
-#include "i2c.h"
-
 #include "lcd.c"
 #include "i2c.c"
 
@@ -15,43 +12,45 @@ int
 main(void)
 {
   uint8_t ui1;
-  uint8_t ymd[3], hms[3];
+  s_time_t time, time1;
+  date_t date, date1;
 
-  _delay_ms(1000);
   LCD_init();
   i2c_init();
   LCD_bl_on;
 
   _delay_ms(1000);
+  date = (date_t){27, 2, 2015};
+  time = (s_time_t){23, 59, 30};
 
-  timerDateSet(0x14, 0x5, 0x5);
-  timerTimeSet(0x1, 0x53);
+  timerDateSet(date);
+  timerTimeSet(time);
+
+  LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("RTC Test!!!"));
 
   for (ui1=0; ; ui1++) {
-    LCD_CLRLINE(0);
-    LCD_WR_P(PSTR("DS1307 Tests!!!"));
+    LCD_cmd((LCD_CMD_CUR_10|0xE));
     LCD_PUTCH(('a'+(ui1&0xF)));
-    timerDateGet(ymd);
     LCD_CLRLINE(1);
-    LCD_PUTCH(('0'+((ymd[0]>>4)&0xF)));
-    LCD_PUTCH(('0'+(ymd[0]&0xF)));
+
+    timerDateGet(date1);
+    LCD_PUT_UINT(date1.day);
     LCD_PUTCH('/');
-    LCD_PUTCH(('0'+((ymd[1]>>4)&0xF)));
-    LCD_PUTCH(('0'+(ymd[1]&0xF)));
+    LCD_PUT_UINT(date1.month);
     LCD_PUTCH('/');
-    LCD_PUTCH(('0'+((ymd[2]>>4)&0xF)));
-    LCD_PUTCH(('0'+(ymd[2]&0xF)));
+    LCD_PUT_UINT(date1.year);
+    LCD_PUTCH(' ');
+
+    timerTimeGet(time1);
+    LCD_PUT_UINT(time1.hour);
+    LCD_PUTCH(':');
+    LCD_PUT_UINT(time1.min);
+    LCD_PUTCH(':');
+    LCD_PUT_UINT(time1.sec);
+
     LCD_refresh();
-    timerTimeGet(hms);
-    LCD_PUTCH(('0'+((hms[2]>>4)&0xF)));
-    LCD_PUTCH(('0'+(hms[2]&0xF)));
-    LCD_PUTCH(':');
-    LCD_PUTCH(('0'+((hms[1]>>4)&0xF)));
-    LCD_PUTCH(('0'+(hms[1]&0xF)));
-    LCD_PUTCH(':');
-    LCD_PUTCH(('0'+((hms[0]>>4)&0xF)));
-    LCD_PUTCH(('0'+(hms[0]&0xF)));
-    _delay_ms(1000);
+    _delay_ms(500);
   }
 
   return 0;

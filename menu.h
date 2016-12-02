@@ -200,7 +200,7 @@ extern uint8_t devStatus;
 
 /* Pending actions */
 #define MENU_PEND_LCD_REFRESH  (1<<0)
-extern uint8_t menuPendActs;
+extern volatile uint8_t menuPendActs;
 
 /* Helper routines */
 typedef uint32_t (*menuGetOptHelper)(uint8_t *str, uint16_t *strlen, uint32_t prev);
@@ -251,7 +251,7 @@ void menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t o
 #endif
 uint8_t menuSetDateTime(uint8_t mode);
 uint8_t menuSettingSet(uint8_t mode);
-uint8_t menuSetHotKey(uint8_t mode); // Unverified
+uint8_t menuSetHotKey(uint8_t mode);
 
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified

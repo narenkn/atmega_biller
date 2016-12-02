@@ -19,20 +19,6 @@
 #include "main.h"
 #include "menu.h"
 
-#if UNIT_TEST
-uint8_t    lcd_col_idx;
-# define   UNIT_TEST_INIT			\
-  lcd_col_idx = 0
-# define   UNIT_TEST_COL_INC(a)			\
-  lcd_col_idx += a
-# define   UNIT_TEST_ASSERT			\
-  assert(lcd_col_idx <= LCD_MAX_COL)
-#else
-# define   UNIT_TEST_INIT
-# define   UNIT_TEST_COL_INC(a)
-# define   UNIT_TEST_ASSERT
-#endif
-
 void
 LCD_init(void)
 {
