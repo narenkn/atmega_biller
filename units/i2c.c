@@ -68,8 +68,6 @@ i2c_stop(void)
   assert(0);
 }
 
-#define ee24xx_write_page ee24xx_write_bytes
-
 uint16_t
 ee24xx_write_bytes(uint16_t addr, uint8_t *data, uint16_t num_bytes)
 {

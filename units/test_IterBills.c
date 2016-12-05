@@ -2,7 +2,7 @@
 
 /* place to store items */
 struct item all_items[ITEM_MAX];
-struct sale all_sales[EEPROM_SALE_MAX_BILLS];
+struct sale all_sales[NVF_SALE_MAX_BILLS];
 
 uint8_t inp5[6][TEST_KEY_ARR_SIZE];
 
@@ -183,7 +183,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   }
 
   /* should have saved */
-  ee24xx_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
+  item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
@@ -208,7 +208,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   char *bufTT = (void *) &(rif);
 
   /* load item */
-  assert(ITEM_SIZEOF == ee24xx_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
+  assert(ITEM_SIZEOF == item_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
 
   /* both can be invalid items */
 
@@ -392,7 +392,7 @@ make_bill(struct sale *sl, uint8_t rand_save)
   //printf("sl->crc:%x sl->crc_invert:%x\n", sl->crc, sl->crc_invert);
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
   bill_write_bytes(ui16_2, (uint8_t *)sl, SIZEOF_SALE_EXCEP_ITEMS);
-  ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+  ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
 }
 
@@ -532,7 +532,7 @@ main(int argc, char *argv[])
   date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
     timerDateSet(date);
-    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS; ui1++) {
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
       make_bill(all_sales+ui1, 0);
     }
 
@@ -546,20 +546,20 @@ main(int argc, char *argv[])
     menuSdSaveBillDat(0);
     /* test all bills are deleted */
     uint16_t ui16_2 = 0;
-    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS;
-	 ui1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS;
+	 ui1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
       bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
       assert (0xFFFF != (sl.crc ^ sl.crc_invert));
       //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
     }
 
-#if 0
+#if 1
     /* check data in file */
     sprintf(inp, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
     FILE *inf = fopen(inp, "r");
     printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
     ssize_t ret;
-    for (ui1=0; ui1<EEPROM_SALE_MAX_BILLS; ui1++) {
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
       ret = fread ((void *)&sl, 1, SIZEOF_SALE_EXCEP_ITEMS, inf);
       if (0 == ret) break;
       assert(SIZEOF_SALE_EXCEP_ITEMS == ret);
@@ -568,7 +568,7 @@ main(int argc, char *argv[])
       /* load bills */
       ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
       bill_write_bytes(ui16_2, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
-      ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+      ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
       eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
       /* */
       ret = fread ((void *)&sl, 1, MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS, inf);
@@ -584,7 +584,7 @@ main(int argc, char *argv[])
     nextDate(&date);
   }
 
-#if 1
+#if 0
   /* */
   char fn[32];
   FILE *inf;

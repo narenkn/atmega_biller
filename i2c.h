@@ -56,7 +56,6 @@ extern volatile uint16_t rtc_year;
 
 void     i2c_init(void);
 uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
-uint16_t ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 
 /*

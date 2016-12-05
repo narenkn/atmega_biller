@@ -91,6 +91,9 @@ void nvfWakeUp();
 uint16_t bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 
+#define item_read_bytes     ee24xx_read_bytes
+#define item_write_bytes    ee24xx_write_bytes
+
 /*
  * Number of NV Flash devices connected in the system
  * Can be 4 or 2 or 1
@@ -103,6 +106,17 @@ uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 /* */
 #define NVF_START_ADDRESS   ((uint16_t)0)
 #define NVF_END_ADDRESS     ((uint16_t)((0x3FFF<<NVF_NUM_DEVICES_LOGN2)|0xF)&0xFFFF)
+
+/* addr limits */
+#if 0
+#define ITEM_IDX_START_ADDR
+#define ITEM_IDX_END_ADDR
+#define ITEM_START_ADDR     NVF_START_ADDRESS
+#define ITEM_END_ADDR       NVF_END_ADDRESS
+#endif
+#define BILL_START_ADDR     NVF_START_ADDRESS
+#define BILL_END_ADDR       NVF_END_ADDRESS
+
 /* addr[15:0] : 15:14 - select device
                 13:0  - maps to 22:9 of 8M space which is 512 blocks
    total blocks = 16k [of 512 blocks] (2^4*2^10*2^9)

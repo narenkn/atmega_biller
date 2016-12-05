@@ -174,7 +174,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   }
 
   /* should have saved */
-  ee24xx_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
+  item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
@@ -199,7 +199,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   char *bufTT = (void *) &(rif);
 
   /* load item */
-  assert(ITEM_SIZEOF == ee24xx_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
+  assert(ITEM_SIZEOF == item_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
 
   //printf("rif.name:'%s'\n", rif.name);
   if (ri->id != rif.id) {
@@ -336,7 +336,7 @@ main(int argc, char *argv[])
     assert((ui5-1) == numValidItems);
 
     /* check crc */
-    ee24xx_read_bytes(itemAddr(ui1), (void *)&ri, ITEM_SIZEOF);
+    item_read_bytes(itemAddr(ui1), (void *)&ri, ITEM_SIZEOF);
     assert(0xFF != (ri.unused_crc ^ ri.unused_crc_invert));
 
     /* check indexing */
@@ -356,7 +356,7 @@ main(int argc, char *argv[])
   for (ui2=0; ui2<6000; ui2++) {
     ui1 = rand() % ITEM_MAX;
     ui1++;
-    ee24xx_read_bytes(itemAddr(ui1), (void *)&ri, ITEM_SIZEOF);
+    item_read_bytes(itemAddr(ui1), (void *)&ri, ITEM_SIZEOF);
     ui5 = 3 + (rand()&0x3);
     strncpy(tname, ri.name, ui5);
     tname[ui5] = 0;
@@ -376,7 +376,7 @@ main(int argc, char *argv[])
     //    printf("ui1:%d ui3:%d\n", ui1, ui3);
     if (ui1 != ui3) {
       if ((ui3 <= ITEM_MAX) && (ui3>0)) {
-	ee24xx_read_bytes(itemAddr(ui3), (void *)&ri1, ITEM_SIZEOF);
+	item_read_bytes(itemAddr(ui3), (void *)&ri1, ITEM_SIZEOF);
 	if (3 == ui4) {
 	  if (0 != strncmp(ri.name, ri1.name, ITEM_NAME_BYTEL)) {
 

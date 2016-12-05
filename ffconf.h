@@ -1,3 +1,6 @@
+#ifndef FFCONF_H
+#define FFCONF_H
+
 /*---------------------------------------------------------------------------/
 /  FatFs - FAT file system module configuration file
 /---------------------------------------------------------------------------*/
@@ -265,3 +268,4 @@
 
 
 /*--- End of configuration options ---*/
+#endif

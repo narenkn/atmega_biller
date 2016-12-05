@@ -170,7 +170,7 @@ make_item(struct item *ri1, uint16_t idx)
   }
 
   /* should have saved */
-  ee24xx_read_bytes(itemAddr(idx), (void *)ri1, ITEM_SIZEOF);
+  item_read_bytes(itemAddr(idx), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == idx);
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));

@@ -2,7 +2,7 @@
 
 /* place to store items */
 struct item all_items[ITEM_MAX];
-struct sale all_sales[EEPROM_SALE_MAX_BILLS*2];
+struct sale all_sales[NVF_SALE_MAX_BILLS*2];
 
 uint8_t inp5[6][TEST_KEY_ARR_SIZE];
 
@@ -183,7 +183,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   }
 
   /* should have saved */
-  ee24xx_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
+  item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
@@ -208,7 +208,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   char *bufTT = (void *) &(rif);
 
   /* load item */
-  assert(ITEM_SIZEOF == ee24xx_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
+  assert(ITEM_SIZEOF == item_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
 
   /* both can be invalid items */
 
@@ -392,7 +392,7 @@ make_bill(struct sale *sl, uint8_t rand_save)
   //printf("sl->crc:%x sl->crc_invert:%x\n", sl->crc, sl->crc_invert);
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
   bill_write_bytes(ui16_2, (uint8_t *)sl, SIZEOF_SALE_EXCEP_ITEMS);
-  ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+  ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
 }
 

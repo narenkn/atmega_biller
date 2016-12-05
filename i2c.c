@@ -405,7 +405,7 @@ ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len)
  * actual number of data byte written.  It is up to the caller to
  * re-invoke it in order to write further data.
  */
-uint16_t
+static uint16_t
 ee24xx_write_page(uint16_t eeaddr, uint8_t *buf, uint16_t len)
 {
   uint8_t sla, n = 0;

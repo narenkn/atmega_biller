@@ -13,6 +13,7 @@
 
 #include "lcd.h"
 #include "i2c.h"
+#include "main.h"
 
 #include "lcd.c"
 #include "kbd.c"

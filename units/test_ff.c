@@ -1,6 +1,7 @@
 /*----------------------------------------------------------------------*/
 /* Foolproof FatFs sample project for AVR              (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
+#include "time.h"
 #include "ffconf.h"
 #undef   _USE_MKFS
 #define  _USE_MKFS 1
@@ -12,10 +13,19 @@ FIL Fil;			/* File object needed for each open file */
 
 BYTE work[SD_SECTOR_SIZE];
 
-int main (void)
+int main (int argc, char *argv[])
 {
   UINT bw;
   char str[64];
+
+  uint32_t ui32_1;
+  if ((argc == 1) || (0 == argv[1]))
+    ui32_1 = time(NULL);
+  else
+    ui32_1 = atoi(argv[1]);
+  printf("seed : %d\n", ui32_1);
+  srand(ui32_1);
+
 
   change_sd(0);
   f_mount(&FatFs1, "", 0);		/* Give a work area to the default drive */
@@ -45,7 +55,9 @@ int main (void)
 
     f_read(&Fil, str, 10, &bw);	/* Write data to the file */
     str[10] = 0;
-    printf("Obtained string:\'%s\'\n", str);
+    if (0 != strncmp("It works!", str, 9)) {
+      printf("Error: Obtained string:\'%s\'\n", str);
+    }
 
     f_close(&Fil);								/* Close the file */
   }
@@ -57,7 +69,9 @@ int main (void)
 
     f_read(&Fil, str, 37, &bw);	/* Write data to the file */
     str[37] = 0;
-    printf("Obtained string:\'%s\'\n", str);
+    if (0 != strncmp("It works.. in another drive too...!", str, 35)) {
+      printf("Error: Obtained string:\'%s\'\n", str);
+    }
 
     f_close(&Fil);								/* Close the file */
   }

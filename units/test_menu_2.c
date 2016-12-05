@@ -29,8 +29,6 @@ main(int argc, char *argv[])
 
   KbdInit();
 
-#define DEBUG 1
-
   /* test menuGetOpt::MENU_ITEM_STR */
   for (loop=0; loop<1000; loop++) {
     size = (rand() % (TEST_KEY_ARR_SIZE-1)) + 1;

@@ -63,7 +63,7 @@ main(void)
 
 //  for (ui16_1=0; ui16_1 < (ITEM_MAX_ADDR>>EEPROM_MAX_DEVICES_LOGN2);
 //       ui16_1+=(ITEM_SIZEOF>>EEPROM_MAX_DEVICES_LOGN2)) {
-//    ui16_2 = ee24xx_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
+//    ui16_2 = item_read_bytes(ui16_1, bufSS, ITEM_SIZEOF);
 //    assert(ITEM_SIZEOF == ui16_2);
 //    if (0 == it->id) continue;
 //

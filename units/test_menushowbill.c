@@ -36,24 +36,24 @@ main()
   KbdInit();
 
   /* when can't find a bill should error out */
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), EEPROM_SALE_START_ADDR);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), NVF_SALE_START_ADDR);
   menuShowBill(0);
   assert(0 == strncmp(lcd_buf[0], "Bill Not Found", 14));
 
   /* */
-  ui16_3 = rand() % EEPROM_SALE_MAX_BILLS;
-  ui16_3 = EEPROM_BILL_ADDR(ui16_3);
+  ui16_3 = rand() % NVF_SALE_MAX_BILLS;
+  ui16_3 = NVF_BILL_ADDR(ui16_3);
 
   /* create valid # bills */
-  for (ui16_2=0; ui16_2<MAX_VALID_BILLS; ui16_3=EEPROM_NEXT_SALE_RECORD(ui16_3)) {
-    ee24xx_read_bytes(ui16_3, (uint8_t *)arr, 4);
+  for (ui16_2=0; ui16_2<MAX_VALID_BILLS; ui16_3=NVF_NEXT_SALE_RECORD(ui16_3)) {
+    item_read_bytes(ui16_3, (uint8_t *)arr, 4);
     if ( (rand() & 0x1) && (0xFFFF != (arr[0] ^ arr[1])) ) {
       sl.crc = rand();
       sl.crc_invert = ~(sl.crc);
       sl.info.bill_id = ui16_2+1;
       sl.total = rand() % 99999999;
-      ee24xx_write_bytes(ui16_3, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
-      eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), ui16_3);
+      item_write_bytes(ui16_3, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
+      eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_3);
       vbill_idx[ui16_2] = ui16_3;
       idx[ui16_2] = ui16_2+1;
       ui16_2++;
@@ -64,7 +64,7 @@ main()
 
   /* Keep finding the same bill */
   ui16_2 = (rand() % MAX_VALID_BILLS)+1;
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), EEPROM_NEXT_SALE_RECORD(vbill_idx[ui16_2-1]));
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), NVF_NEXT_SALE_RECORD(vbill_idx[ui16_2-1]));
   arg1.valid = arg2.valid = MENU_ITEM_NONE;
   KbdInTypeErrors = 0; /* don't let kbd.c introduce errors */
   for (ui16_1=0; ui16_1<1000; ui16_1++) {
@@ -84,7 +84,7 @@ main()
   /* Find the prev one*/
   sort(vbill_idx, idx);
   ui16_2 = (rand() % MAX_VALID_BILLS);
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), vbill_idx[ui16_2]);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), vbill_idx[ui16_2]);
   arg1.valid = arg2.valid = MENU_ITEM_NONE;
   KbdInTypeErrors = 0; /* don't let kbd.c introduce errors */
   for (ui16_1=0; ui16_1<1000; ui16_1++) {
@@ -111,7 +111,7 @@ main()
   /* Find the next one */
   sort(vbill_idx, idx);
   ui16_2 = (rand() % MAX_VALID_BILLS);
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_next_billaddr)), vbill_idx[ui16_2]);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), vbill_idx[ui16_2]);
   arg1.valid = arg2.valid = MENU_ITEM_NONE;
   KbdInTypeErrors = 0; /* don't let kbd.c introduce errors */
   for (ui16_1=0; ui16_1<1000; ui16_1++) {

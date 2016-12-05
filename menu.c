@@ -447,7 +447,6 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
   } else if ((opt & MENU_ITEM_DONTCARE_ON_PREV) && (arg == &arg2)) {
   } else {
     arg->valid = MENU_ITEM_NONE;
-    assert(0);
   }
   //move(0, 30); printw("GetOpot:'%s' err:%d", buf, menu_error);
 }
@@ -578,7 +577,7 @@ menuSdSaveBillDat(uint16_t ui16_2)
 
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+  assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
   /* check that first bill is valid anyway */
   bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
@@ -603,14 +602,14 @@ menuSdSaveBillDat(uint16_t ui16_2)
 
   /* write to file */
   UINT ret_size;
-  for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS;
-       ui16_1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+  for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS;
+       ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
     bill_read_bytes(ui16_2, (void *)sl, MAX_SIZEOF_1BILL);
     assert (0xFFFF == (sl->crc ^ sl->crc_invert)); /* valid bill */
     f_write(&Fil, (void *)sl, MAX_SIZEOF_1BILL, &ret_size);
     assert (MAX_SIZEOF_1BILL == ret_size);
     /* */
-    if (EEPROM_NEXT_SALE_RECORD(ui16_2) == ui16_3) break;
+    if (NVF_NEXT_SALE_RECORD(ui16_2) == ui16_3) break;
   }
 
   /* close file */
@@ -621,9 +620,9 @@ menuSdSaveBillDat(uint16_t ui16_2)
   /* delete the sectors */
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
   ui16_4 = NVF_4KBLOCK_ADDR(ui16_2) + 1; /* force delete block */
-  for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS;
-       ui16_1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
-    if (EEPROM_NEXT_SALE_RECORD(ui16_2) == ui16_3) break;
+  for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS;
+       ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
+    if (NVF_NEXT_SALE_RECORD(ui16_2) == ui16_3) break;
     if (ui16_4 == NVF_4KBLOCK_ADDR(ui16_2))
       continue;
     //printf("Deleting 4K : %x\n", (ui16_2>>3));
@@ -748,7 +747,7 @@ menuFactorySettings(uint8_t mode)
   eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, RoundOff), 50);
 
   /* */
-  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_nextBillAddr), EEPROM_SALE_START_ADDR);
+  eeprom_update_word((uint16_t *)offsetof(struct ep_store_layout, unused_nextBillAddr), NVF_SALE_START_ADDR);
   LCD_PUTCH('.'); LCD_refresh();
 
 #if NVFLASH_EN
@@ -757,8 +756,8 @@ menuFactorySettings(uint8_t mode)
     nvfChipErase(ui8_1);
   }
   LCD_PUTCH('.'); LCD_refresh();
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), NVF_START_ADDRESS);
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)), NVF_START_ADDRESS);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), BILL_START_ADDR);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)), BILL_START_ADDR);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), 0);
 #endif
 
@@ -837,7 +836,7 @@ menuInit()
   /* Store away bills */
 #if NVFLASH_EN
   if (WDT_RESET_WAKEUP)
-    menuSdSaveBillDat(0);
+    menuSdSaveBillDat(BILL_START_ADDR);
 #endif
 
   /* Re-scan and index all items */
@@ -846,7 +845,7 @@ menuInit()
   numValidItems = 0;
   for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
 	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
-    ee24xx_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
+    item_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
     for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++)
       ui8_2 = _crc_ibutton_update(ui8_2, bufSS[ui8_1]);
     if ((ui8_2 == bufSS[ITEM_SIZEOF-1]) &&
@@ -909,7 +908,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
       SSCANF(str, ui32_1);
       ui16_1 = ui32_1;
       if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
-	ee24xx_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
+	item_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
 	if (0xFF == (it.unused_crc ^ it.unused_crc_invert))
 	  goto menuItemGetOptHelperFound;
       }
@@ -953,7 +952,7 @@ menuBilling(uint8_t mode)
   /* */
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+  assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
   /* check sufficient args */
   ui8_1 = ui16_4 = 0;
@@ -969,11 +968,11 @@ menuBilling(uint8_t mode)
   /* Either of KOT, Modify or Void Bill */
   if (0 != (mode & ~MENU_MODEMASK)) {
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-   assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
+   assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
     /* iterate through all records */
-    for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
-      ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+    for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS; ui16_1++) {
+      ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
       bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
       if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* not valid bill */
 	break;
@@ -999,7 +998,7 @@ menuBilling(uint8_t mode)
       } else if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
 	break;
     }
-    if (ui16_1 >= EEPROM_SALE_MAX_BILLS) {
+    if (ui16_1 >= NVF_SALE_MAX_BILLS) {
       LCD_ALERT(PSTR("Bill Memory Full"));
       goto menuModBillReturn;
     } else if (0xFFFF == (sl->crc ^ sl->crc_invert)) { /* got valid bill */
@@ -1020,7 +1019,7 @@ menuBilling(uint8_t mode)
       ui8_4++;
 
       /* */
-      ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
+      item_read_bytes(sl->items[ui8_5].ep_item_ptr, (uint8_t *)sl->it, ITEM_SIZEOF);
       if ((0 == sl->it[0].id) || (sl->it[0].is_disabled)) {
 	LCD_ALERT_N(PSTR("Item Deleted: "), itemId(sl->items[ui8_5].ep_item_ptr));
 	ui8_3++;
@@ -1120,7 +1119,7 @@ menuBilling(uint8_t mode)
 
     /* Find item */
     assert( (ui16_3 > 0) && (ui16_3 <= ITEM_MAX) );
-    ee24xx_read_bytes(itemAddr(ui16_3), (uint8_t *)sl->it, ITEM_SIZEOF);
+    item_read_bytes(itemAddr(ui16_3), (uint8_t *)sl->it, ITEM_SIZEOF);
     if ( (0 == sl->it[0].id) || (sl->it[0].is_disabled) ) {
       LCD_CLRLINE(0);
       LCD_WR_NP((const char *)PSTR("Invalid Item"), 12);
@@ -1263,7 +1262,7 @@ menuBilling(uint8_t mode)
 		  (ASCII_UP == keyHitData.KbdData) ) {
 	/* move to prev item to edit it */
 	ui8_5 ? --ui8_5 : sl->info.n_items-1;
-	ee24xx_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
+	item_read_bytes(sl->items[ui8_5].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
       } else if (ASCII_DEL == keyHitData.KbdData) {
 	/* delete the item */
 	for (ui8_2=ui8_5; sl->items[ui8_2+1].quantity>0; ui8_2++) {
@@ -1299,7 +1298,7 @@ menuBilling(uint8_t mode)
   sl->t_discount = 0, sl->total = 0;
   ui32_2 = 0;
   for (ui8_3=0; ui8_3<ui8_5; ui8_3++) {
-    ee24xx_read_bytes(sl->items[ui8_3].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
+    item_read_bytes(sl->items[ui8_3].ep_item_ptr, (void *)sl->it, ITEM_SIZEOF);
 
     if ( (0 != sl->items[ui8_3].discount) && (sl->items[ui8_3].cost >= sl->items[ui8_3].discount) ) {
       ui32_1 = (sl->items[ui8_3].cost - sl->items[ui8_3].discount);
@@ -1399,7 +1398,7 @@ menuBilling(uint8_t mode)
   bill_write_bytes(ui16_2, (uint8_t *)sl, SIZEOF_SALE_EXCEP_ITEMS);
 
   /* update next bill addr */
-  ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+  ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
 
   /* */
@@ -1444,7 +1443,7 @@ menuAddItem(uint8_t mode)
       ui16_2++; ui16_2 = (ui16_2<=ITEM_MAX) ? ui16_2 : 1; /* next id */
       if (0xFF == itIdxs[ui16_2-1].crc_name3) {
 	ui16_1 = itemAddr(ui16_2);
-	ee24xx_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+	item_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
 	if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
 	  /* found space */
 	  it->id = ui16_2;
@@ -1459,7 +1458,7 @@ menuAddItem(uint8_t mode)
   }
   ui16_2 = it->id;
   ui16_1 = itemAddr(it->id);
-  ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+  item_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
   it->id = ui16_2;
   it->is_disabled = 1;
   /* Store last used id in eeprom & seed it next time */
@@ -1612,7 +1611,7 @@ menuAddItem(uint8_t mode)
   it->unused_crc_invert = ~ui8_2;
 
   /* Now save item */
-  ui8_3 = ee24xx_write_bytes(ui16_1, bufSS_ptr, ITEM_SIZEOF);
+  ui8_3 = item_write_bytes(ui16_1, bufSS_ptr, ITEM_SIZEOF);
   assert(ITEM_SIZEOF == ui8_3);
 
   /* only valid items needs to be buffered */
@@ -1714,7 +1713,7 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
 	continue;
     }
     ui16_2 = itemAddr(idx);
-    ee24xx_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
+    item_read_bytes(ui16_2, (void *)it, ITEM_SIZEOF);
     if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
       continue;
     if ((NULL != name) && (NULL != prod_code)) {
@@ -1753,7 +1752,7 @@ menuDelItem(uint8_t mode)
   /* find address for the id */
   ui16_1 = arg1.value.integer.i16;
   ui16_2 = itemAddr(ui16_1);
-  ee24xx_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+  item_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
   if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     return MENU_RET_NOTAGAIN;
 
@@ -1762,7 +1761,7 @@ menuDelItem(uint8_t mode)
   itIdxs[ui16_1-1].crc_name3 = 0xFF;
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1-1, 0xFF);
-  ee24xx_write_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, NULL, 4);
+  item_write_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, NULL, 4);
   numValidItems--;
 
   return MENU_RET_NOTAGAIN;
@@ -2322,7 +2321,7 @@ void
 menuPrnBillNvfHelper(uint16_t item_addr, struct item *it, uint16_t it_index)
 {
 #if MENU_PRINTER_ENABLE
-  ee24xx_read_bytes(item_addr, (void *)it, ITEM_SIZEOF);
+  item_read_bytes(item_addr, (void *)it, ITEM_SIZEOF);
 #endif
 }
 
@@ -2704,8 +2703,8 @@ menuDelAllBill(uint8_t mode)
   /* Delete today's bill also */
   struct sale *sl = (void *) (bufSS + LCD_MAX_COL + LCD_MAX_COL);
   memset(sl, 0xFF, offsetof(struct sale, info));
-  for (uint16_t ui16_1=0, ui16_2=0; ui16_1<EEPROM_SALE_MAX_BILLS;
-       ui16_1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+  for (uint16_t ui16_1=0, ui16_2=BILL_START_ADDR; ui16_1<NVF_SALE_MAX_BILLS;
+       ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
     bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
     if (0xFFFF == (sl->crc_invert ^ sl->crc)) {
       bill_write_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
@@ -2797,10 +2796,10 @@ menuRunDiag(uint8_t mode)
   LCD_WR_NP((const char *)PSTR("Diagnosis Mem3"), 14);
   _delay_ms(1000);
   struct sale *sl= (void *)bufSS;
-  for (ui16_1=0, ui16_2=EEPROM_SALE_END_ADDR, ui8_1=0;
+  for (ui16_1=0, ui16_2=NVF_SALE_END_ADDR, ui8_1=0;
        (ui16_1<ITEM_MAX) && (ui8_1<EEPROM_CHECK_MAX); ui16_1++) {
-    ui16_2 = EEPROM_PREV_SALE_RECORD(ui16_2);
-    ee24xx_read_bytes(ui16_2, bufSS, 4);
+    ui16_2 = NVF_PREV_SALE_RECORD(ui16_2);
+    item_read_bytes(ui16_2, bufSS, 4);
     if ((rand() & 0x8) &&
 	(0xFFFF != (sl->crc_invert ^ sl->crc))) {
       ui8_1++;
@@ -2808,8 +2807,8 @@ menuRunDiag(uint8_t mode)
       srand(rand_seed);
       for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
 	bufSS[ui8_2] = rand();
-      ee24xx_write_bytes(ui16_2, bufSS, SIZEOF_SALE_EXCEP_ITEMS);
-      ee24xx_read_bytes(ui16_2, bufSS+SIZEOF_SALE_EXCEP_ITEMS, SIZEOF_SALE_EXCEP_ITEMS);
+      item_write_bytes(ui16_2, bufSS, SIZEOF_SALE_EXCEP_ITEMS);
+      item_read_bytes(ui16_2, bufSS+SIZEOF_SALE_EXCEP_ITEMS, SIZEOF_SALE_EXCEP_ITEMS);
       for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
 	if (bufSS[ui8_2] != bufSS[SIZEOF_SALE_EXCEP_ITEMS+ui8_2])
 	  break;
@@ -3517,7 +3516,7 @@ menuSdIterItem(uint8_t mode)
   if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
     for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
 	 ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
-      ee24xx_write_bytes(ui16_1+(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)-1, NULL, 4);
+      item_write_bytes(ui16_1+(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)-1, NULL, 4);
     }
   }
 
@@ -3529,7 +3528,7 @@ menuSdIterItem(uint8_t mode)
       if ((0 == ui8_1 /* no err */) &&
 	  (it->id > 0) && (it->id <= ITEM_MAX)) {
 	ui16_1 = itemAddr(it->id);
-	ee24xx_write_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+	item_write_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
       } else if (4 == ui8_1) { /* comment line */
 	ui8_1 = 0;
       } else if (0 != ui8_1) {
@@ -3540,7 +3539,7 @@ menuSdIterItem(uint8_t mode)
       menuSdSwallowUntilNL();
       continue;
     }
-    ee24xx_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
+    item_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
     if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
       continue;
     if (MENU_ITEM_SAVE & (mode & ~MENU_MODEMASK)) {
@@ -3833,8 +3832,8 @@ menuBillReports(uint8_t mode)
   uint16_t ui16_1, ui16_2, ui16_3;
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  for (ui16_1=0; (ui16_1<EEPROM_SALE_MAX_BILLS) && (ui16_2 != ui16_3);
-       ui16_1++, ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2)) {
+  for (ui16_1=0; (ui16_1<NVF_SALE_MAX_BILLS) && (ui16_2 != ui16_3);
+       ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
     bill_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
     assert (0xFFFF == (sl->crc_invert ^ sl->crc));
     /* */
@@ -3916,9 +3915,9 @@ menuTallyCash(uint8_t mode)
  menuTallyCashSDDone:
   /* iterate through records @ flash */
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  assert ((ui16_2 >= EEPROM_SALE_START_ADDR) && (ui16_2 <= EEPROM_SALE_END_ADDR));
-  for (ui16_1=0; ui16_1<EEPROM_SALE_MAX_BILLS; ui16_1++) {
-    ui16_2 = EEPROM_NEXT_SALE_RECORD(ui16_2);
+  assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
+  for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS; ui16_1++) {
+    ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
     bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
     if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* end-of valid bills */
       break;

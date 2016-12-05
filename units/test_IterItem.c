@@ -184,7 +184,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   }
 
   /* should have saved */
-  ee24xx_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
+  item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
@@ -209,7 +209,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   char *bufTT = (void *) &(rif);
 
   /* load item */
-  assert(ITEM_SIZEOF == ee24xx_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
+  assert(ITEM_SIZEOF == item_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
 
   /* both can be invalid items */
 
