@@ -152,11 +152,5 @@ Atmega128 Product:
 
 Failing :
 test_menubilling.c
-test_menudelbill.c
 test_menushowbill.c
-test_IterBills.c
-test_menu_4.c
-test_menu_5.c
 test_sdsettings.c
-test_printer_prn.c
-test_sscanf.c

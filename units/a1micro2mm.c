@@ -81,7 +81,6 @@ printerCompareStatus(char *golden)
   assert(file_size == golden_size);
 
   fclose(prn_outf);
-  prn_outf = fopen("printer.out", "w");
 
   return ret;
 }

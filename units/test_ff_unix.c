@@ -31,7 +31,8 @@ main(void)
   fp.is_active = 0;
   f_open(&fp, "dir1/f1", FA_WRITE);
   f_close(&fp);
-  f_unlink("dir1");
+  f_unlink("dir1/f1");
+  rmdir("dir1");
 
   return 0;
 }

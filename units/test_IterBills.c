@@ -524,14 +524,14 @@ main(int argc, char *argv[])
     compare_item(all_items+ui1, itemAddr(ui1+1));
   }
 
-  #define TEST_LOOP 10
+  #define TEST_LOOP 5
   /* Test for all bills saved & retrieved */
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   date_t date;
   date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  timerDateSet(date);
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
-    timerDateSet(date);
     for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
       make_bill(all_sales+ui1, 0);
     }
@@ -553,11 +553,10 @@ main(int argc, char *argv[])
       //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
     }
 
-#if 1
     /* check data in file */
     sprintf(inp, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
     FILE *inf = fopen(inp, "r");
-    printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
+    //printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
     ssize_t ret;
     for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
       ret = fread ((void *)&sl, 1, SIZEOF_SALE_EXCEP_ITEMS, inf);
@@ -578,55 +577,22 @@ main(int argc, char *argv[])
     ret = fread ((void *)&sl, MAX_SIZEOF_1BILL, 1, inf);
     assert(0 == ret);
     fclose(inf);
-#endif
+
+    /* test all bills are deleted */
+    arg1.valid = arg2.valid = MENU_ITEM_NONE;
+    menuDelAllBill(MENU_NOCONFIRM);
+    ui16_2 = NVF_SALE_START_ADDR;
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS;
+	 ui1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
+      bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
+      assert (0xFFFF != (sl.crc ^ sl.crc_invert));
+      //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
+    }
 
     /* goto next date */
     nextDate(&date);
+    timerDateSet(date);
   }
 
-#if 0
-  /* */
-  char fn[32];
-  FILE *inf;
-
-  if (TEST_LOOP < 10) return MENU_RET_NOERROR;
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
-  /* choose a random range to delete */
-  uint8_t ui8_1 = rand() & 0x3;
-  uint8_t ui8_2 = ui8_1 + (rand() & 0x3);
-
-  RESET_TEST_KEYS;
-  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
-    if (loop == ui8_1) {
-      sprintf(inp, "%02d%02d%04d", date.day, date.month, date.year);
-      INIT_TEST_KEYS(inp);
-    }
-    if (loop == ui8_2) {
-      sprintf(inp+LCD_MAX_COL, "%02d%02d%04d", date.day, date.month, date.year);
-      INIT_TEST_KEYS(inp+LCD_MAX_COL);
-    }
-    nextDate(&date);
-  }
-  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
-  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
-  menuDelAllBill(MENU_NOCONFIRM);
-  /* now check if the files are deleted */
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
-  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
-    sprintf(fn, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
-    printf("File %s : ", fn);
-    inf = fopen(fn, "r");
-    if ((ui8_1 <= loop) && (loop <= ui8_2)) {
-      printf("Deleted : %p\n", inf);
-      assert(NULL == inf);
-    } else {
-      printf("exists : %p\n", inf);
-      assert(NULL != inf);
-    }
-    fclose(inf);
-    nextDate(&date);
-  }
-#endif
-  
   return MENU_RET_NOERROR;
 }

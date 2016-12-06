@@ -614,6 +614,9 @@ menuSdSaveBillDat(uint16_t ui16_2)
 
   /* close file */
   f_close(&Fil);
+  if (FR_OK != f_chdir("..")) {
+    LCD_ALERT(PSTR("UpDir Error"));
+  }
   f_mount(NULL, "", 0);
 
  menuSkipFileSave:
@@ -653,29 +656,20 @@ menuFactorySettings(uint8_t mode)
 
   /* date, time */
 #if UNIT_TEST
-  ui8_1 = 1;
+  arg1.value.date.year = 2017;
+  arg1.value.date.month = 1;
+  arg1.value.date.day = 1;
+  arg1.valid = MENU_ITEM_DATE;
+  arg2.value.time.hour = 9;
+  arg2.value.time.min = 0;
+  arg2.value.time.sec = 0;
+  arg2.valid = MENU_ITEM_TIME;
 #else
-  ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Set Date/Time?"), 11);
+  MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
+  timerDateSet(arg1.value.date);
+  timerTimeSet(arg1.value.time);
 #endif
-  if (0 == ui8_1) {
-    MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
-    MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
-  } else { /* BCD format */
-    arg1.value.date.year = 2017;
-    arg1.value.date.month = 1;
-    arg1.value.date.day = 1;
-    arg1.valid = MENU_ITEM_DATE;
-    arg2.value.time.hour = 9;
-    arg2.value.time.min = 0;
-    arg2.value.time.sec = 0;
-    arg2.valid = MENU_ITEM_TIME;
-  }
-  if (MENU_ITEM_DATE == arg1.valid) {
-    timerDateSet(arg1.value.date);
-  }
-  if (MENU_ITEM_TIME == arg2.valid) {
-    timerTimeSet(arg1.value.time);
-  }
 
   /* Show progress */
   LCD_CLRLINE(0);
@@ -756,8 +750,8 @@ menuFactorySettings(uint8_t mode)
     nvfChipErase(ui8_1);
   }
   LCD_PUTCH('.'); LCD_refresh();
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), BILL_START_ADDR);
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)), BILL_START_ADDR);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), NVF_SALE_START_ADDR);
+  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)), NVF_SALE_START_ADDR);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), 0);
 #endif
 
@@ -836,7 +830,7 @@ menuInit()
   /* Store away bills */
 #if NVFLASH_EN
   if (WDT_RESET_WAKEUP)
-    menuSdSaveBillDat(BILL_START_ADDR);
+    menuSdSaveBillDat(NVF_SALE_START_ADDR);
 #endif
 
   /* Re-scan and index all items */
@@ -2312,6 +2306,9 @@ menuViewOldBill(uint8_t mode)
   }
 
   /* */
+  if (FR_OK != f_chdir("..")) {
+    LCD_ALERT(PSTR("UpDir Error"));
+  }
   f_mount(NULL, "", 0);
 #endif
   return MENU_RET_NOTAGAIN;
@@ -2682,7 +2679,7 @@ menuDelAllBill(uint8_t mode)
   if (FR_OK != f_chdir("billdat")) {
     LCD_ALERT(PSTR("No Bills"));
     f_mount(NULL, "", 0);
-    return 0;
+    goto menuDelAllBillDelFfBills;
   }
 
   for (; ; nextDate(&date_i)) {
@@ -2698,16 +2695,26 @@ menuDelAllBill(uint8_t mode)
     }
     LCD_BUSY();
   }
+
+  if (FR_OK != f_chdir("..")) {
+    LCD_ALERT(PSTR("UpDir Error"));
+  }
+  f_mount(NULL, "", 0);
 #endif
 
+  struct sale *sl;
+ menuDelAllBillDelFfBills:
   /* Delete today's bill also */
-  struct sale *sl = (void *) (bufSS + LCD_MAX_COL + LCD_MAX_COL);
-  memset(sl, 0xFF, offsetof(struct sale, info));
-  for (uint16_t ui16_1=0, ui16_2=BILL_START_ADDR; ui16_1<NVF_SALE_MAX_BILLS;
-       ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
-    bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
-    if (0xFFFF == (sl->crc_invert ^ sl->crc)) {
-      bill_write_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
+  sl = (void *) (bufSS + LCD_MAX_COL + LCD_MAX_COL);
+  timerDateGet(date_i);
+  if ((date_i.year == date_l.year) && (date_i.month == date_l.month) && (date_i.day == date_l.day)) {
+    for (uint16_t ui16_1=0, ui16_2=NVF_SALE_START_ADDR; ui16_1<NVF_SALE_MAX_BILLS;
+	 ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
+      bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
+      if (0xFFFF == (sl->crc_invert ^ sl->crc)) {
+	sl->crc = (0 != sl->crc_invert) ? 0xFFFF : 0x0;
+	bill_write_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
+      }
     }
   }
 
@@ -3820,6 +3827,9 @@ menuBillReports(uint8_t mode)
 
  sdBillsDone:
   /* */
+  if (FR_OK != f_chdir("..")) {
+    LCD_ALERT(PSTR("UpDir Error"));
+  }
   f_mount(NULL, "", 0);
 #endif
 
@@ -3909,6 +3919,9 @@ menuTallyCash(uint8_t mode)
   }
 
   f_close(&Fil);
+  if (FR_OK != f_chdir("..")) {
+    LCD_ALERT(PSTR("UpDir Error"));
+  }
   f_mount(NULL, "", 0);
 #endif
 

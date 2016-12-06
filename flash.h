@@ -114,8 +114,6 @@ uint16_t bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len);
 #define ITEM_START_ADDR     NVF_START_ADDRESS
 #define ITEM_END_ADDR       NVF_END_ADDRESS
 #endif
-#define BILL_START_ADDR     NVF_START_ADDRESS
-#define BILL_END_ADDR       NVF_END_ADDRESS
 
 /* addr[15:0] : 15:14 - select device
                 13:0  - maps to 22:9 of 8M space which is 512 blocks

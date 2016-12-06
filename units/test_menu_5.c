@@ -7,13 +7,50 @@
 /* place to store items */
 struct item all_items[ITEM_MAX];
 
+void
+test_init1()
+{
+  uint32_t ui32_1, ui32_2;
+
+  for (ui32_1=0; ui32_1<EEPROM_SIZE; ui32_1++)
+    I2C_EEPROM_DIRECT_ASSIGN(ui32_1, 0xFF);
+  for (ui32_1=0; ui32_1<AVR_EEPROM_SIZE; ui32_1++)
+    AVR_EEPROM_DIRECT_ASSIGN(ui32_1, rand());
+  KBD_RESET_KEY;
+  memset(all_items, 0xFF, ITEM_SIZEOF*ITEM_MAX);
+
+  eeprom_update_byte((uint8_t *)0, 0xFA);
+  eeprom_update_byte((uint8_t *)1, 0xC7);
+  eeprom_update_byte((uint8_t *)2, 0x05);
+  eeprom_update_byte((uint8_t *)3, 0x1A);
+  
+  for (ui32_1=0, ui32_2=0; ui32_2<(SERIAL_NO_MAX-3); ui32_2++) {
+    ui32_1 = _crc16_update(ui32_1, 'a'+ui32_2);
+    eeprom_update_byte((uint8_t *)ui32_2+4, 'a'+ui32_2);
+  }
+  ui32_1 = _crc16_update(ui32_1, '1');
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-3)+4, '1');
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-2)+4, (ui32_1>>8)&0xFF);
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-1)+4, (ui32_1>>0)&0xFF);
+}
+
+void
+test_init2()
+{
+  uint8_t ui8_1;
+  uint16_t ui16_1;
+
+  eeprom_update_block((const void *)"Sri Ganapathy Stores",
+		      (void *)(offsetof(struct ep_store_layout, ShopName)), SHOP_NAME_SZ_MAX);
+}
+
 int
 main(int argc, char *argv[])
 {
   uint32_t errors;
   uint8_t  ui8_1, ui8_2, ui8_3, ui8_4, ui8_5;
   uint32_t loop, ui32_1, ui32_2;
-  uint16_t ui16_1, ui16_2, ui16_3;
+  uint16_t ui16_1, ui16_2, ui16_3, ui16_4;
   uint8_t quest[LCD_MAX_COL];
 
   if ((argc == 1) || (0 == argv[1]))
@@ -26,7 +63,9 @@ main(int argc, char *argv[])
   /* */
   common_init();
   assert_init();
+  test_init1();
   menuInit();
+  test_init2();
   i2c_init();
   ep_store_init();
   KbdInit();
@@ -58,9 +97,25 @@ main(int argc, char *argv[])
     quest[ui8_3] = '?';
     //printf("lcd_buf[1]:%s quest:%s\n", lcd_buf[1], quest);
     assert(0 == strncmp(quest, lcd_buf[1], ui8_3+1));
-    /* check stored value */
-    //printf("inp:'%s'\neep:'%s' size:%d\n", inp, _avr_eeprom+ui16_1, ui16_3);
-    assert(0 == strncmp(inp, _avr_eeprom+ui16_1, ui16_3));
+    /* check stored value
+       Sequence "\n" is changed to '\n'
+     */
+    if (0 != strncmp(inp, _avr_eeprom+ui16_1, ui16_2)) {
+      for (ui16_4=0, ui16_3=0; ui16_4<ui16_2; ui16_3++, ui16_4++) {
+	if (ui16_3 && ('n' == inp[ui16_3]) && ('\\' == inp[ui16_3-1])) {
+	  inp[ui16_3-1] = '\n';
+	  ui16_3--;
+	} else {
+	  inp[ui16_3] = inp[ui16_4];
+	}
+	//if (_avr_eeprom[ui16_1+ui16_3] != inp[ui16_3])
+	//printf("%d inp:%d eeprom:%d\n", ui16_3, inp[ui16_3], _avr_eeprom[ui16_1+ui16_3]);
+      }
+      //printf("ui16_2:%d %d\n", ui16_2, ui16_4-ui16_3);
+      ui16_2 -= ui16_4-ui16_3;
+    }
+    //printf("inp:'%s'\neep:'%s' size:%d\n", inp, _avr_eeprom+ui16_1, ui16_2);
+    assert(0 == strncmp(inp, _avr_eeprom+ui16_1, ui16_2));
   }
 
   for (loop=0; loop<1000; loop++) {

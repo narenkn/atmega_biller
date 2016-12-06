@@ -177,6 +177,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
+  //printf("lcd_buf:%s\n", lcd_buf[0]);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
 }
 
@@ -278,6 +279,43 @@ delete_item(uint16_t id)
   all_items[id-1].unused_crc = all_items[id-1].unused_crc_invert = 0xFF;
 }
 
+void
+test_init1()
+{
+  uint32_t ui32_1, ui32_2;
+
+  for (ui32_1=0; ui32_1<EEPROM_SIZE; ui32_1++)
+    I2C_EEPROM_DIRECT_ASSIGN(ui32_1, 0xFF);
+  for (ui32_1=0; ui32_1<AVR_EEPROM_SIZE; ui32_1++)
+    AVR_EEPROM_DIRECT_ASSIGN(ui32_1, rand());
+  KBD_RESET_KEY;
+  memset(all_items, 0xFF, ITEM_SIZEOF*ITEM_MAX);
+
+  eeprom_update_byte((uint8_t *)0, 0xFA);
+  eeprom_update_byte((uint8_t *)1, 0xC7);
+  eeprom_update_byte((uint8_t *)2, 0x05);
+  eeprom_update_byte((uint8_t *)3, 0x1A);
+  
+  for (ui32_1=0, ui32_2=0; ui32_2<(SERIAL_NO_MAX-3); ui32_2++) {
+    ui32_1 = _crc16_update(ui32_1, 'a'+ui32_2);
+    eeprom_update_byte((uint8_t *)ui32_2+4, 'a'+ui32_2);
+  }
+  ui32_1 = _crc16_update(ui32_1, '1');
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-3)+4, '1');
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-2)+4, (ui32_1>>8)&0xFF);
+  eeprom_update_byte((uint8_t *)(SERIAL_NO_MAX-1)+4, (ui32_1>>0)&0xFF);
+}
+
+void
+test_init2()
+{
+  uint8_t ui8_1;
+  uint16_t ui16_1;
+
+  eeprom_update_block((const void *)"Sri Ganapathy Stores",
+		      (void *)(offsetof(struct ep_store_layout, ShopName)), SHOP_NAME_SZ_MAX);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -294,7 +332,9 @@ main(int argc, char *argv[])
   /* */
   common_init();
   assert_init();
+  test_init1();
   menuInit();
+  test_init2();
   i2c_init();
   ep_store_init();
   KbdInit();
