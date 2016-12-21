@@ -69,7 +69,7 @@ main(void)
   }
 
   /* menuSetUserPasswd */
-  for (loop=0; loop<10; loop++) {
+  for (loop=0; loop<1000; loop++) {
     RESET_TEST_KEYS;
 
     uint16_t passwd_size = ( rand() % (LCD_MAX_COL-1) ) + 1;
@@ -107,18 +107,19 @@ main(void)
 
     LCD_CLRSCR;
     MenuMode = MENU_MSUPER;
-    ui2 = rand() % (EPS_MAX_USERS+1);
+    ui2 = rand() % EPS_MAX_USERS;
     inp3[ui2] = 0;
-    for (; ui2; ui2--) {
-      inp3[ui2] = ASCII_RIGHT;
+    for (ui1=ui2; ui1; ui1--) {
+      inp3[ui1-1] = ASCII_RIGHT;
     }
     INIT_TEST_KEYS(inp3);
-    inp4[0] = 0;
+    inp4[0] = (rand()&1) ? ASCII_RIGHT : 0;
+    inp4[1] = 0;
     INIT_TEST_KEYS(inp4);
     menuSetUserPasswd(MENU_MSUPER);
     if (' ' == inp2[0]) {
       assert(0 == strncmp("Invalid User    ", lcd_buf[0], LCD_MAX_COL));
-    } else if (ASCII_RIGHT == inp3[0]) {
+    } else if (ASCII_RIGHT == inp4[0]) {
       assert(0 == strncmp("Aborting!       ", lcd_buf[0], LCD_MAX_COL));
     } else {
       assert(MENU_MSUPER == MenuMode);
@@ -131,6 +132,7 @@ main(void)
     if ((' ' == inp2[0]) || (ASCII_RIGHT == inp[0]))
       continue;
 
+    ui2++;
     ui3 = rand() & 1; /* corrupt user name */
     ui4 = rand() & 1; /* corrupt passwd */
     RESET_TEST_KEYS;
@@ -156,8 +158,8 @@ main(void)
     } else {
       assert(((0 == ui2) ? MENU_MSUPER : MENU_MNORMAL) == MenuMode);
       assert(ui2+1 == LoginUserId);
-      printf("ui2:%d LoginUserId:%d maxusers:%d\n", ui2, LoginUserId, EPS_MAX_USERS);
-      printf("lcd:%s\n", lcd_buf[0]);
+      //printf("ui2:%d LoginUserId:%d maxusers:%d\n", ui2, LoginUserId, EPS_MAX_USERS);
+      //printf("lcd:%s\n", lcd_buf[0]);
     }
 
     /* check logout */

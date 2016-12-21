@@ -33,15 +33,15 @@ main()
 {
   uint32_t ui1;
 
-  SSCANF("0123abc", ui1); printf("%u\n", ui1);
+  SSCANF("0123abc", ui1); //printf("%u\n", ui1);
   assert(12300 == ui1);
-  SSCANF("abc", ui1); printf("%u\n", ui1);
+  SSCANF("abc", ui1); //printf("%u\n", ui1);
   assert(0 == ui1);
-  SSCANF("099.99abc", ui1); printf("%u\n", ui1);
+  SSCANF("099.99abc", ui1); //printf("%u\n", ui1);
   assert(9999 == ui1);
-  SSCANF("0108.12abc", ui1); printf("%u\n", ui1);
+  SSCANF("0108.12abc", ui1); //printf("%u\n", ui1);
   assert(10812 == ui1);
-  SSCANF("0.99abc", ui1); printf("%u\n", ui1);
+  SSCANF("0.99abc", ui1); //printf("%u\n", ui1);
   assert(99 == ui1);
   return 0;
 }

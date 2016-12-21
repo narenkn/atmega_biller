@@ -610,6 +610,11 @@ main(int argc, char *argv[])
   inp2[3] = 0;
   INIT_TEST_KEYS(inp2);
 
+  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
   //  menuBillReports(MENU_REPO_ALL);
-  menuTallyCash(0);
+  menuBillReports(MENU_REPO_TALLY);
 }

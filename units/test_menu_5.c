@@ -47,6 +47,8 @@ main(int argc, char *argv[])
     /* setup the string */
     for (ui16_3=0; ui16_3<ui16_2; ui16_3++) {
       inp[ui16_3] = ' ' + rand() % ('~'-' ');
+      if ((ui16_3>0) && ('n' == inp[ui16_3]) && ('\\' == inp[ui16_3-1]))
+	inp[ui16_3] = 'm';
     }
     inp[ui16_2] = 0;
     INIT_TEST_KEYS(inp);
