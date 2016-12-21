@@ -2,7 +2,7 @@
 
 /* place to store items */
 struct item all_items[ITEM_MAX];
-struct sale all_sales[NVF_SALE_MAX_BILLS*2];
+struct sale all_sales[NVF_SALE_MAX_BILLS];
 
 uint8_t inp5[6][TEST_KEY_ARR_SIZE];
 
@@ -488,34 +488,6 @@ test_init2()
 		      (void *)(offsetof(struct ep_store_layout, ShopName)), SHOP_NAME_SZ_MAX);
 }
 
-void
-addDate(date_t *date, date_t *d1)
-{
-  uint8_t max_days_in_month;
-
-  /* first add */
-  date->day += d1->day;
-  date->month += d1->month;
-  date->year += d1->year;
-
-  /* find max time, keep date */
-  if (2 == date->month) {
-    max_days_in_month = ((0 == (date->year & 0x3)) && (0 != (date->year%100)))? 29 : 28;
-  } else if ( (1 == date->month) || (3 == date->month) ||
-	      (5 == date->month) || (7 == date->month) ||
-	      (8 == date->month) || (10 == date->month) ||
-	      (12 == date->month) )
-    max_days_in_month = 31;
-  else
-    max_days_in_month = 30;
-  if (date->day > max_days_in_month) {
-    date->day %= max_days_in_month;
-    if (++(date->month) > 12) {
-      date->month %= 12;
-    }
-  }
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -548,68 +520,9 @@ main(int argc, char *argv[])
     make_item(all_items+ui1, 0);
   }
 
-  /* Check all items as per expectations */
-  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
-    compare_item(all_items+ui1, itemAddr(ui1+1));
-  }
+  make_bill(all_sales+0, 0);
 
-  /* Create 10 days of bills */
-  #define TEST_LOOP 10
-  uint16_t billsInDay = rand() & 0xF;
-  uint16_t billsInMonth = rand() & 0xF;
-  uint16_t billYears = rand() & 0xF;
-  date_t addDay = {0, 0, 0}, addMon = {0, 1, 0}, addYr = {0, 0, 1};
-  /* Test for all bills saved & retrieved */
-  time_t t = time(NULL);
-  struct tm tm = *localtime(&t);
-  date_t date;
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-#if 0
-  for (uint32_t yrLoop=0; yrLoop<billYears; yrLoop++) {
-    for (uint32_t monLoop=0; monLoop<12; monLoop++) {
-      for (uint32_t dayLoop=0; dayLoop<billsInMonth; dayLoop++) {
-	/* day */
-	timerDateSet(date);
-	for (ui1=0; ui1<billsInDay; ui1++) {
-	  make_bill(all_sales+ui1, 0);
-	}
+  menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
 
-	/* Save to file */
-	uint16_t addr = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-	menuSdSaveBillDat(addr);
-
-	/* incr rand days */
-	addDay.day = rand()%3;
-	addDate(&date, &addDay);
-      }
-      addDate(&date, &addMon);
-    }
-    addDate(&date, &addYr);
-    date.day = 1; date.month = 1;
-  }
-#endif
-
-  /* Supported Bills are
-     MENU_REPO_BWISE, MENU_REPO_VOID, MENU_REPO_DUP,
-     MENU_REPO_ITWISE, MENU_REPO_TAX
-  */
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-  timerDateSet(date);
-  RESET_TEST_KEYS;
-
-  /* */
-  arg1.valid = arg2.valid = MENU_ITEM_DATE;
-  arg1.value.date = (date_t){28, 11, 2016};
-  arg2.value.date = (date_t){31, 12, 2029};
-  arg2.value.date = (date_t){28, 11, 2017};
-
-  /* twise option */
-  inp2[0] = ASCII_RIGHT;
-  inp2[1] = ASCII_RIGHT;
-  inp2[2] = ASCII_RIGHT;
-  inp2[3] = 0;
-  INIT_TEST_KEYS(inp2);
-
-  //  menuBillReports(MENU_REPO_ALL);
-  menuTallyCash(0);
+  return 0;
 }

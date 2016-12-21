@@ -2,7 +2,7 @@
 
 /* place to store items */
 struct item all_items[ITEM_MAX];
-struct sale all_sales[NVF_SALE_MAX_BILLS*2];
+struct sale all_sales[NVF_SALE_MAX_BILLS];
 
 uint8_t inp5[6][TEST_KEY_ARR_SIZE];
 
@@ -488,34 +488,6 @@ test_init2()
 		      (void *)(offsetof(struct ep_store_layout, ShopName)), SHOP_NAME_SZ_MAX);
 }
 
-void
-addDate(date_t *date, date_t *d1)
-{
-  uint8_t max_days_in_month;
-
-  /* first add */
-  date->day += d1->day;
-  date->month += d1->month;
-  date->year += d1->year;
-
-  /* find max time, keep date */
-  if (2 == date->month) {
-    max_days_in_month = ((0 == (date->year & 0x3)) && (0 != (date->year%100)))? 29 : 28;
-  } else if ( (1 == date->month) || (3 == date->month) ||
-	      (5 == date->month) || (7 == date->month) ||
-	      (8 == date->month) || (10 == date->month) ||
-	      (12 == date->month) )
-    max_days_in_month = 31;
-  else
-    max_days_in_month = 30;
-  if (date->day > max_days_in_month) {
-    date->day %= max_days_in_month;
-    if (++(date->month) > 12) {
-      date->month %= 12;
-    }
-  }
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -539,7 +511,6 @@ main(int argc, char *argv[])
   menuInit();
   test_init2();
   nvfInit();
-  printerInit();
 
   /* test init */
 #define NUM_ITEMS2TEST  ITEM_MAX
@@ -553,63 +524,109 @@ main(int argc, char *argv[])
     compare_item(all_items+ui1, itemAddr(ui1+1));
   }
 
-  /* Create 10 days of bills */
   #define TEST_LOOP 10
-  uint16_t billsInDay = rand() & 0xF;
-  uint16_t billsInMonth = rand() & 0xF;
-  uint16_t billYears = rand() & 0xF;
-  date_t addDay = {0, 0, 0}, addMon = {0, 1, 0}, addYr = {0, 0, 1};
   /* Test for all bills saved & retrieved */
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   date_t date;
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-#if 0
-  for (uint32_t yrLoop=0; yrLoop<billYears; yrLoop++) {
-    for (uint32_t monLoop=0; monLoop<12; monLoop++) {
-      for (uint32_t dayLoop=0; dayLoop<billsInMonth; dayLoop++) {
-	/* day */
-	timerDateSet(date);
-	for (ui1=0; ui1<billsInDay; ui1++) {
-	  make_bill(all_sales+ui1, 0);
-	}
-
-	/* Save to file */
-	uint16_t addr = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-	menuSdSaveBillDat(addr);
-
-	/* incr rand days */
-	addDay.day = rand()%3;
-	addDate(&date, &addDay);
-      }
-      addDate(&date, &addMon);
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    timerDateSet(date);
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
+      make_bill(all_sales+ui1, 0);
     }
-    addDate(&date, &addYr);
-    date.day = 1; date.month = 1;
-  }
+
+    /* */
+    struct sale sl;
+    add_expect_assert("0 == __LINE__" ", " __FILE__);
+    make_bill(&sl, 0);
+    add_expect_assert("0 == __LINE__" ", " __FILE__);
+    make_bill(&sl, 0);
+    /* Save to file */
+    menuSdSaveBillDat(0);
+    /* test all bills are deleted */
+    uint16_t ui16_2 = 0;
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS;
+	 ui1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
+      bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
+      assert (0xFFFF != (sl.crc ^ sl.crc_invert));
+      //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
+    }
+
+#if 1
+    /* check data in file */
+    sprintf(inp, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
+    FILE *inf = fopen(inp, "r");
+    printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
+    ssize_t ret;
+    for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
+      ret = fread ((void *)&sl, 1, SIZEOF_SALE_EXCEP_ITEMS, inf);
+      if (0 == ret) break;
+      assert(SIZEOF_SALE_EXCEP_ITEMS == ret);
+      assert(0xFFFF == (sl.crc ^ sl.crc_invert));
+      compare_bills(all_sales+ui1, &sl);
+      /* load bills */
+      ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+      bill_write_bytes(ui16_2, (uint8_t *)&sl, SIZEOF_SALE_EXCEP_ITEMS);
+      ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
+      eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
+      /* */
+      ret = fread ((void *)&sl, 1, MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS, inf);
+      if (0 == ret) break;
+      assert((MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS) == ret);
+    }
+    ret = fread ((void *)&sl, MAX_SIZEOF_1BILL, 1, inf);
+    assert(0 == ret);
+    fclose(inf);
 #endif
 
-  /* Supported Bills are
-     MENU_REPO_BWISE, MENU_REPO_VOID, MENU_REPO_DUP,
-     MENU_REPO_ITWISE, MENU_REPO_TAX
-  */
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-  timerDateSet(date);
-  RESET_TEST_KEYS;
+    /* goto next date */
+    nextDate(&date);
+  }
 
+#if 0
   /* */
-  arg1.valid = arg2.valid = MENU_ITEM_DATE;
-  arg1.value.date = (date_t){28, 11, 2016};
-  arg2.value.date = (date_t){31, 12, 2029};
-  arg2.value.date = (date_t){28, 11, 2017};
+  char fn[32];
+  FILE *inf;
 
-  /* twise option */
-  inp2[0] = ASCII_RIGHT;
-  inp2[1] = ASCII_RIGHT;
-  inp2[2] = ASCII_RIGHT;
-  inp2[3] = 0;
-  INIT_TEST_KEYS(inp2);
+  if (TEST_LOOP < 10) return MENU_RET_NOERROR;
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  /* choose a random range to delete */
+  uint8_t ui8_1 = rand() & 0x3;
+  uint8_t ui8_2 = ui8_1 + (rand() & 0x3);
 
-  //  menuBillReports(MENU_REPO_ALL);
-  menuTallyCash(0);
+  RESET_TEST_KEYS;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    if (loop == ui8_1) {
+      sprintf(inp, "%02d%02d%04d", date.day, date.month, date.year);
+      INIT_TEST_KEYS(inp);
+    }
+    if (loop == ui8_2) {
+      sprintf(inp+LCD_MAX_COL, "%02d%02d%04d", date.day, date.month, date.year);
+      INIT_TEST_KEYS(inp+LCD_MAX_COL);
+    }
+    nextDate(&date);
+  }
+  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
+  menuDelAllBill(MENU_NOCONFIRM);
+  /* now check if the files are deleted */
+  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
+    sprintf(fn, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
+    printf("File %s : ", fn);
+    inf = fopen(fn, "r");
+    if ((ui8_1 <= loop) && (loop <= ui8_2)) {
+      printf("Deleted : %p\n", inf);
+      assert(NULL == inf);
+    } else {
+      printf("exists : %p\n", inf);
+      assert(NULL != inf);
+    }
+    fclose(inf);
+    nextDate(&date);
+  }
+#endif
+  
+  return MENU_RET_NOERROR;
 }
