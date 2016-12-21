@@ -87,7 +87,13 @@ typedef struct {
 #define MENU_KOTBILL     0x04
 #define MENU_VOIDBILL    0x05
 #define MENU_SHOWBILL    0x06
-#define MENU_HELPER_INIT 0x00
+/* Following bits are used
+   [7:6] : HELPER_INIT/QUIT
+   [4:3] : REPO_*WISE
+   [2:0] : REPO_*
+*/
+#define MENU_HELPER_INIT 0x80
+#define MENU_HELPER_QUIT 0x40
 #define MENU_ITEM_SAVE   0x04
 #define MENU_ITEM_LOAD   0x02
 #define MENU_ITEM_REPORT 0x01
@@ -96,8 +102,8 @@ typedef struct {
 #define MENU_REPO_DUP    0x03
 #define MENU_REPO_TAX    0x04
 #define MENU_REPO_ITWISE 0x05
-#define MENU_HELPER_QUIT 0x06 /* MENU_REPO_REDO is return val of func */
-#define MENU_REPO_REDO   0x06
+#define MENU_REPO_TALLY  0x06
+#define MENU_REPO_REDO   0x07
 #define MENU_REPO_BWISE    0x00 /* MENU_REPO_*WISE [4:3] */
 #define MENU_REPO_DAYWISE  0x08
 #define MENU_REPO_MONWISE  0x10
@@ -149,8 +155,8 @@ struct setting_vars {
     ARG1(MENU_PR_ID, MENU_ITEM_ID) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_NONE) ROW_JOIN \
   MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_SHOWBILL)  MENU_NAME("View Old Bill   ") COL_JOIN MENU_FUNC(menuViewOldBill) COL_JOIN \
     ARG1(MENU_PR_DATE,  MENU_ITEM_DATE) COL_JOIN ARG2(MENU_PR_ID, MENU_ITEM_ID|MENU_ITEM_OPTIONAL) ROW_JOIN \
-  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL)  MENU_NAME("Tally Cash      ") COL_JOIN MENU_FUNC(menuTallyCash) COL_JOIN \
-    ARG1(MENU_PR_DATE,  MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_NONE, MENU_ITEM_NONE) ROW_JOIN \
+  MENU_HIER(MENU_HIER_BILLING) MENU_MODE(MENU_MSUPER|MENU_MNORMAL|MENU_REPO_TALLY)  MENU_NAME("Tally Cash      ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
+    ARG1(MENU_PR_FROM_DATE,  MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE,  MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_VALID) MENU_NAME("All Bill Report ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
     ARG1(MENU_PR_FROM_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) COL_JOIN ARG2(MENU_PR_TO_DATE, MENU_ITEM_DATE|MENU_ITEM_OPTIONAL) ROW_JOIN \
   MENU_HIER(MENU_HIER_REPORTS) MENU_MODE(MENU_MSUPER|MENU_REPO_VOID) MENU_NAME("Void Report     ") COL_JOIN MENU_FUNC(menuBillReports) COL_JOIN \
@@ -189,13 +195,10 @@ extern uint8_t bufSS[BUFSS_SIZE];
 
 /* Device status */
 extern uint8_t devStatus;
-#define DS_NO_SD    (1<<0)
-#define DS_NO_TFT   (1<<1)
-#define DS_DEV_1K   (1<<2)
-#define DS_DEV_5K   (1<<3)
-#define DS_DEV_20K  (1<<4)
-#define DS_NO_NVF   (1<<5)
-#define DS_DEV_INVALID (1<<6)
+#define DS_DEV_1K   (1<<0)
+#define DS_DEV_5K   (1<<1)
+#define DS_DEV_20K  (1<<2)
+#define DS_DEV_INVALID (1<<7)
 #define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD|DS_NO_NVF)
 
 /* Pending actions */
@@ -255,7 +258,6 @@ uint8_t menuSetHotKey(uint8_t mode);
 
 /* Report routines */
 uint8_t menuBillReports(uint8_t mode); // Unverified
-uint8_t menuTallyCash(uint8_t mode);
 
 /* SD routines */
 uint8_t menuSdIterItem(uint8_t mode);

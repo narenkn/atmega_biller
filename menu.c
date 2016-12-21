@@ -30,6 +30,7 @@
 #include "a1micro2mm.h"
 #include "integer.h"
 #if FF_ENABLE
+#include "diskio.h"
 #include "ff.h"
 #endif
 #include "main.h"
@@ -212,6 +213,10 @@ const uint8_t menu_str1[] PROGMEM =
   "on Disc?" /*35 */
   "Success!" /*36 */
   ;
+
+/* All PSTR strings */
+const int8_t PSTR_NO_SD[] PROGMEM = "No SD";
+const int8_t PSTR_SKIPOP[] PROGMEM = "Skip Operation";
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
@@ -2214,14 +2219,17 @@ menuViewOldBill(uint8_t mode)
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
   UINT  ret_val;
 
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    menuMemset(&FS, 0, sizeof(FS));
-    menuMemset(&Fil, 0, sizeof(Fil));
-    f_mount(&FS, ".", 1);
+  if (RES_OK != disk_inserted()) {
+    LCD_ALERT(PSTR_NO_SD);
+    return MENU_RET_NOTAGAIN;
   }
+
+  menuMemset(&FS, 0, sizeof(FS));
+  menuMemset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
   date_t date = arg1.value.date;
   sprintf_P((char *)bufSS, PSTR("%02d-%02d-%04d.dat"), date.day, date.month, date.year);
-  if ((FR_OK != f_chdir("billdat")) || (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ|FA_WRITE))) {
+  if ((FR_OK != f_chdir("billdat")) || (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ|FA_OPEN_EXISTING))) {
     LCD_ALERT(PSTR("No Bills"));
     f_mount(NULL, "", 0);
     return 0;
@@ -2662,6 +2670,11 @@ menuDelAllBill(uint8_t mode)
 #if FF_ENABLE
   date_t date_i, date_l;
 
+  if (RES_OK != disk_inserted()) {
+    LCD_ALERT(PSTR_NO_SD);
+    return MENU_RET_NOTAGAIN;
+  }
+
   if (0 == menuCheckDateFromTo(mode))
     return 0;
   date_i=arg1.value.date, date_l=arg2.value.date;
@@ -2671,11 +2684,9 @@ menuDelAllBill(uint8_t mode)
       return 0;
   }
 
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    menuMemset(&FS, 0, sizeof(FS));
-    menuMemset(&Fil, 0, sizeof(Fil));
-    f_mount(&FS, ".", 1);
-  }
+  menuMemset(&FS, 0, sizeof(FS));
+  menuMemset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
   if (FR_OK != f_chdir("billdat")) {
     LCD_ALERT(PSTR("No Bills"));
     f_mount(NULL, "", 0);
@@ -3287,7 +3298,7 @@ menuUserLogin(uint8_t mode)
 
   if (eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))) != crc) {
 #if 0
-    move(1, 0); printw("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
+    printf("refcrc:%x crc:%x\n", eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_passwds) + (ui2*sizeof(uint16_t)))), crc);
 #endif
     LCD_ALERT(PSTR("Wrong Passwd"));
     LoginUserId = 0;
@@ -3310,12 +3321,9 @@ menuSdLoadItemHelper(uint8_t mode)
   uint8_t ret;
 
 #if MENU_SDSAVE_EN && FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(PSTR("Skip Operation"));
-    return DS_DEV_INVALID;
-  }
+  assert (RES_OK == disk_inserted());
 
-  if (MENU_HELPER_INIT == (mode & ~MENU_MODEMASK)) {
+  if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
     /* init */
     menuMemset(&FS, 0, sizeof(FS));
     menuMemset(&Fil, 0, sizeof(Fil));
@@ -3330,7 +3338,7 @@ menuSdLoadItemHelper(uint8_t mode)
     return MENU_RET_NOERROR;
   }
 
-  if (MENU_HELPER_QUIT == (mode & ~MENU_MODEMASK)) {
+  if (MENU_HELPER_QUIT == (mode & MENU_MODEMASK)) {
     /* */
     f_close(&Fil);
     f_mount(NULL, "", 0);
@@ -3340,17 +3348,20 @@ menuSdLoadItemHelper(uint8_t mode)
   UINT ret_size;
   uint32_t ui32_1;
 
+  /* Detect EOF and send unique code */
+  if (f_eof(&Fil)) return 0xFF;
+
   /* prod_code, name, cost, discount, has_vat, Vat, has_tax1, Tax1, has_tax2, Tax2, has_tax3, Tax3, is_reverse_tax, has_weighing_mc, has_common_discount */
   f_read(&Fil, it->prod_code, ITEM_PROD_CODE_BYTEL+1, &ret_size);
   if ('#' == it->prod_code[0]) return 4; /* comment line */
-  if ((ITEM_PROD_CODE_BYTEL+1) != ret_size) return 1;
+  if ((ITEM_PROD_CODE_BYTEL+1) != ret_size) return 5;
   if (',' != it->prod_code[ITEM_PROD_CODE_BYTEL]) return 2;
   if (0 != menuSdSCheckFix(it->prod_code, ITEM_PROD_CODE_BYTEL)) return 3;
 
   f_read(&Fil, it->name, ITEM_NAME_BYTEL+1, &ret_size);
-  if ((ITEM_NAME_BYTEL+1) != ret_size) return 1;
-  if (',' != it->name[ITEM_NAME_BYTEL]) return 2;
-  if (0 != menuSdSCheckFix(it->name, ITEM_NAME_BYTEL)) return 3;
+  if ((ITEM_NAME_BYTEL+1) != ret_size) return 6;
+  if (',' != it->name[ITEM_NAME_BYTEL]) return 7;
+  if (0 != menuSdSCheckFix(it->name, ITEM_NAME_BYTEL)) return 8;
 
   ret = menuSdScanF(&ui32_1, bufSS); it->cost = ui32_1; ret |= menuSdSwallowComma();
   ret |= menuSdScanF(&ui32_1, bufSS); it->discount = ui32_1; ret |= menuSdSwallowComma();
@@ -3411,25 +3422,22 @@ menuSdSaveItemHelper(uint8_t mode)
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
 #if MENU_SDSAVE_EN && FF_ENABLE
-  if ( ((devStatus & DS_DEV_INVALID) || (devStatus & DS_NO_SD)) ) {
-    LCD_ALERT(PSTR("Skip Operation"));
-    return DS_DEV_INVALID;
-  }
+  assert (RES_OK == disk_inserted());
 
-  if (MENU_HELPER_INIT == (mode & ~MENU_MODEMASK)) {
+  if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
     /* init */
     menuMemset(&FS, 0, sizeof(FS));
     menuMemset(&Fil, 0, sizeof(Fil));
 
     /* */
     f_mount(&FS, ".", 1);
-    if (FR_OK != f_open(&Fil, "out_" SD_ITEM_FILE, FA_WRITE|FA_OPEN_ALWAYS)) {
+    if (FR_OK != f_open(&Fil, "out_" SD_ITEM_FILE, FA_WRITE|FA_CREATE_ALWAYS)) {
       LCD_ALERT(PSTR("File open error"));
       return 1;
     }
     f_puts_p(PSTR("## prod_code, name, cost, discount, has_vat, Vat, has_tax1, Tax1, has_tax2, Tax2, has_tax3, Tax3, is_reverse_tax, has_weighing_mc, has_common_discount"), &Fil); f_putc('\r', &Fil); f_putc('\n', &Fil);
     return 0;
-  } else if (MENU_HELPER_QUIT == (mode & ~MENU_MODEMASK)) {
+  } else if (MENU_HELPER_QUIT == (mode & MENU_MODEMASK)) {
     /* */
     f_close(&Fil);
     f_mount(NULL, "", 0);
@@ -3467,11 +3475,11 @@ menuSdReportItemHelper(uint8_t mode)
 {
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
-  if (MENU_HELPER_INIT == (mode & ~MENU_MODEMASK)) {
+  if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
     PRINTER_PSTR(PSTR("  id     name     prod_code    Rs.   Disc.   Vat  Tax1, Tax2, Tax3\r\n"));
     return 0;
   }
-  if (MENU_HELPER_QUIT == (mode & ~MENU_MODEMASK)) {
+  if (MENU_HELPER_QUIT == (mode & MENU_MODEMASK)) {
     return 0;
   }
 
@@ -3509,6 +3517,12 @@ menuSdIterItem(uint8_t mode)
   uint8_t ui8_1 = 0;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
+
+  if (RES_OK != disk_inserted()) {
+    LCD_ALERT(PSTR_SKIPOP);
+    return DS_DEV_INVALID;
+  }
+
   /* */
   if (MENU_ITEM_SAVE & (mode & ~MENU_MODEMASK)) {
     ui8_1 = menuSdSaveItemHelper(MENU_HELPER_INIT);
@@ -3532,13 +3546,16 @@ menuSdIterItem(uint8_t mode)
        ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
     if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
       ui8_1 = menuSdLoadItemHelper(mode);
-      if ((0 == ui8_1 /* no err */) &&
+      if (0xFF == ui8_1) { /* EOF */
+	break;
+      } else if ((0 == ui8_1 /* no err */) &&
 	  (it->id > 0) && (it->id <= ITEM_MAX)) {
 	ui16_1 = itemAddr(it->id);
 	item_write_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
       } else if (4 == ui8_1) { /* comment line */
 	ui8_1 = 0;
       } else if (0 != ui8_1) {
+	//printf("ui8_1:%d\n", ui8_1);
 	error++;
       }
 
@@ -3572,7 +3589,12 @@ menuSdIterItem(uint8_t mode)
   ui8_1 ? error++ : 0;
 
   /* */
-  LCD_ALERT_N(PSTR("#Errors:"), error);
+  if (error) {
+    LCD_CLRLINE(1);
+    LCD_WR_P(PSTR("#Errors:"));
+    LCD_PUT_UINT(error);
+    KBD_GETCH;
+  }
 
   return MENU_RET_NOERROR;
 }
@@ -3583,10 +3605,11 @@ typedef struct {
   uint32_t t_tax;
   uint32_t t_discount;
   uint32_t total;
+  uint32_t t_cash_pay;
   date_t   date;
   uint8_t  has_data;
 } cumuBillData_t;
-static cumuBillData_t bwiseCumu;
+//static cumuBillData_t bwiseCumu;
 
 static uint8_t
 menuBillRpt1L(uint8_t mode, struct sale *sl)
@@ -3595,28 +3618,26 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   uint8_t tbill = mode & (~MENU_MODEMASK & ~MENU_REPO_WISEMASK);
   cumuBillData_t *cumu = (void *)bufSS;
 
-  if (MENU_HELPER_INIT == mode) {
+  if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
     PRINTER_PSTR(PSTR("Date  User  BillId  #Items  #Tax #Discount #Total\r\n"));
-    cumu->date.day = 0; cumu->date.month = 0; cumu->date.year = 0;
-    cumu->num_bills = cumu->n_items = 0;
-    cumu->t_tax = cumu->t_discount = cumu->total = 0;
-    cumu->has_data = 0;
-    /* */
-    bwiseCumu.date.day = 0; bwiseCumu.date.month = 0; bwiseCumu.date.year = 0;
-    bwiseCumu.num_bills = bwiseCumu.n_items = 0;
-    bwiseCumu.t_tax = bwiseCumu.t_discount = bwiseCumu.total = 0;
-    bwiseCumu.has_data = 0;
+    menuMemset( bufSS, 0, sizeof(cumuBillData_t) );
+    assert(sizeof(cumuBillData_t) <= (LCD_MAX_COL+LCD_MAX_COL));
     return 0;
   }
 
   /* skip bills of no interest */
-  if (MENU_HELPER_QUIT != tbill) {
+  if (MENU_HELPER_QUIT != (mode & MENU_MODEMASK)) {
     if ( (MENU_REPO_VOID == tbill) && (!(sl->info.is_void)) ) {
       return 0;
     } else if ( (MENU_REPO_DUP == tbill) && (!(sl->info.dup_bill_issued)) ) {
       return 0;
     } else if (sl->info.is_void) { /* in MENU_REPO_VALID, MENU_REPO_TAX */
       return 0;
+    }
+
+    /* Tally has to acumulate and print once */
+    if (MENU_REPO_TALLY == tbill) {
+      goto menuBillRpt1LSkipPrint;
     }
   }
 
@@ -3636,12 +3657,6 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
     cumu->t_discount = sl->t_discount;
     cumu->total = sl->total;
     cumu->has_data = 1;
-
-    bwiseCumu.n_items += sl->info.n_items;
-    bwiseCumu.t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
-    bwiseCumu.t_discount += sl->t_discount;
-    bwiseCumu.total += sl->total;
-    bwiseCumu.has_data = 1;
  } else if (MENU_REPO_DAYWISE == twise) {
     if ( sl && (cumu->date.day == sl->info.date_dd) &&
 	 (cumu->date.month == sl->info.date_mm) &&
@@ -3676,6 +3691,10 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   }
   PRINTER_PRINT(' ');
 
+  if (MENU_REPO_TALLY == tbill) {
+    PRINTER_PSTR(PSTR("#Bills   #TotTax   #TotDisc   #TotCashCollected\r\n"));
+  }
+
   /* */
   menuPrnF(cumu->t_tax);  PRINTER_PRINT(' ');
   menuPrnF(cumu->t_discount);  PRINTER_PRINT(' ');
@@ -3684,6 +3703,22 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   /* finish of record */
   PRINTER_PRINT('\r');  PRINTER_PRINT('\n');
 
+  /* tally cash handled seperately */
+  if (MENU_REPO_TALLY == tbill) {
+    LCD_CLRLINE(0);
+    LCD_PUTCH('#');
+    LCD_PUT_UINT(cumu->num_bills);
+    LCD_WR_P(PSTR(" Tx:"));
+    LCD_PUT_UINT(cumu->t_tax);
+    LCD_CLRLINE(LCD_MAX_ROW-1);
+    LCD_WR_P(PSTR("Cash: "));
+    LCD_PUT_UINT(cumu->t_cash_pay);
+#if ! UNIT_TEST
+    KBD_RESET_KEY;
+    KBD_GETCH;
+#endif
+  }
+
   /* cleanup data */
   cumu->date.day = 0; cumu->date.month = 0; cumu->date.year = 0;
   cumu->num_bills = cumu->n_items = 0;
@@ -3691,7 +3726,7 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   cumu->has_data = 0;
 
  menuBillRpt1LSkipPrint:
-  if (MENU_HELPER_QUIT != tbill) {
+  if (MENU_HELPER_QUIT != (mode & MENU_MODEMASK)) {
     cumu->date.day = sl->info.date_dd;
     cumu->date.month = sl->info.date_mm;
     cumu->date.year = sl->info.date_yy;
@@ -3702,16 +3737,23 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
     cumu->t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
     cumu->t_discount += sl->t_discount;
     cumu->total += sl->total;
+    cumu->t_cash_pay += sl->t_cash_pay;
 
     //printf("cumu: #%d tax:%d disc:%d total:%d\n", cumu->n_items, cumu->t_tax, cumu->t_discount, cumu->total);
     return 0;
   }
 
-  if (bwiseCumu.has_data) {
+  /* Quit : So, print the final statements */
+  if (cumu->has_data) {
     PRINTER_PSTR(PSTR("                "));
-    menuPrnF(bwiseCumu.t_tax); PRINTER_PRINT(' ');
-    menuPrnF(bwiseCumu.t_discount); PRINTER_PRINT(' ');
-    menuPrnF(bwiseCumu.total);
+    menuPrnF(cumu->t_tax); PRINTER_PRINT(' ');
+    menuPrnF(cumu->t_discount); PRINTER_PRINT(' ');
+    menuPrnF(cumu->total);
+  }
+  if (MENU_REPO_TALLY == tbill) {
+    LCD_CLRLINE(LCD_MAX_ROW-1);
+    LCD_WR_P(PSTR("Cash: "));
+    LCD_PUT_UINT(cumu->t_cash_pay);
   }
 
   /* end spaces */
@@ -3776,20 +3818,23 @@ menuBillReports(uint8_t mode)
     PRINTER_PSTR(PSTR("Duplicate Bill Report\r\n"));
   } else if (rpt == MENU_REPO_ITWISE) {
     PRINTER_PSTR(PSTR("Itemwise Bill Report\r\n"));
+  } else if (rpt == MENU_REPO_TALLY) {
+    PRINTER_PSTR(PSTR("Tally Cash Report\r\n"));
   } else {
     PRINTER_PSTR(PSTR("Tax Report\r\n"));
   }
-  ((rpt == MENU_REPO_ITWISE) ? menuItemWiseRpt: menuBillRpt1L)(MENU_HELPER_INIT, NULL);
+  ((rpt == MENU_REPO_ITWISE) ? menuItemWiseRpt: menuBillRpt1L)(MENU_HELPER_INIT|rpt, NULL);
   PRINTER_FONT_ENLARGE(1);
 
   /* */
  menuBillReportsRedo:
 #if FF_ENABLE
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    menuMemset(&FS, 0, sizeof(FS));
-    menuMemset(&Fil, 0, sizeof(Fil));
-    f_mount(&FS, ".", 1);
+  if (RES_OK != disk_inserted()) {
+    goto menuBillReportsSkipFf;
   }
+  menuMemset(&FS, 0, sizeof(FS));
+  menuMemset(&Fil, 0, sizeof(Fil));
+  f_mount(&FS, ".", 1);
   if (FR_OK != f_chdir("billdat")) {
     goto sdBillsDone;
   }
@@ -3833,6 +3878,7 @@ menuBillReports(uint8_t mode)
   f_mount(NULL, "", 0);
 #endif
 
+ menuBillReportsSkipFf:
   /* Look if we need to iterate on today's records */
   timerDateGet(date_i);
   if ( (date_i.day != date_l.day) ||
@@ -3851,123 +3897,10 @@ menuBillReports(uint8_t mode)
   }
 
  menuBillReportsFlashBillsDone:
-  rpt &= MENU_REPO_WISEMASK;
-  ui8_1 = ((rpt == MENU_REPO_ITWISE) ? menuItemWiseRpt: menuBillRpt1L)(rpt|MENU_HELPER_QUIT, NULL);
+  ui8_1 = (((rpt&MENU_REPO_WISEMASK) == MENU_REPO_ITWISE) ? menuItemWiseRpt: menuBillRpt1L)(MENU_HELPER_QUIT|rpt, NULL);
   if (MENU_REPO_REDO == ui8_1)
     goto menuBillReportsRedo;
   menuPrnFooter();
-
-  return MENU_RET_NOTAGAIN;
-}
-
-uint8_t
-menuTallyCash(uint8_t mode)
-{
-  uint16_t ui16_1, ui16_2;
-  struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
-  struct {
-    uint16_t numBills;
-    uint32_t t_tax;
-    uint32_t t_discount;
-    uint32_t total;
-    uint32_t  t_cash_pay;
-  } tallyCash;
-
-  /* init */
-  tallyCash.numBills = 0, tallyCash.t_tax = 0,
-    tallyCash.t_discount = 0, tallyCash.total = 0,
-    tallyCash.t_cash_pay = 0;
-
-  /* iterate SD records */
-#if FF_ENABLE
-  if (0 == ((devStatus & DS_DEV_INVALID) | (DS_NO_SD&devStatus))) {
-    menuMemset(&FS, 0, sizeof(FS));
-    menuMemset(&Fil, 0, sizeof(Fil));
-    f_mount(&FS, ".", 1);
-  }
-  if (FR_OK != f_chdir("billdat")) {
-    goto menuTallyCashSDDone;
-  }
-
-  /* check and fix date */
-  if (0 == menuCheckDateFromTo(mode))
-    return 0;
-  sprintf_P((char *)bufSS, PSTR("%02d-%02d-%04d.dat"), arg1.value.date.day, arg1.value.date.month, arg1.value.date.year);
-  if (FR_OK != f_open(&Fil, (char *)bufSS, FA_READ)) {
-    LCD_ALERT(PSTR("No bills in date"));
-    return MENU_RET_NOTAGAIN;
-  }
-
-  /* iterate records */
-  while (!f_eof(&Fil)) {
-    /* Display this item */
-    UINT ret_val;
-    f_read(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
-    if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) goto menuTallyCashSDDone;
-    assert (0xFFFF == (sl->crc_invert ^ sl->crc));
-
-    /* update */
-    tallyCash.numBills++;
-    tallyCash.t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
-    tallyCash.t_discount += sl->t_discount;
-    tallyCash.total += sl->total;
-    tallyCash.t_cash_pay += sl->t_cash_pay;
-
-    /* */
-    f_read(&Fil, (void *)sl, MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
-    if ((MAX_SIZEOF_1BILL-SIZEOF_SALE_EXCEP_ITEMS) != ret_val) goto menuTallyCashSDDone;
-  }
-
-  f_close(&Fil);
-  if (FR_OK != f_chdir("..")) {
-    LCD_ALERT(PSTR("UpDir Error"));
-  }
-  f_mount(NULL, "", 0);
-#endif
-
- menuTallyCashSDDone:
-  /* iterate through records @ flash */
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
-  for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS; ui16_1++) {
-    ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
-    bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
-    if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* end-of valid bills */
-      break;
-
-    /* update */
-    tallyCash.numBills++;
-    tallyCash.t_tax += sl->t_tax1 + sl->t_tax2 + sl->t_tax3 + sl->t_vat;
-    tallyCash.t_discount += sl->t_discount;
-    tallyCash.total += sl->total;
-    tallyCash.t_cash_pay += sl->t_cash_pay;
-  }
-
-  /* Display & Print */
-  LCD_CLRLINE(0);
-  LCD_PUTCH('#');
-  LCD_PUT_UINT(tallyCash.numBills);
-  LCD_WR_P(PSTR(" Tax:"));
-  LCD_PUT_UINT(tallyCash.t_tax);
-  LCD_CLRLINE(LCD_MAX_ROW-1);
-  LCD_WR_P(PSTR("Cash Rcvd:"));
-  LCD_PUT_UINT(tallyCash.t_cash_pay);
-  menuPrnHeader();
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PSTR(PSTR("Cash Report:"));
-  menuPrnD(arg2.value.date.day); PRINTER_PRINT('/');
-  menuPrnD(arg2.value.date.month); PRINTER_PRINT('/');
-  menuPrnD(arg2.value.date.year);
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PSTR(PSTR("#Bills   #TotTax   #TotDisc   #TotCashCollected\r\n"));
-  PRINTER_PSTR(PSTR("           "));
-  menuPrnD(tallyCash.numBills); PRINTER_PRINT(' ');
-  menuPrnD(tallyCash.t_tax); PRINTER_PRINT(' ');
-  menuPrnD(tallyCash.t_discount); PRINTER_PRINT(' ');
-  menuPrnD(tallyCash.t_cash_pay); PRINTER_PRINT(' ');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  KBD_RESET_KEY;
-  KBD_GETCH;
 
   return MENU_RET_NOTAGAIN;
 }

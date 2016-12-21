@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/twi.h>
@@ -14,7 +15,7 @@
 FATFS FatFs1;		/* FatFs work area needed for each volume */
 FIL Fil;			/* File object needed for each open file */
 
-uint8_t buf[256];
+int8_t buf[256];
 
 int
 main(void)

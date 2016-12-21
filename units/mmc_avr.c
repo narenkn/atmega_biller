@@ -76,6 +76,10 @@ static uint8_t SD_MEM[2][SD_NUM_SECTORS][SD_SECTOR_SIZE];
 
 ---------------------------------------------------------------------------*/
 
+DSTATUS disk_inserted()
+{
+  return RES_OK;
+}
 
 /*-----------------------------------------------------------------------*/
 /* Initialize Disk Drive                                                 */

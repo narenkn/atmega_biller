@@ -37,6 +37,7 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #include "i2c.h"
 #include <avr/eeprom.h>
 #include "uart.h"
+#include "mmc_avr.c"
 #include "ff.c"
 #include "a1micro2mm.h"
 #include "flash.h"

@@ -143,6 +143,7 @@ Atmega128 Product:
 +59. Table wise report, user wise report
 +60. Testing : for all f_open modes
 +61. i2c.c (get_fattime) FIXME: Year is offset by 1900 or 2000 ??
+62. Disable printing of reports with user setting.
 
 
 + : header enabled
@@ -154,3 +155,5 @@ Failing :
 test_menubilling.c
 test_menushowbill.c
 test_sdsettings.c
+
+units : test kbd/keypress pipeline logic

@@ -58,7 +58,6 @@ BYTE CardType;			/* Card type flags */
 /*-----------------------------------------------------------------------*/
 /* When the target system does not support socket power control, there   */
 /* is nothing to do in these functions and chk_power always returns 1.   */
-
 static
 int power_status (void)		/* Socket power state: 0=off, 1=on */
 {
@@ -305,6 +304,15 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 
 ---------------------------------------------------------------------------*/
 
+DSTATUS disk_inserted()
+{
+  uint8_t res;
+  DDRA  |= _BV(5);
+  for (uint8_t _ui1=0xF; _ui1; _ui1--) {}
+  res = (PINB & _BV(4)) ? RES_OK : RES_ERROR;
+  DDRA  &= ~_BV(5);
+  return res;
+}
 
 /*-----------------------------------------------------------------------*/
 /* Initialize Disk Drive                                                 */
@@ -315,6 +323,8 @@ DSTATUS disk_initialize (
 )
 {
 	BYTE n, cmd, ty, ocr[4];
+
+	PORTA |= _BV(5);
 
 	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
 	power_off();						/* Turn off the socket power to reset the card */

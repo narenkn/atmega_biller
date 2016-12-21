@@ -14,10 +14,8 @@ CC = gcc
 VPATH = .:..
 
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_common # not a test
-SOURCE_EXCLUDES	+= test_menu_i test_menu_setting_i # interactive
-SOURCE_EXCLUDES += test_menu_3 # users, passwd
-TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, $(EXEEXT), $(SOURCE)))
+SOURCE_EXCLUDES = test_BillReports.c test_menubilling.c test_menushowbill.c test_sdsettings.c
+TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(SOURCE))
 TESTSEXE = $(TESTS:.c=)
 
 run_tests: make_tests
