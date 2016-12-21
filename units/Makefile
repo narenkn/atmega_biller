@@ -35,4 +35,4 @@ headers : ../ep_ds.h ../version.h
 	python ../utils/csv2dat --to_dat --in_file $< --out_file $@
 
 clean:
-		-\rm -rf core.* *~ $(TESTS) *.exe *.stackdump dir1
+		-\rm -rf core.* *~ $(TESTSEXE) *.exe *.stackdump dir1
