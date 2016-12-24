@@ -4,7 +4,7 @@
 
 uint16_t ui16_1;
 
-char golden_str[]="745.65\n123.45\n439.81\n0.0\n42949672.95\n";
+char golden_str[]="745.65\n123.45\n439.81\n0.00\n42949672.95\n";
 
 int
 main()

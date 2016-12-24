@@ -400,7 +400,8 @@ void
 compare_bills(struct sale *osl, struct sale *sl)
 {
   if ((osl->crc != sl->crc) || (osl->crc_invert != sl->crc_invert)) {
-    printf("compare_bills:crc mismatch\n");
+    //printf("compare_bills:crc mismatch\n");
+    assert(0);
   }
   if ((osl->info.n_items != sl->info.n_items) ||
       (0 != strncmp(osl->info.user, sl->info.user, EPS_MAX_UNAME)) ||
@@ -414,7 +415,8 @@ compare_bills(struct sale *osl, struct sale *sl)
       (osl->info.time_hh != sl->info.time_hh) ||
       (osl->info.time_mm != sl->info.time_mm) ||
       (osl->info.time_ss != sl->info.time_ss)) {
-    printf("compare_bills:sale_info mismatch\n");
+    //printf("compare_bills:sale_info mismatch\n");
+    assert(0);
   }
   if ((osl->tableNo != sl->tableNo) ||
       (osl->t_tax1 != sl->t_tax1) ||
@@ -425,7 +427,8 @@ compare_bills(struct sale *osl, struct sale *sl)
       (osl->total != sl->total) ||
       (osl->t_cash_pay != sl->t_cash_pay) ||
       (osl->t_other_pay != sl->t_other_pay)) {
-    printf("compare_bills:total mismatch\n");
+    //printf("compare_bills:total mismatch\n");
+    assert(0);
   }
   for (uint16_t ui1=osl->info.n_items; ui1; ) {
     ui1--;
@@ -440,7 +443,8 @@ compare_bills(struct sale *osl, struct sale *sl)
 	(osl->items[ui1].has_tax3 != sl->items[ui1].has_tax3) ||
 	(osl->items[ui1].is_reverse_tax != sl->items[ui1].is_reverse_tax) ||
 	(osl->items[ui1].has_weighing_mc != sl->items[ui1].has_weighing_mc)) {
-      printf("compare_bills:%d: items mismatch\n", ui1);
+      //printf("compare_bills:%d: items mismatch\n", ui1);
+      assert(0);
     }
   }
 }
@@ -493,6 +497,7 @@ main(int argc, char *argv[])
 {
   struct item ri, ri1;
   uint32_t ui1, ui2;
+  uint16_t ui16_1, ui16_2, ui16_3;
 
   if ((argc == 1) || (0 == argv[1]))
     ui1 = time(NULL);
@@ -545,19 +550,17 @@ main(int argc, char *argv[])
     /* Save to file */
     menuSdSaveBillDat(0);
     /* test all bills are deleted */
-    uint16_t ui16_2 = 0;
-    for (ui1=0; ui1<NVF_SALE_MAX_BILLS;
+    for (ui1=0, ui16_2=0; ui1<NVF_SALE_MAX_BILLS;
 	 ui1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
       bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
       assert (0xFFFF != (sl.crc ^ sl.crc_invert));
       //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
     }
 
-#if 1
     /* check data in file */
     sprintf(inp, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
     FILE *inf = fopen(inp, "r");
-    printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
+    //printf("opening file '%s' : %d inf:%p\n", inp, errno, inf);
     ssize_t ret;
     for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
       ret = fread ((void *)&sl, 1, SIZEOF_SALE_EXCEP_ITEMS, inf);
@@ -578,13 +581,22 @@ main(int argc, char *argv[])
     ret = fread ((void *)&sl, MAX_SIZEOF_1BILL, 1, inf);
     assert(0 == ret);
     fclose(inf);
-#endif
+
+    /* delete bills */
+    for (ui1=0, ui16_2=0; ui1<NVF_SALE_MAX_BILLS;
+	 ui1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
+      bill_read_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
+      assert (0xFFFF == (sl.crc_invert ^ sl.crc));
+      sl.crc = (0 != sl.crc_invert) ? 0xFFFF : 0x0;
+      bill_write_bytes(ui16_2, (void *)&sl, offsetof(struct sale, info));
+      all_sales[ui1].crc = all_sales[ui1].crc_invert = 0;
+      //printf("ui1:%d crc:%x crc_invert:%x\n", ui1, sl.crc, sl.crc_invert);
+    }
 
     /* goto next date */
     nextDate(&date);
   }
 
-#if 0
   /* */
   char fn[32];
   FILE *inf;
@@ -607,26 +619,25 @@ main(int argc, char *argv[])
     }
     nextDate(&date);
   }
-  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
-  //  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
+  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+  MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
   menuDelAllBill(MENU_NOCONFIRM);
   /* now check if the files are deleted */
   date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
     sprintf(fn, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
-    printf("File %s : ", fn);
+    //printf("File %s : ", fn);
     inf = fopen(fn, "r");
     if ((ui8_1 <= loop) && (loop <= ui8_2)) {
-      printf("Deleted : %p\n", inf);
+      //printf("Deleted : %p\n", inf);
       assert(NULL == inf);
     } else {
-      printf("exists : %p\n", inf);
+      //printf("exists : %p\n", inf);
       assert(NULL != inf);
     }
     fclose(inf);
     nextDate(&date);
   }
-#endif
   
   return MENU_RET_NOERROR;
 }
