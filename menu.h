@@ -198,8 +198,9 @@ extern uint8_t devStatus;
 #define DS_DEV_1K   (1<<0)
 #define DS_DEV_5K   (1<<1)
 #define DS_DEV_20K  (1<<2)
+#define DS_NO_NVF   (1<<3)
 #define DS_DEV_INVALID (1<<7)
-#define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_TFT|DS_NO_SD|DS_NO_NVF)
+#define DS_DEV_ERROR (DS_DEV_INVALID|DS_NO_NVF)
 
 /* Pending actions */
 #define MENU_PEND_LCD_REFRESH  (1<<0)
