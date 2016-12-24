@@ -2,15 +2,20 @@
 
 /* tests user login/logout features */
 int
-main(void)
+main(int argc, char *argv[])
 {
   uint32_t loop;
-  uint8_t ui1, ui2, ui3, ui4;
+  uint32_t ui1, ui2, ui3, ui4;
 
-  srand(time(NULL));
-  common_init();
+  if ((argc == 1) || (0 == argv[1]))
+    ui1 = time(NULL);
+  else
+    ui1 = atoi(argv[1]);
+  printf("seed : %d\n", ui1);
+  srand(ui1);
 
   /* */
+  common_init();
   assert_init();
   i2c_init();
   menuInit();
@@ -26,6 +31,8 @@ main(void)
 	inp[ui1] = 'A' + (rand()%26);
       else
 	inp[ui1] = 'a' + (rand()%26);
+      if (ui1 && ('\\' == inp[ui1-1]) && ('n' == inp[ui1]))
+	inp[ui1] = 'm';
     }
     inp[ui1] = 0;
     INIT_TEST_KEYS(inp);
@@ -78,6 +85,8 @@ main(void)
 	inp[ui1] = 'A' + (rand()%26);
       else
 	inp[ui1] = 'a' + (rand()%26);
+      if (ui1 && ('\\' == inp[ui1-1]) && ('n' == inp[ui1]))
+	inp[ui1] = 'm';
     }
     inp[ui1] = 0;
     INIT_TEST_KEYS(inp);
@@ -94,6 +103,8 @@ main(void)
 	inp2[ui1] = 'A' + (rand()%26);
       else
 	inp2[ui1] = 'a' + (rand()%26);
+      if (ui1 && ('\\' == inp2[ui1-1]) && ('n' == inp2[ui1]))
+	inp2[ui1] = 'm';
     }
     //    if (0 == (rand()%5))
     //      inp2[0] = ' ';
@@ -112,6 +123,7 @@ main(void)
     for (ui1=ui2; ui1; ui1--) {
       inp3[ui1-1] = ASCII_RIGHT;
     }
+    ui2++;
     INIT_TEST_KEYS(inp3);
     inp4[0] = (rand()&1) ? ASCII_RIGHT : 0;
     inp4[1] = 0;
@@ -129,10 +141,9 @@ main(void)
     //    printf("test_key_idx:%d test_key_arr_idx:%d\n", test_key_idx, test_key_arr_idx);
 
     /* check login for only valid user */
-    if ((' ' == inp2[0]) || (ASCII_RIGHT == inp[0]))
+    if ((0 == inp2[0]) || (ASCII_RIGHT == inp4[0]))
       continue;
 
-    ui2++;
     ui3 = rand() & 1; /* corrupt user name */
     ui4 = rand() & 1; /* corrupt passwd */
     RESET_TEST_KEYS;
@@ -152,12 +163,13 @@ main(void)
       assert(MENU_MRESET == MenuMode);
       assert(0 == LoginUserId);
     } else if (ui4) {
+      if (0 != strncmp("Wrong Passwd    ", lcd_buf[0], LCD_MAX_COL))
       assert(0 == strncmp("Wrong Passwd    ", lcd_buf[0], LCD_MAX_COL));
       assert(MENU_MRESET == MenuMode);
       assert(0 == LoginUserId);
     } else {
       assert(((0 == ui2) ? MENU_MSUPER : MENU_MNORMAL) == MenuMode);
-      assert(ui2+1 == LoginUserId);
+      assert(ui2 == LoginUserId);
       //printf("ui2:%d LoginUserId:%d maxusers:%d\n", ui2, LoginUserId, EPS_MAX_USERS);
       //printf("lcd:%s\n", lcd_buf[0]);
     }

@@ -3271,7 +3271,7 @@ menuUserLogin(uint8_t mode)
   assert(MENU_ITEM_STR == arg1.valid);
   assert(MENU_ITEM_STR == arg2.valid);
 
-  for ( ui2=0; ui2<(EPS_MAX_USERS+1); ui2++ ) {
+  for ( ui2=0; ui2<=EPS_MAX_USERS; ui2++ ) {
     for ( ui3=0; ui3<EPS_MAX_UNAME; ui3++ ) {
       ui4 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users)+(ui2*EPS_MAX_UNAME)+ui3));
       if (ui4 != arg1.value.str.sptr[ui3]) {
@@ -3287,7 +3287,7 @@ menuUserLogin(uint8_t mode)
   return 0;
 
  menuUserLogin_found:
-  assert(ui2 < (EPS_MAX_USERS+1));
+  assert(ui2 <= EPS_MAX_USERS);
   for (ui4=0; ui4<EPS_MAX_UNAME; ui4++) {
     ui3 = arg2.value.str.sptr[ui4];
     /* check isprintable? */
@@ -3307,7 +3307,8 @@ menuUserLogin(uint8_t mode)
 
   /* */
   MenuMode = (0 == ui2) ? MENU_MSUPER : MENU_MNORMAL;
-  LoginUserId = ui2+1;
+  LoginUserId = ui2;
+  LCD_ALERT(PSTR("Logged In.."));
 #endif
 
   return MENU_RET_NOTAGAIN;
