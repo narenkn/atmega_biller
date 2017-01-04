@@ -245,7 +245,7 @@ class csv2dat:
 
 class item:
   consts = {
-    'ITEM_NAME_BYTEL':23,
+    'ITEM_NAME_BYTEL':21,
     'ITEM_PROD_CODE_BYTEL':22,
     }
   variables = {

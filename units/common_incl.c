@@ -91,6 +91,7 @@ typedef fpos_t FSIZE_t;
 
 #include "lcd.c"
 #include "kbd.c"
+#include "i2c.c"
 #include "ep_store.c"
 #include "uart.c"
 #include "a1micro2mm.c"

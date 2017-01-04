@@ -253,6 +253,7 @@ decode( uint8_t *in, uint8_t *out )
   }
 }
 
+#if ! UNIT_TEST
 //******************************************************************
 //Function to get RTC date & time in FAT32 format
 //  Return format : Year[31:25], Month[24:21], Date[20:16]
@@ -354,3 +355,4 @@ tmr_init(void)
   // Select asynchronous timer 0 operation to use external 32.768 kHz crystal
   ASSR |= (1<<AS0);
 }
+#endif
