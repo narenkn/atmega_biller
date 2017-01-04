@@ -114,6 +114,10 @@ nvfInit()
     nvfUnSelect();
   }
 
+  /* NVF_SALE_START_ADDRESS should be 4k aligned : min erase is 4k size.
+   *   It contains 22:9 of 8M addr space */
+  assert(0 == (NVF_SALE_START_ADDR&0x7));
+
   return true;
 }
 
@@ -165,6 +169,31 @@ bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   spiTransmit(addr >> 8);
   spiTransmit(addr);
   spiTransmit(0); /* addr[7:0] */
+  spiTransmit(0); //"dont care"
+  for (uint16_t i = 0; i < len; ++i)
+    ((uint8_t*) buf)[i] = spiTransmit(0);
+  nvfUnSelect();
+
+  return len;
+}
+
+/* addr[15:0] is 16-byte aligned corresponds to flash-addr[19:4]
+   addr doesn't contain flash select bits, flash-0 is always selected.
+ */
+uint16_t
+item_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
+{
+  assert(len > 0);
+  assert(len <= NVF_PAGE_SIZE);
+  if (len == NVF_PAGE_SIZE)
+    assert(0 == ((addr<<4)&0xFF));
+  _selected = 0;
+
+  nvfCommand(SPIFLASH_ARRAYREAD, false);
+  /* coded for 8Mbyte device, address[23] is don't care */
+  spiTransmit(addr>>12);  /* addr[23:16] */
+  spiTransmit(addr>>4);   /* addr[15:8] */
+  spiTransmit(addr<<4);   /* addr[7:0] */
   spiTransmit(0); //"dont care"
   for (uint16_t i = 0; i < len; ++i)
     ((uint8_t*) buf)[i] = spiTransmit(0);
@@ -256,6 +285,35 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   return len;
 }
 
+/* FIXME: Not completed
+ * Bytes would never be crossing page boundry.
+ * if (NULL == buf) program 0's;
+ *   To mark a item as "deleted" we program 0 to CRC, nCRC
+ * Assumption is that page/sector is already erased and no
+ *   overlap writes happen.
+ */
+uint16_t
+item_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
+{
+  assert(len > 0);
+  assert(len <= NVF_PAGE_SIZE);
+  if (len == NVF_PAGE_SIZE)
+    assert(0 == ((addr<<4)&0xFF));
+  _selected = 0;
+
+  /* coded for 8Mbyte device where address[23] is don't care */
+  nvfCommand(SPIFLASH_BYTEPAGEPROGRAM, true);  // Byte/Page Program
+  spiTransmit(addr>>12);  /* addr[23:16] */
+  spiTransmit(addr>>4);   /* addr[15:8] */
+  spiTransmit(addr<<4);   /* addr[7:0] */
+
+  for (uint16_t i = 0; i < len; i++)
+    spiTransmit(buf[len]);
+  nvfUnSelect();
+
+  return len;
+}
+
 /// erase entire flash memory array
 /// may take several seconds depending on size, but is non blocking
 /// so you may wait for this to complete using busy() or continue doing
@@ -302,3 +360,4 @@ nvfWakeUp()
   nvfCommand(SPIFLASH_WAKE, false);
   nvfUnSelect();
 }
+

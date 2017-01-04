@@ -80,7 +80,7 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c menu.c ff.c main.c
+SRC = flash.c lcd.c kbd.c ep_store.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c menu.c ff.c main.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)

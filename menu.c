@@ -24,7 +24,6 @@
 #if NVFLASH_EN
 #include "flash.h"
 #endif
-#include "i2c.h"
 #include "spi.h"
 #include "uart.h"
 #include "a1micro2mm.h"
@@ -582,6 +581,7 @@ menuSdSaveBillDat(uint16_t ui16_2)
 
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+  assert (ITEM_MAX_ADDR);
   assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
   /* check that first bill is valid anyway */
@@ -778,8 +778,8 @@ menuInit()
   assert ((SIZEOF_SALE_EXCEP_ITEMS+LCD_MAX_COL+LCD_MAX_COL) <= BUFSS_SIZE);
   assert(1 == sizeof(uint8_t));
   //  assert(sizeof(void *) == sizeof(uint16_t));
-  assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_ADDR_SHIFT))>>EEPROM_ADDR_SHIFT) == (offsetof(struct item, name)>>EEPROM_ADDR_SHIFT));
-  assert(0 == (ITEM_SIZEOF % (1<<EEPROM_ADDR_SHIFT)));
+  //assert(((offsetof(struct item, name)&(0xFFFF<<EEPROM_ADDR_SHIFT))>>EEPROM_ADDR_SHIFT) == (offsetof(struct item, name)>>EEPROM_ADDR_SHIFT));
+  assert(0 == (ITEM_SIZEOF % (1<<ITEM_ADDR_SHIFT)));
 
   /* init global vars */
   devStatus = 0;
@@ -1609,9 +1609,18 @@ menuAddItem(uint8_t mode)
   it->unused_crc = ui8_2;
   it->unused_crc_invert = ~ui8_2;
 
-  /* Now save item */
-  ui8_3 = item_write_bytes(ui16_1, bufSS_ptr, ITEM_SIZEOF);
-  assert(ITEM_SIZEOF == ui8_3);
+  /* Now save item, we can use buf[ITEM_SIZEOF:+NVF_PAGE_SIZE] bytes
+   *   to cache the page during writes.
+   1. read the 256 byte page
+   2. replace the target location with new data
+   3. write the 256 byte page
+   */
+  item_read_bytes(ui16_1&(~0x003F), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
+  for (ui8_1=0, ui16_3=ITEM_SIZEOF+(ui16_1&0x3F);
+       ui8_1<ITEM_SIZEOF; ui8_1++) {
+    bufSS_ptr[ui16_3+ui8_1] = bufSS_ptr[ui8_1];
+  }
+  item_write_bytes(ui16_1&(~0x003F), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
 
   /* only valid items needs to be buffered */
   menuIndexItem(it);
@@ -2025,7 +2034,7 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
-    if (EEPROM_MAX_ADDRESS != sl->items[ui8_1].ep_item_ptr) {
+    if (ITEM_MAX_ADDR != sl->items[ui8_1].ep_item_ptr) {
       nitem(sl->items[ui8_1].ep_item_ptr, &(sl->it[0]), ui8_1);
     }
     PRINTER_PRINT_D((ui8_1+1));
@@ -2808,33 +2817,6 @@ menuRunDiag(uint8_t mode)
   }
   diagStatus |= (ui8_1==SCRATCH_MAX)? DIAG_MEM1 : 0;
 
-  /* Verify 24c512 */
-#define EEPROM_CHECK_MAX 10
-  LCD_CLRSCR;
-  LCD_WR_NP((const char *)PSTR("Diagnosis Mem3"), 14);
-  _delay_ms(1000);
-  struct sale *sl= (void *)bufSS;
-  for (ui16_1=0, ui16_2=NVF_SALE_END_ADDR, ui8_1=0;
-       (ui16_1<ITEM_MAX) && (ui8_1<EEPROM_CHECK_MAX); ui16_1++) {
-    ui16_2 = NVF_PREV_SALE_RECORD(ui16_2);
-    item_read_bytes(ui16_2, bufSS, 4);
-    if ((rand() & 0x8) &&
-	(0xFFFF != (sl->crc_invert ^ sl->crc))) {
-      ui8_1++;
-      /* Write read check */
-      srand(rand_seed);
-      for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
-	bufSS[ui8_2] = rand();
-      item_write_bytes(ui16_2, bufSS, SIZEOF_SALE_EXCEP_ITEMS);
-      item_read_bytes(ui16_2, bufSS+SIZEOF_SALE_EXCEP_ITEMS, SIZEOF_SALE_EXCEP_ITEMS);
-      for (ui8_2=0; ui8_2<SIZEOF_SALE_EXCEP_ITEMS; ui8_2++)
-	if (bufSS[ui8_2] != bufSS[SIZEOF_SALE_EXCEP_ITEMS+ui8_2])
-	  break;
-      diagStatus |= (ui8_2 >= SIZEOF_SALE_EXCEP_ITEMS) ? DIAG_MEM3 : 0;
-    }
-  }
-#undef EEPROM_CHECK_MAX
-
   /* Test timer */
   LCD_CLRSCR;
   LCD_WR_NP((const char *)PSTR("Diagnosis Timer"), 15);
@@ -3537,14 +3519,14 @@ menuSdIterItem(uint8_t mode)
   /* delete all items for load */
   if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
     for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
-	 ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
-      item_write_bytes(ui16_1+(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)-1, NULL, 4);
+	 ui16_1+=((1<<12)>>2)) {
+      nvfBlockErase4K(ui16_1>>9);
     }
   }
 
   /* */
   for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
-       ui16_1+=(ITEM_SIZEOF>>EEPROM_ADDR_SHIFT)) {
+       ui16_1+=(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)) {
     if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
       ui8_1 = menuSdLoadItemHelper(mode);
       if (0xFF == ui8_1) { /* EOF */

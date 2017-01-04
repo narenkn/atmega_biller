@@ -12,8 +12,6 @@
 #define TEST_KEY_ARR_SIZE (BUFSS_SIZE+128)
 
 #include "lcd.h"
-#include "i2c.h"
-
 #include "lcd.c"
 #include "kbd.c"
 #include "ep_store.c"

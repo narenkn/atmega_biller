@@ -34,7 +34,6 @@ uint8_t TIMSK, TCCR2, TCNT2;
 #include "kbd.h"
 #include "ep_store.h"
 #include "billing.h"
-#include "i2c.h"
 #include <avr/eeprom.h>
 #include "uart.h"
 #include "mmc_avr.c"
@@ -93,7 +92,6 @@ typedef fpos_t FSIZE_t;
 #include "lcd.c"
 #include "kbd.c"
 #include "ep_store.c"
-#include "i2c.c"
 #include "uart.c"
 #include "a1micro2mm.c"
 #include "flash.c"

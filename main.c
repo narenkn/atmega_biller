@@ -112,7 +112,6 @@ main(void)
   /* All other devices */
   kbdInit();
   ep_store_init();
-  i2c_init();
 #if NVFLASH_EN
   devStatus |= nvfInit() ? 0 : DS_NO_NVF;
 #endif
@@ -252,4 +251,106 @@ decode( uint8_t *in, uint8_t *out )
 
     b64decode (in+in_idx, out+out_idx);
   }
+}
+
+//******************************************************************
+//Function to get RTC date & time in FAT32 format
+//  Return format : Year[31:25], Month[24:21], Date[20:16]
+//                  Hour[15:11], Min[10:5], Sec[4:0]
+//******************************************************************  
+uint32_t
+get_fattime (void)
+{
+  date_t   date;
+  s_time_t   time;
+  uint32_t dtFat;
+
+  /* Process date */
+  timerDateGet(date);
+  dtFat = date.year;
+  dtFat <<= 4;
+  dtFat |= date.month;
+  dtFat <<= 5;
+  dtFat |= date.day;
+
+  /* Process time */
+  timerTimeGet(time);
+  dtFat <<= 5;
+  dtFat |= time.hour;
+  dtFat <<= 6;
+  dtFat |= time.min;
+  /* FAT32 fromat accepts dates with 2sec resolution
+     (e.g. value 5 => 10sec) */
+  dtFat <<= 5;
+  dtFat |= time.sec>>1;
+
+  return dtFat;
+}
+
+// Global time
+volatile uint8_t rtc_sec;
+volatile uint8_t rtc_min;
+volatile uint8_t rtc_hour;
+volatile uint8_t rtc_date;
+volatile uint8_t rtc_month;
+volatile uint16_t rtc_year;
+
+// Interrupt handler on compare match (TCNT0 is cleared automatically)
+ISR(TIMER0_COMP_vect)
+{
+  uint8_t max_days_in_month;
+  
+  // Increment time
+  if (++rtc_sec >= 60) {
+    rtc_sec = 0;
+    if (++rtc_min >= 60) {
+      rtc_min = 0;
+      if (++rtc_hour >= 24) {
+	rtc_hour = 0;
+	rtc_date++;
+
+	/* date rollover */
+	soft_reset();
+
+	/* find max time, keep date */
+	if (2 == rtc_month) {
+	  max_days_in_month = ((0 == (rtc_year & 0x3)) && (0 != (rtc_year%100)))? 29 : 28;
+	} else if ( (1 == rtc_month) || (3 == rtc_month) ||
+		    (5 == rtc_month) || (7 == rtc_month) ||
+		    (8 == rtc_month) || (10 == rtc_month) ||
+		    (12 == rtc_month) )
+	  max_days_in_month = 31;
+	else
+	  max_days_in_month = 30;
+	if (rtc_date > max_days_in_month) {
+	  rtc_date = 1;
+	  if (++rtc_month > 12) {
+	    rtc_month = 1;
+	    rtc_year++;
+	  }
+	}
+      }
+      
+    }
+  }
+}
+
+void
+tmr_init(void)
+{
+  /* Start timer 0 with clock prescaler CLK/1024 and CTC Mode ("Clear Timer on Compare")*/
+  /* Resolution is 32.25 ms */
+  TCCR0 = (0<<FOC0)|(0<<WGM00)|(0<<COM01)|(0<<COM00)|(1<<WGM01)|(1<<CS02)|(1<<CS01)|(1<<CS00);
+
+  // Reset time
+  TCNT0 = 0;
+
+  // Calculate and set period
+  OCR0  = (uint16_t)(((RTC_F/1024)*RTC_PERIOD_MS)/1000) - 1;
+
+  // Enable interrupt on compare match
+  TIMSK |= (1<<OCIE0);
+
+  // Select asynchronous timer 0 operation to use external 32.768 kHz crystal
+  ASSR |= (1<<AS0);
 }

@@ -53,4 +53,33 @@ extern volatile uint8_t eeprom_setting0, eeprom_setting1;
 
 #define WDT_RESET_WAKEUP (MCUCSR & _BV(WDRF))
 
+// External crystal frequency
+#define RTC_F           32768
+
+// Define delay
+#define RTC_PERIOD_MS   1000
+
+extern volatile uint8_t rtc_sec;
+extern volatile uint8_t rtc_min;
+extern volatile uint8_t rtc_hour;
+extern volatile uint8_t rtc_date;
+extern volatile uint8_t rtc_month;
+extern volatile uint16_t rtc_year;
+
+#define timerDateSet(date)			\
+  rtc_year = date.year;				\
+  rtc_month = date.month%12;			\
+  rtc_date = date.day%31
+
+#define timerDateGet(d)				\
+  d.day = rtc_date, d.month = rtc_month, d.year = rtc_year
+
+#define timerTimeSet(time)			\
+  rtc_hour = time.hour;				\
+  rtc_min = time.min;				\
+  rtc_sec = time.sec
+
+#define timerTimeGet(t)					\
+  t.hour = rtc_hour, t.min = rtc_min, t.sec = rtc_sec
+
 #endif

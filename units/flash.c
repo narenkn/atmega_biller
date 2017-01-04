@@ -82,3 +82,47 @@ bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
 
   return ui16_1;
 }
+
+uint16_t
+item_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
+{
+  assert(len > 0);
+  assert(len <= NVF_PAGE_SIZE);
+  if (len == NVF_PAGE_SIZE)
+    assert(0 == ((addr<<2)&0xFF));
+  assert(0 == _nvf_sleep);
+  assert(buf);
+
+  uint8_t  ui8_1 = (addr&0x3F)<<2;
+  uint16_t ui16_1;
+  addr >>= 6;
+
+  for (ui16_1=0; len; len--, ui8_1++, ui16_1++, buf++) {
+    buf[0] = _nvf_data[addr][ui8_1];
+    addr += (0xFF == ui8_1) ? 1 : 0;
+  }
+
+  return ui16_1;
+}
+
+uint16_t
+item_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
+{
+  assert(len > 0);
+  assert(len <= NVF_PAGE_SIZE);
+  if (len == NVF_PAGE_SIZE)
+    assert(0 == ((addr<<2)&0xFF));
+  assert(0 == _nvf_sleep);
+
+  uint8_t  ui8_1 = (addr&0x3F)<<2;
+  uint16_t ui16_1;
+  addr >>= 6;
+  uint8_t* lbuf = buf;
+
+  for (ui16_1=0; len; len--, ui8_1++, ui16_1++) {
+    _nvf_data[addr][ui8_1] = (NULL == buf) ? 0 : *lbuf++;
+    addr += (0xFF == ui8_1) ? 1 : 0;
+  }
+
+  return ui16_1;
+}

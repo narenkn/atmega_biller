@@ -283,8 +283,6 @@ test_init1()
 {
   uint32_t ui32_1, ui32_2;
 
-  for (ui32_1=0; ui32_1<EEPROM_SIZE; ui32_1++)
-    I2C_EEPROM_DIRECT_ASSIGN(ui32_1, 0xFF);
   for (ui32_1=0; ui32_1<AVR_EEPROM_SIZE; ui32_1++)
     AVR_EEPROM_DIRECT_ASSIGN(ui32_1, rand());
   KBD_RESET_KEY;
@@ -331,7 +329,6 @@ main(int argc, char *argv[])
   /* */
   common_init();
   assert_init();
-  i2c_init();
   ep_store_init();
   KbdInit();
   test_init1();
@@ -341,8 +338,6 @@ main(int argc, char *argv[])
   printerInit();
 
   /* test init */
-  for (ui1=0; ui1<EEPROM_SIZE; ui1++)
-    I2C_EEPROM_DIRECT_ASSIGN(ui1, 0xFF);
   for (ui1=0; ui1<AVR_EEPROM_SIZE; ui1++)
     AVR_EEPROM_DIRECT_ASSIGN(ui1, rand());
   KBD_RESET_KEY;

@@ -245,9 +245,8 @@ class csv2dat:
 
 class item:
   consts = {
-    'ITEM_NAME_BYTEL':15,
-    'ITEM_NAME_UNI_BYTEL':16,
-    'ITEM_PROD_CODE_BYTEL':16,
+    'ITEM_NAME_BYTEL':23,
+    'ITEM_PROD_CODE_BYTEL':22,
     }
   variables = {
     'uint32_t' : {
@@ -296,7 +295,7 @@ class ep_store_layout:
     'EPS_MAX_USERS' : 4,
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
-    'ITEM_MAX' : 1260,
+    'ITEM_MAX' : 2048,
     'NUM_HOT_KEYS' : 16*3,
     }
   variables = {

@@ -65,18 +65,19 @@ struct sale {
 void billingInit(void);
 
 /* Manage items in EEPROM */
-#define itemAddr(id) (((uint16_t)ITEM_SIZEOF>>2)*(id-1))
+#define ITEM_ADDR_SHIFT              4
+#define itemAddr(id) (((uint16_t)ITEM_SIZEOF>>ITEM_ADDR_SHIFT)*(id-1))
 #define itemId(addr) ({					\
       uint16_t _ret, _ret1=addr;			\
-      for (_ret=1; _ret1 >= (ITEM_SIZEOF>>2);		\
-	   _ret++, _ret1-=(ITEM_SIZEOF>>2));		\
+      for (_ret=1; _ret1 >= (ITEM_SIZEOF>>ITEM_ADDR_SHIFT);		\
+	   _ret++, _ret1-=(ITEM_SIZEOF>>ITEM_ADDR_SHIFT));		\
       (addr < ITEM_MAX_ADDR) ? _ret : ITEM_MAX;		\
     })
 #define itemNxtAddr(addr) \
-  (((addr+(ITEM_SIZEOF>>2))<ITEM_MAX_ADDR) ? (addr+(ITEM_SIZEOF>>2)) : 0)
+  (((addr+(ITEM_SIZEOF>>2))<ITEM_MAX_ADDR) ? (addr+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)) : 0)
 #define itemNxtId(id) \
   ((id<ITEM_MAX) ? id+1 : 1)
-#define ITEM_MAX_ADDR (ITEM_MAX*(ITEM_SIZEOF>>2))
+#define ITEM_MAX_ADDR ((uint16_t)(ITEM_MAX*(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)))
 
 #if ! NVFLASH_EN
 
@@ -112,17 +113,18 @@ void billingInit(void);
 #else /* #if ! NVFLASH_EN */
 
 /* NV Flash : Cypress 64Mbits/8M bytes
-   Max devices : 4
-   Total addr space is 32Mbytes, need 25[24:0] addr bits. But we're using
-     16-bit pointers. So, each block needs to be of size (25-16)=9 bits
-     wide (atleast).
-*/
-
-#define NVF_MIN_BLOCK_SZ         (1<<9)
-#define SALE_DATA_SIZEOF_NORM    ((SIZEOF_SALE_EXCEP_ITEMS/NVF_MIN_BLOCK_SZ)+((SIZEOF_SALE_EXCEP_ITEMS&(NVF_MIN_BLOCK_SZ-1)) ? 1 : 0)) /* how many NVF_MIN_BLOCK_SZ? */
-#define NVF_SALE_START_ADDR   0
-#define NVF_BILL_ADDR(N)      (N<<(SALE_DATA_SIZEOF_NORM-1))
-#define NVF_MAX_ADDRESS     ((uint16_t)((0x3FFF<<NVF_NUM_DEVICES_LOGN2)|0xF)&0xFFFF)
+ * Max devices : 4
+ * Total addr space is 32Mbytes, need 25[24:0] addr bits. But we're using
+ *   16-bit pointers. So, each block needs to be of size (25-16)=9 bits
+ *   wide (atleast).
+ */
+#define NVF_BLOCK_SZ_LOGN2      9
+#define NVF_BLOCK_SZ            (1<<NVF_BLOCK_SZ_LOGN2)
+#define SALE_DATA_SIZEOF_NORM   ((SIZEOF_SALE_EXCEP_ITEMS/NVF_BLOCK_SZ)+((SIZEOF_SALE_EXCEP_ITEMS&(NVF_BLOCK_SZ-1)) ? 1 : 0)) /* how many NVF_BLOCK_SZ? */
+/* ITEM_MAX_ADDR is 4-bit aligned, NVF_SALE_START_ADDR is 9-bit aligned */
+#define NVF_SALE_START_ADDR     ((uint16_t)(((ITEM_MAX_ADDR-1)>>5)+(((ITEM_MAX_ADDR-1)&((1<<6)-1))?1:0)))
+#define NVF_BILL_ADDR(N)        (N<<(SALE_DATA_SIZEOF_NORM-1))
+#define NVF_MAX_ADDRESS         ((uint16_t)((0x3FFF<<NVF_NUM_DEVICES_LOGN2)|0xF)&0xFFFF)
 
 #define NVF_SALE_MAX_BILLS						\
   ((uint16_t)((NVF_MAX_ADDRESS+1-NVF_SALE_START_ADDR)/SALE_DATA_SIZEOF_NORM))
