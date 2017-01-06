@@ -33,9 +33,6 @@ test_init2()
 
   eeprom_update_block((const void *)"Sri Ganapathy Stores",
 		      (void *)(offsetof(struct ep_store_layout, ShopName)) , SHOP_NAME_SZ_MAX);
-  for (ui8_1=0, ui16_1=700; ui8_1<EPS_MAX_VAT_CHOICE; ui8_1++, ui16_1 += 110) {
-    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, Vat) + (sizeof(uint16_t)*ui8_1)), ui16_1);
-  }
 }
 
 void
@@ -48,9 +45,13 @@ test_init3()
   /* time */
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
-  timerDateSet(tm.tm_year-80, tm.tm_mon+1, tm.tm_mday);
-  timerTimeSet(tm.tm_hour, tm.tm_min);
+  date_t d = {tm.tm_mday, tm.tm_mon, tm.tm_year};
+  timerDateSet(d);
+  s_time_t st = {tm.tm_hour, tm.tm_min, 0};
+  timerTimeSet(st);
 }
+
+volatile uint8_t keypadMultiKeyModeOff;
 
 int
 main(void)
