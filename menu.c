@@ -2467,6 +2467,29 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
     eeprom_update_byte((void *)(addr), ui8_1);
   }
 }
+
+void
+menuSettingYesNo(uint16_t addr, const uint8_t *quest)
+{
+  uint8_t val;
+
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
+  val = eeprom_read_byte((uint8_t *)addr);
+  val &= 1;
+  val ^= 1;
+  LCD_WR_NP((const char *)menu_str2+(4*val), 3);
+
+  arg1.valid = MENU_ITEM_NONE;
+  val = menuGetYesNo(quest, MENU_PROMPT_LEN);
+#if !UNIT_TEST
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+    return;
+#endif
+
+  val ^= 1;
+  eeprom_update_byte((void *)addr, val);
+}
 #endif
 
 uint8_t
@@ -2563,6 +2586,9 @@ menuSettingSet(uint8_t mode)
     menuSettingBit( ui16_1, ((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, name),
 		    pgm_read_byte(((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, size)),
 		    pgm_read_byte(((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, size2)) );
+    break;
+  case TYPE_YESNO:
+    menuSettingYesNo(ui16_1, ((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, name));
     break;
   default:
     assert(0);

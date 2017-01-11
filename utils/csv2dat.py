@@ -12,9 +12,10 @@ TYPE_UINT8   = 1
 TYPE_UINT16  = 2
 TYPE_UINT32  = 4
 TYPE_STRING  = 5
-TYPE_ARR     = 7
-TYPE_BIT     = 8
-TYPE_STRUCT  = 9
+TYPE_ARR     = 6
+TYPE_BIT     = 7
+TYPE_STRUCT  = 8
+TYPE_YESNO   = 9
 
 class data_struct:
   error = 0
@@ -40,10 +41,12 @@ class data_struct:
       return "TYPE_UINT32"
     elif TYPE_STRING == type_val:
       return "TYPE_STRING"
-    elif TYPE_BIT == type_val:
-      return "TYPE_BIT"
     elif TYPE_ARR == type_val:
       return "TYPE_ARR"
+    elif TYPE_BIT == type_val:
+      return "TYPE_BIT"
+    elif TYPE_YESNO == type_val:
+      return "TYPE_YESNO"
     assert 0, "Can't match types.."
 
   def menu_var_table(self, cl):
@@ -55,6 +58,7 @@ class data_struct:
     print '#define TYPE_STRING  ', TYPE_STRING
     print '#define TYPE_BIT     ', TYPE_BIT
     print '#define TYPE_ARR  ', TYPE_ARR
+    print '#define TYPE_YESNO  ', TYPE_YESNO
     print '#define SETTING_VAR_TABLE \\'
     goffset = 0
     num_vars = 0
@@ -183,7 +187,7 @@ class csv2dat:
             for i in range(vardict[var][1]): ## each bytes
               if '' != data[var][li]:
                 pbytes[offset+i] = ((int(data[var][li]) >> (i*8)) & 0xFF)
-          elif (TYPE_ARR == vardict[var][2]) and (TYPE_UINT8 == vardict[var][3]):
+          elif (TYPE_ARR == vardict[var][2]) and ((TYPE_UINT8 == vardict[var][3]) or (TYPE_YESNO == vardict[var][3])):
             i,j,k,l = 0,0,0,0
             while (i < vardict[var][1]):
               if (j < len(data[var][li])): ## each bytes
@@ -219,7 +223,7 @@ class csv2dat:
           elif TYPE_BIT == vardict[var][2]:
             if '' != data[var][li]:
               pbytes[offset] |= int(data[var][li]) << (int((vardict[var][-1]*10)%10))
-          elif TYPE_UINT8 == vardict[var][2]:
+          elif (TYPE_UINT8 == vardict[var][2]) or (TYPE_YESNO == vardict[var][2]):
             if '' != data[var][li]:
               if (0 != (offset*10)%10): offset += 1
               pbytes[offset] = int(data[var][li])
@@ -327,7 +331,7 @@ class ep_store_layout:
       'unused_comp_name' : ['[COMPANY_NAME_MAX]', 16, TYPE_STRING],
       'Bill Header' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
       'Bill Footer' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
-      'Key Beep On':['', 1, TYPE_UINT8],
+      'Key Beep On':['', 1, TYPE_YESNO],
     }
   }
   def __init__(self, name):
