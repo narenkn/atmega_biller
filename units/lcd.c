@@ -110,7 +110,7 @@ LCD_WR_N(uint8_t *str, uint8_t len)
   }
   wrefresh(win);
   lcd_y += ui1_t;
-  //  if (lcd_y > LCD_MAX_COL)
+  if (lcd_y > LCD_MAX_COL)
   assert(lcd_y <= LCD_MAX_COL);
 }
 

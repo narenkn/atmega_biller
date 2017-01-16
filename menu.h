@@ -215,7 +215,7 @@ typedef uint32_t (*menuGetOptHelper)(uint8_t *str, uint16_t *strlen, uint32_t pr
 void menuInit(void);
 void menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper helper);
 uint8_t menuGetChoice(const uint8_t *quest, uint8_t *opt_arr, uint8_t choice_len, uint8_t max_idx);
-uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size);
+uint8_t menuGetYesNo(const uint8_t *quest, uint8_t size, uint8_t ret);
 void menuScanF(uint8_t *str, uint32_t *ui32);
 #define SSCANF(str_p, ui32)			\
   ui32 = 0;					\
