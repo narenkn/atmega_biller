@@ -352,6 +352,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     arg->value.integer.i16 = prev_helper;
     arg->value.integer.i32 = prev_helper;
     menu_error = 0;
+    item_type = MENU_ITEM_ID;
   } else if ( (MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type) ) {
     uint8_t seenDecimal = 0;
     val = 0;
@@ -899,7 +900,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
   if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
     ui16_1 = menuItemFind(NULL, str, &it, prev);
     if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
-      SSCANF(str, ui32_1);
+      SSCAND(str, ui32_1);
       ui16_1 = ui32_1;
       if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
 	item_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
@@ -915,9 +916,9 @@ menuItemGetOptHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
   /* found item */
   LCD_PUT_UINT(it.id);
   LCD_PUTCH(':');
-  LCD_WR_N(it.name, 8);
+  LCD_WR_N(it.name, 6);
   LCD_PUTCH(',');
-  LCD_PUT_UINT(it.cost);
+  LCD_PUT_FLOAT(it.cost);
 
   return ui16_1;
 }
@@ -1125,9 +1126,7 @@ menuBilling(uint8_t mode)
     LCD_CLRLINE(0);
     LCD_PUT_UINT(ui8_5+1);
     LCD_PUTCH('.');
-    LCD_PUT_UINT(sl->it[0].id);
-    LCD_PUTCH(':');
-    LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
+    LCD_WR_N(sl->it[0].name, (ITEM_NAME_BYTEL>12)?12:ITEM_NAME_BYTEL);
 
     /* common inputs */
     sl->items[ui8_5].ep_item_ptr = itemAddr(ui16_3);
@@ -1147,6 +1146,8 @@ menuBilling(uint8_t mode)
 	continue;
       sl->items[ui8_5].quantity = arg2.value.integer.i32;
       sl->items[ui8_5].quantity *= 10;
+    } else {
+      assert(0); /* Unimplemented */
     }
 
   menuBillingConfirm:
@@ -1155,14 +1156,14 @@ menuBilling(uint8_t mode)
       /* Display item to be billed */
       LCD_CLRLINE(0);
       LCD_PUT_UINT(sl->it[0].id);
-      LCD_PUTCH(':');
-      LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
+      LCD_PUTCH('.');
+      LCD_WR_N(sl->it[0].name, (ITEM_NAME_BYTEL>6)?6:ITEM_NAME_BYTEL);
+      LCD_PUTCH('*');
+      LCD_PUT_FLOAT(sl->items[ui8_5].quantity/10);
 
       /* Display item for confirmation */
       LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_PUT_FLOAT(sl->items[ui8_5].quantity/10);
-      LCD_PUTCH('=');
       ui32_1 = sl->items[ui8_5].cost;
       ui32_1 *= sl->items[ui8_5].quantity;
       ui32_1 /= 1000;
@@ -1349,8 +1350,9 @@ menuBilling(uint8_t mode)
 
   /* Final confirmation before billing */
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("#Item:"));
+  LCD_PUTCH("#");
   LCD_PUT_UINT(ui8_5);
+  LCD_PUTCH(":");
   LCD_PUT_FLOAT(sl->total);
   LCD_CLRLINE(1);
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
@@ -1558,31 +1560,31 @@ menuAddItem(uint8_t mode)
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_vat);
-  it->has_vat = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->has_vat = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax1);
-  it->has_tax1 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->has_tax1 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax2);
-  it->has_tax2 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->has_tax2 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax3);
-  it->has_tax3 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->has_tax3 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_weighing_mc);
-  it->has_weighing_mc = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_WMC*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->has_weighing_mc = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_WMC*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->is_reverse_tax);
-  it->is_reverse_tax = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_IS_TAX_INCL*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
+  it->is_reverse_tax = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_IS_TAX_INCL*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_common_discount);
-  it->has_common_discount = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_COMDIS*MENU_PROMPT_LEN), MENU_PROMPT_LEN+(11-MENU_PROMPT_LEN), 1);
+  it->has_common_discount = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_COMDIS*MENU_PROMPT_LEN), MENU_PROMPT_LEN+(11-MENU_PROMPT_LEN), 1);
 
   /* Confirm */
   LCD_CLRLINE(0);
