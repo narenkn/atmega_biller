@@ -100,7 +100,6 @@ void
 LCD_WR_N(uint8_t *str, uint8_t len)
 {
   uint8_t ui1_t;
-  len %= (LCD_MAX_COL+1);
   for (ui1_t=0; (0 != str[ui1_t]) && (ui1_t<len); ui1_t++) {
     LCD_PUTCH(str[ui1_t]);
   }

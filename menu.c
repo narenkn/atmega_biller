@@ -165,14 +165,14 @@ uint8_t    menu_error;
 #define MENU_STR1_IDX_CASHPAY   25
 #define MENU_STR1_IDX_INVALID   26
 #define MENU_STR1_IDX_HAS_WMC   27
-#define MENU_STR1_IDX_IS_REV_TAX 28
-#define MENU_STR1_IDX_HAS_VAT    30
-#define MENU_STR1_IDX_HAS_TAX1   31
-#define MENU_STR1_IDX_HAS_TAX2   32
-#define MENU_STR1_IDX_HAS_TAX3   33
-#define MENU_STR1_IDX_HAS_COMDIS 34
-#define MENU_STR1_IDX_SUCCESS   36 /* Keep this last, used by LCD_ALERT */
-#define MENU_STR1_IDX_NUM_ITEMS 37
+#define MENU_STR1_IDX_IS_TAX_INCL 28
+#define MENU_STR1_IDX_HAS_VAT    29
+#define MENU_STR1_IDX_HAS_TAX1   30
+#define MENU_STR1_IDX_HAS_TAX2   31
+#define MENU_STR1_IDX_HAS_TAX3   32
+#define MENU_STR1_IDX_HAS_COMDIS 33
+#define MENU_STR1_IDX_SUCCESS   35 /* Keep this last, used by LCD_ALERT */
+#define MENU_STR1_IDX_NUM_ITEMS 36
 const uint8_t menu_str1[] PROGMEM =
   "Price   " /* 0 */
   "Discount" /* 1 */
@@ -202,15 +202,14 @@ const uint8_t menu_str1[] PROGMEM =
   "CashAmt?" /*25 */
   "Invalid!" /*26 */
   "HasWtMc?" /*27 */
-  "Reverse " /*28 */
-  "Tax ?   " /*29 */
-  "Has Vat?" /*30 */
-  "HasTax1?" /*31 */
-  "HasTax2?" /*32 */
-  "HasTax3?" /*33 */
-  "Has Comm" /*34 */
-  "on Disc?" /*35 */
-  "Success!" /*36 */
+  "TaxIncl?" /*28 */
+  "Has Vat?" /*29 */
+  "HasTax1?" /*30 */
+  "HasTax2?" /*31 */
+  "HasTax3?" /*32 */
+  "CommonDi" /*33 */
+  "scount? " /*34 */
+  "Success!" /*35 */
   ;
 
 /* All PSTR strings */
@@ -286,9 +285,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const char *)prompt, MENU_PROMPT_LEN);
     LCD_PUTCH('?');
-    if (prev_helper) {
-      (item_type == MENU_ITEM_ID) ? LCD_PUT_UINT(prev_helper) :
-	LCD_PUT_FLOAT(prev_helper);
+    if (prev_helper && (item_type == MENU_ITEM_ID)) {
+	LCD_PUT_UINT(prev_helper);
     } else {
       for (ui16_1=MENU_PROMPT_LEN+1,
 	     ui16_2=(buf_idx<(LCD_MAX_COL-MENU_PROMPT_LEN)) ? 0 : buf_idx-(LCD_MAX_COL-MENU_PROMPT_LEN-1);
@@ -353,6 +351,7 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
     arg->value.integer.i16 = prev_helper;
     arg->value.integer.i32 = prev_helper;
     menu_error = 0;
+    item_type = MENU_ITEM_ID;
   } else if ( (MENU_ITEM_ID == item_type) || (MENU_ITEM_FLOAT == item_type) ) {
     uint8_t seenDecimal = 0;
     val = 0;
@@ -458,13 +457,10 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 const uint8_t menu_str2[] PROGMEM = "Yes\0No ";
 
 uint8_t
-menuGetYesNo(const uint8_t *quest, uint8_t size)
+menuGetYesNo(const uint8_t *quest, uint8_t size, uint8_t ret)
 {
-  uint8_t ret;
-
-  size %= 12; /* 5 bytes for :Yes? */
-  assert(size);
-  for (ret=0; ;) {
+  assert(size < 12); /* 5 bytes for :Yes? */
+  for (; ;) {
     ret &= 1;
     LCD_CLRLINE(LCD_MAX_ROW-1);
     LCD_WR_NP((const char *)quest, size);
@@ -655,7 +651,7 @@ menuFactorySettings(uint8_t mode)
 
   /* confirm before proceeding */
   if (0 == (mode & MENU_NOCONFIRM)) {
-    ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11);
+    ui8_1 = menuGetYesNo((const uint8_t *)PSTR("Fact Reset"), 11, 0);
     if (0 != ui8_1) return 0;
   }
 
@@ -904,7 +900,7 @@ menuItemGetOptHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
   if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
     ui16_1 = menuItemFind(NULL, str, &it, prev);
     if ((0 == ui16_1) || (ui16_1>ITEM_MAX)) { /* not found */
-      SSCANF(str, ui32_1);
+      SSCAND(str, ui32_1);
       ui16_1 = ui32_1;
       if ( (ui16_1 > 0) && (ui16_1 <= ITEM_MAX) ) {
 	item_read_bytes(itemAddr(ui16_1), (void *)&it, ITEM_SIZEOF);
@@ -920,9 +916,9 @@ menuItemGetOptHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
   /* found item */
   LCD_PUT_UINT(it.id);
   LCD_PUTCH(':');
-  LCD_WR_N(it.name, 8);
+  LCD_WR_N(it.name, 6);
   LCD_PUTCH(',');
-  LCD_PUT_UINT(it.cost);
+  LCD_PUT_FLOAT(it.cost);
 
   return ui16_1;
 }
@@ -960,12 +956,12 @@ menuBilling(uint8_t mode)
   } else if (MENU_ITEM_ID == arg2.valid) {
     ui16_4 = arg2.value.integer.i16;
   }
-  if (MENU_KOTBILL == (mode & ~MENU_MODEMASK)) {
+  if (MENU_KOTBILL == (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))) {
     assert(ui8_1);
   }
 
   /* Either of KOT, Modify or Void Bill */
-  if (0 != (mode & ~MENU_MODEMASK)) {
+  if (0 != (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))) {
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
    assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
@@ -988,13 +984,13 @@ menuBilling(uint8_t mode)
       LCD_PUTCH(':');
       LCD_PUT_UINT(sl->info.time_ss);
       LCD_CLRLINE(LCD_MAX_ROW-1);
-      if (MENU_KOTBILL == (mode & ~MENU_MODEMASK)) {
+      if (MENU_KOTBILL == (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))) {
 	if (ui8_1 == sl->tableNo)
 	  break;
       } else if ( ui16_4 ) {
 	if (ui16_4 == sl->info.id)
 	  break;
-      } else if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+      } else if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
 	break;
     }
     if (ui16_1 >= NVF_SALE_MAX_BILLS) {
@@ -1046,7 +1042,7 @@ menuBilling(uint8_t mode)
     }
     if (0 == ui8_4) {
       LCD_ALERT(PSTR("Empty bill"));
-      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
+      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0)) {
 	sl->crc_invert = (0 != sl->crc) ? 0xFFFF : 0;
 	if (ui8_1) { /* delete bill */
 	  bill_write_bytes(ui16_2, (void *)sl, 2);
@@ -1056,13 +1052,13 @@ menuBilling(uint8_t mode)
     }
     if (0 != ui8_3) {
       LCD_ALERT_N(PSTR("# removed:"), ui8_3);
-      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+      if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
 	goto menuModBillReturn;
     }
     ui8_4 = 0xFF;
 
   menuModBillReturn:
-    if ((0xFF != ui8_4) || (MENU_SHOWBILL == (mode & ~MENU_MODEMASK)))
+    if ((0xFF != ui8_4) || (MENU_SHOWBILL == (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))))
       return MENU_RET_NOTAGAIN;
   }
   menuSdSaveBillDat(ui16_2);
@@ -1130,9 +1126,7 @@ menuBilling(uint8_t mode)
     LCD_CLRLINE(0);
     LCD_PUT_UINT(ui8_5+1);
     LCD_PUTCH('.');
-    LCD_PUT_UINT(sl->it[0].id);
-    LCD_PUTCH(':');
-    LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
+    LCD_WR_N(sl->it[0].name, (ITEM_NAME_BYTEL>12)?12:ITEM_NAME_BYTEL);
 
     /* common inputs */
     sl->items[ui8_5].ep_item_ptr = itemAddr(ui16_3);
@@ -1152,6 +1146,8 @@ menuBilling(uint8_t mode)
 	continue;
       sl->items[ui8_5].quantity = arg2.value.integer.i32;
       sl->items[ui8_5].quantity *= 10;
+    } else {
+      assert(0); /* Unimplemented */
     }
 
   menuBillingConfirm:
@@ -1160,14 +1156,14 @@ menuBilling(uint8_t mode)
       /* Display item to be billed */
       LCD_CLRLINE(0);
       LCD_PUT_UINT(sl->it[0].id);
-      LCD_PUTCH(':');
-      LCD_WR_N(sl->it[0].name, ITEM_NAME_BYTEL);
+      LCD_PUTCH('.');
+      LCD_WR_N(sl->it[0].name, (ITEM_NAME_BYTEL>6)?6:ITEM_NAME_BYTEL);
+      LCD_PUTCH('*');
+      LCD_PUT_FLOAT(sl->items[ui8_5].quantity/10);
 
       /* Display item for confirmation */
       LCD_CLRLINE(LCD_MAX_ROW-1);
       LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
-      LCD_PUT_FLOAT(sl->items[ui8_5].quantity/10);
-      LCD_PUTCH('=');
       ui32_1 = sl->items[ui8_5].cost;
       ui32_1 *= sl->items[ui8_5].quantity;
       ui32_1 /= 1000;
@@ -1211,28 +1207,28 @@ menuBilling(uint8_t mode)
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	LCD_PUTCH(':');
 	LCD_PUT_UINT(sl->items[ui8_5].has_vat);
-	sl->items[ui8_5].has_vat = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	sl->items[ui8_5].has_vat = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
 	/* override tax1 */
 	LCD_CLRLINE(0);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	LCD_PUTCH(':');
 	LCD_PUT_UINT(sl->items[ui8_5].has_tax1);
-	sl->items[ui8_5].has_tax1 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	sl->items[ui8_5].has_tax1 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
 	/* override tax2 */
 	LCD_CLRLINE(0);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	LCD_PUTCH(':');
 	LCD_PUT_UINT(sl->items[ui8_5].has_tax2);
-	sl->items[ui8_5].has_tax2 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	sl->items[ui8_5].has_tax2 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
 	/* override tax3 */
 	LCD_CLRLINE(0);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	LCD_PUTCH(':');
 	LCD_PUT_UINT(sl->items[ui8_5].has_tax3);
-	sl->items[ui8_5].has_tax3 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	sl->items[ui8_5].has_tax3 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
 
 	/* override has_common_discount */
 	LCD_CLRLINE(0);
@@ -1240,7 +1236,7 @@ menuBilling(uint8_t mode)
 	LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_COMNDISC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
 	LCD_PUTCH(':');
 	LCD_PUT_UINT(sl->items[ui8_5].has_common_discount);
-	sl->items[ui8_5].has_common_discount = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_COMNDISC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+	sl->items[ui8_5].has_common_discount = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_COMNDISC*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
 
 	/* override quantity */
 	LCD_CLRLINE(0);
@@ -1354,11 +1350,12 @@ menuBilling(uint8_t mode)
 
   /* Final confirmation before billing */
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("#Item:"));
+  LCD_PUTCH("#");
   LCD_PUT_UINT(ui8_5);
+  LCD_PUTCH(":");
   LCD_PUT_FLOAT(sl->total);
   LCD_CLRLINE(1);
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return 0;
 
   /* How much cash paid */
@@ -1384,7 +1381,7 @@ menuBilling(uint8_t mode)
     sl->info.user[ui8_2] = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_users) + (EPS_MAX_UNAME*(LoginUserId-1)) + ui8_2));
 
   /* id */
-  if (MENU_MODITEM == (mode & ~MENU_MODEMASK)) {
+  if (MENU_MODITEM == (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))) {
     sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
     eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.id);
   }
@@ -1481,7 +1478,7 @@ menuAddItem(uint8_t mode)
   } else {
     LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_INVALID*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
   }
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_REPLA*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_REPLA*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     goto menuItemReturn;
   for (ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
     it->name[ui8_1] = (MENU_ITEM_STR == arg1.valid) ?
@@ -1563,37 +1560,37 @@ menuAddItem(uint8_t mode)
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_vat);
-  it->has_vat = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  it->has_vat = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_VAT*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax1);
-  it->has_tax1 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  it->has_tax1 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX1*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax2);
-  it->has_tax2 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  it->has_tax2 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX2*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_tax3);
-  it->has_tax3 = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  it->has_tax3 = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_TAX3*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_weighing_mc);
-  it->has_weighing_mc = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_WMC*MENU_PROMPT_LEN), MENU_PROMPT_LEN);
+  it->has_weighing_mc = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_WMC*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 1);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->is_reverse_tax);
-  it->is_reverse_tax = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_IS_REV_TAX*MENU_PROMPT_LEN), MENU_PROMPT_LEN<<1);
+  it->is_reverse_tax = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_IS_TAX_INCL*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0);
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 4);
   LCD_PUT_UINT(it->has_common_discount);
-  it->has_common_discount = menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_COMDIS*MENU_PROMPT_LEN), MENU_PROMPT_LEN<<1);
+  it->has_common_discount = ~menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_HAS_COMDIS*MENU_PROMPT_LEN), MENU_PROMPT_LEN+(11-MENU_PROMPT_LEN), 1);
 
   /* Confirm */
   LCD_CLRLINE(0);
   LCD_WR_P(PSTR("Item:"));
   LCD_WR_N(it->name, ((ITEM_NAME_BYTEL+5)>LCD_MAX_COL) ? (LCD_MAX_COL-5) : ITEM_NAME_BYTEL);
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return 0;
 
   /* From here on ... the item is complete */
@@ -2297,7 +2294,7 @@ menuViewOldBill(uint8_t mode)
     } else if (ASCII_ESCAPE == keyHitData.KbdData) {
       break;
     } else if (ASCII_DEL == keyHitData.KbdData) {
-      if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
+      if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0)) {
 	sl->info.is_deleted = 1;
 	f_lseek(&Fil, loc);
 	f_write(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
@@ -2361,7 +2358,7 @@ menuSettingString(uint16_t addr, const uint8_t *quest, uint16_t max_chars)
 
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_STR, NULL);
 #if !UNIT_TEST
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return;
 #endif
 
@@ -2394,7 +2391,7 @@ menuSettingUint32(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #if !UNIT_TEST
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return;
 #endif
 
@@ -2417,7 +2414,7 @@ menuSettingUint16(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #if !UNIT_TEST
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return;
 #endif
 
@@ -2440,7 +2437,7 @@ menuSettingUint8(uint16_t addr, const uint8_t *quest)
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #if !UNIT_TEST
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return;
 #endif
 
@@ -2464,7 +2461,7 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
   arg1.valid = MENU_ITEM_NONE;
   MENU_GET_OPT(quest, &arg1, MENU_ITEM_ID, NULL);
 #if !UNIT_TEST
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return;
 #endif
 
@@ -2475,6 +2472,29 @@ menuSettingBit(uint16_t addr, const uint8_t *quest, uint8_t size, uint8_t offset
     ui8_1 |= (arg1.value.integer.i16 & ui8_2) << offset;
     eeprom_update_byte((void *)(addr), ui8_1);
   }
+}
+
+void
+menuSettingYesNo(uint16_t addr, const uint8_t *quest)
+{
+  uint8_t val;
+
+  LCD_WR_NP((const char *)menu_str1+(MENU_STR1_IDX_OLD*MENU_PROMPT_LEN), 3);
+  LCD_PUTCH(':');
+  val = eeprom_read_byte((uint8_t *)addr);
+  val &= 1;
+  val ^= 1;
+  LCD_WR_NP((const char *)menu_str2+(4*val), 3);
+
+  arg1.valid = MENU_ITEM_NONE;
+  val = menuGetYesNo(quest, MENU_PROMPT_LEN, 0);
+#if !UNIT_TEST
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
+    return;
+#endif
+
+  val ^= 1;
+  eeprom_update_byte((void *)addr, val);
 }
 #endif
 
@@ -2572,6 +2592,9 @@ menuSettingSet(uint8_t mode)
     menuSettingBit( ui16_1, ((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, name),
 		    pgm_read_byte(((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, size)),
 		    pgm_read_byte(((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, size2)) );
+    break;
+  case TYPE_YESNO:
+    menuSettingYesNo(ui16_1, ((uint8_t *)(SettingVars+(ui8_1-1)))+offsetof(struct setting_vars, name));
     break;
   default:
     assert(0);
@@ -2689,7 +2712,7 @@ menuDelAllBill(uint8_t mode)
   date_i=arg1.value.date, date_l=arg2.value.date;
 
   if (MENU_NOCONFIRM != (mode & ~MENU_MODEMASK)) {
-    if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN))
+    if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
       return 0;
   }
 
@@ -2773,7 +2796,7 @@ menuRunDiag(uint8_t mode)
   }
   LCD_refresh();
   _delay_ms(2000);
-  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Can see abcd?"), 13)) ? DIAG_LCD : 0;
+  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Can see abcd?"), 13, 0)) ? DIAG_LCD : 0;
 
 #if 0
   /* FIXME: Adjust LCD/TFT brightness */
@@ -2841,7 +2864,7 @@ menuRunDiag(uint8_t mode)
       LCD_refresh();
       _delay_ms(500);
     }
-    diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Date/Time Corrt?"), 16)) ? DIAG_TIMER : 0;
+    diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Date/Time Corrt?"), 16, 0)) ? DIAG_TIMER : 0;
   }
 
   /* Verify Keypad : Ask user to press a key and display it */
@@ -2877,7 +2900,7 @@ menuRunDiag(uint8_t mode)
       LCD_WR_N(bufSS, LCD_MAX_COL);
     }
   }
-  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Keypad work?"), 16)) ? DIAG_KEYPAD : 0;
+  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Keypad work?"), 16, 0)) ? DIAG_KEYPAD : 0;
 
 #if 0
   /* FIXME: Check weighing machine connectivity */
@@ -2905,7 +2928,7 @@ menuRunDiag(uint8_t mode)
       KBD_RESET_KEY;
     }
   }
-  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Weigh m/c?"), 14)) ? DIAG_WEIGHING_MC : 0;
+  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Weigh m/c?"), 14, 0)) ? DIAG_WEIGHING_MC : 0;
 #endif
 
   /* Verify Buzzer */
@@ -2917,7 +2940,7 @@ menuRunDiag(uint8_t mode)
     _delay_ms(1000);
     BUZZER_OFF;
   }
-  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Buzzer Buzz?"), 16)) ? DIAG_BUZZER : 0;
+  diagStatus |= (0 == menuGetYesNo((const uint8_t *)PSTR("Did Buzzer Buzz?"), 16, 0)) ? DIAG_BUZZER : 0;
 
   /* save status*/
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_DiagStat)), diagStatus);
@@ -3057,6 +3080,7 @@ menuMainStart:
 	  menuRet |= ((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
 #endif
 	} else {
+	  printf("devStatus:%x\n", devStatus);
 	  LCD_ALERT(PSTR("Invalid Device"));
 	  return;
 	}
@@ -3151,7 +3175,7 @@ menuSetUserPasswd(uint8_t mode)
     bufSS[(LCD_MAX_COL*3)+ui8_2] = eeprom_read_byte((uint8_t *)ui16_1);
   }
   ui8_2 = menuGetChoice((const uint8_t *)PSTR("Replace?"), bufSS+(LCD_MAX_COL*3), EPS_MAX_UNAME, EPS_MAX_USERS) + 1;
-  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN)) {
+  if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0)) {
     LCD_ALERT(PSTR("Aborting!"));
     return 0;
   }
@@ -3234,7 +3258,7 @@ menuUserLogout(uint8_t mode)
 {
 #if MENU_USER_ENABLE
   if ( (mode & MENU_NOCONFIRM) ||
-       (0 == menuGetYesNo((const uint8_t *)PSTR("Logout?"), 7)) ) {
+       (0 == menuGetYesNo((const uint8_t *)PSTR("Logout?"), 7, 0)) ) {
     LoginUserId = 0;
     MenuMode = MENU_MRESET;
   }

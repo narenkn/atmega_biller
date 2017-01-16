@@ -4,6 +4,8 @@
 #define  INCL_UNITS_KBD_NCURSES_C
 #include "common_incl.c"
 
+volatile uint8_t keypadMultiKeyModeOff;
+
 void
 test_init()
 {
