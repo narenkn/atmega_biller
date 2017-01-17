@@ -233,12 +233,17 @@ volatile uint8_t menuPendActs;
 /* Diagnosis */
 uint16_t diagStatus;
 
-/* indexing */
-#define ITEM_SUBIDX_NAME 2
-typedef struct  __attribute__((packed)) {
-  uint8_t crc_name3;
-} itemIdxs_t;
-itemIdxs_t      itIdxs[ITEM_MAX];
+/* Indexing:
+ * Max items : 40K
+ * Flash supports only 256 byte pages, buffer flash pages
+ *   RAM : 1 pages (512 bytes)
+ *   EEPROM : 8 pages (2048 bytes)
+ */
+#define ITEM_IDX_CACHE_SIZE 256
+uint8_t itemIdxs_state;
+uint16_t itemIdxs_start_id;
+#define ITEMIDXS_VALID (itemIdxs_state & 1)
+itemIdxs_t itIdxs[ITEM_IDX_CACHE_SIZE];
 uint16_t   numValidItems;
 
 /* Found issue with memset */
@@ -782,6 +787,9 @@ menuInit()
   diagStatus = 0;
   menuPendActs = 0;
 
+  /* */
+  itemIdxs_state = 0;
+
   /* Identify capability of device from serial number
      if byte0-4 of internal EEPROM is FAC7, then do factory
      reset and copy serial number
@@ -851,15 +859,15 @@ menuInit()
 	if (2 == ui8_1)
 	  itIdxs[ui16_1].crc_name3 = ui8_2;
       }
-      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName)), ui8_2);
+      //      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName)), ui8_2);
       for (ui8_1=0, ui8_2=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
 	ui8_2 = _crc_ibutton_update(ui8_2, it->prod_code[ui8_1]);
-      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code)), ui8_2);
+      //      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code)), ui8_2);
       numValidItems++;
     } else {
 	itIdxs[ui16_1].crc_name3 = 0xFF;
-	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1, 0xFF);
-	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
+	//	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1, 0xFF);
+	//	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
     }
   }
   LCD_ALERT_N((const char *)PSTR("#Items:"), numValidItems);
@@ -1644,8 +1652,8 @@ menuIndexItem(struct item *it)
   /* Delete indexing */
   if ( (0 == it->id) || (it->id > ITEM_MAX) || (it->is_disabled) ) {
     itIdxs[it->id-1].crc_name3 = 0xFF;
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, 0xFF);
-    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, 0xFF);
+    //    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, 0xFF);
+    //    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, 0xFF);
     assert(0); /* I suppose we never reach here */
     return;
   }
@@ -1662,8 +1670,8 @@ menuIndexItem(struct item *it)
     cpc = _crc_ibutton_update(cpc, it->prod_code[ui8_1]);
   }
   itIdxs[it->id-1].crc_name3 = cn3;
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, cpc);
+  //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
+  //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, cpc);
 }
 
 /* either name or prod_code be NULL
@@ -1695,8 +1703,8 @@ menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx)
   idx = (idx>0) && (idx<=ITEM_MAX) ? idx : 1;
   for (ui16_1=0; ui16_1<ITEM_MAX; ui16_1++,
 	 idx = ((idx+1)>ITEM_MAX) ? 1 : idx+1) {
-    uint8_t o_cpc = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+idx-1);
-    uint8_t o_idxn = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1); 
+    uint8_t o_cpc/* = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+idx-1)*/;
+    uint8_t o_idxn/* = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+idx-1)*/;
     if (0xFF == itIdxs[idx-1].crc_name3) {
       if ( (0xFF == o_cpc) && (0xFF == o_idxn) )
 	continue;
@@ -1764,8 +1772,8 @@ menuDelItem(uint8_t mode)
   /* delete */
   assert(numValidItems > 0); 
   itIdxs[ui16_1-1].crc_name3 = 0xFF;
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
-  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1-1, 0xFF);
+  //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
+  //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1-1, 0xFF);
   item_write_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, NULL, 4);
   numValidItems--;
 
@@ -2616,11 +2624,13 @@ menuSetHotKey(uint8_t mode)
     if ((0 == arg1.value.integer.i16) ||
 	(arg1.value.integer.i16 > ITEM_MAX))
       continue;
+#if 0
     if ( (0xFF == itIdxs[arg1.value.integer.i16-1].crc_name3) &&
 	 (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+arg1.value.integer.i16-1)) &&
 	 (0xFF == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+arg1.value.integer.i16-1)) ) {
       continue;
     }
+#endif
     break;
   } while (1);
 

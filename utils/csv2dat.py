@@ -45,6 +45,8 @@ class data_struct:
       return "TYPE_ARR"
     elif TYPE_BIT == type_val:
       return "TYPE_BIT"
+    elif TYPE_STRUCT == type_val:
+      return "TYPE_STRUCT"
     elif TYPE_YESNO == type_val:
       return "TYPE_YESNO"
     assert 0, "Can't match types.."
@@ -57,6 +59,7 @@ class data_struct:
     print '#define TYPE_UINT32  ', TYPE_UINT32
     print '#define TYPE_STRING  ', TYPE_STRING
     print '#define TYPE_BIT     ', TYPE_BIT
+    print '#define TYPE_STRUCT  ', TYPE_STRUCT
     print '#define TYPE_ARR  ', TYPE_ARR
     print '#define TYPE_YESNO  ', TYPE_YESNO
     print '#define SETTING_VAR_TABLE \\'
@@ -227,6 +230,8 @@ class csv2dat:
             if '' != data[var][li]:
               if (0 != (offset*10)%10): offset += 1
               pbytes[offset] = int(data[var][li])
+          elif TYPE_STRUCT == vardict[var][2]:
+            assert(0) ## Not yet implemented
           else: assert(0), "Field '%s' is not type matched ;%s;" % (var, data[var])
         if options.debug: print "pbytes:", pbytes
         outfile.write(bytearray(pbytes))
@@ -300,6 +305,7 @@ class ep_store_layout:
     'EPS_MAX_UNAME' : 8,
     'EPS_WORD_LEN' : 8,
     'ITEM_MAX' : 2048,
+    'ITEM_EEIDX_CACHE_SIZE' : (2048+1024+512)/4,
     'NUM_HOT_KEYS' : 16*3,
     }
   variables = {
@@ -319,8 +325,6 @@ class ep_store_layout:
       ## User 0 : is 'admin' + 15 usernames
       ## 5 passwords
       'unused_users' : ['[EPS_MAX_USERS+1][EPS_MAX_UNAME]', 5*8, TYPE_STRING],
-      'unused_itIdxName' : ['[ITEM_MAX]', 1260, TYPE_UINT8],
-      'unused_crc_prod_code' : ['[ITEM_MAX]', 1260, TYPE_UINT8],
       'unused_serial_no' : ['[SERIAL_NO_MAX]', 14, TYPE_STRING],
       'unused_scratch' : ['[SCRATCH_MAX]', 16, TYPE_STRING],
       'Currency' : ['[EPS_WORD_LEN]', 8, TYPE_STRING],
@@ -331,6 +335,9 @@ class ep_store_layout:
       'Bill Header' : ['[HEADER_SZ_MAX]', 32*4, TYPE_STRING],
       'Bill Footer' : ['[FOOTER_SZ_MAX]', 32*2, TYPE_STRING],
       'Key Beep On':['', 1, TYPE_YESNO],
+    },
+    'itemIdxs_t' : {
+      'unused_itIdxs' : ['[ITEM_EEIDX_CACHE_SIZE]', (2048+1024+512), TYPE_STRING],
     }
   }
   def __init__(self, name):
@@ -419,6 +426,7 @@ if "__main__" == __name__:
     print "#define GIT_HASH_CRC 0x%04x" % cd.crc16(bytearray(args[0]))
   elif options.header:
     print "#ifndef EP_DS_H\n#define EP_DS_H\n\n"
+    print "typedef struct  __attribute__((packed)) {\n  uint16_t crc_name3;\n  uint16_t crc_prod_code;\n} itemIdxs_t;\n\n";
     ds = data_struct()
     ds.ds_print(it)
     ds.ds_print(ep)
