@@ -44,7 +44,7 @@ test_init3()
   /* time */
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
-  date_t d = {tm.tm_mday, tm.tm_mon, tm.tm_year};
+  date_t d = {tm.tm_mday, (tm.tm_mon+1), tm.tm_year};
   timerDateSet(d);
   s_time_t st = {tm.tm_hour, tm.tm_min, 0};
   timerTimeSet(st);

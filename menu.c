@@ -1350,9 +1350,9 @@ menuBilling(uint8_t mode)
 
   /* Final confirmation before billing */
   LCD_CLRLINE(0);
-  LCD_PUTCH("#");
+  LCD_PUTCH('#');
   LCD_PUT_UINT(ui8_5);
-  LCD_PUTCH(":");
+  LCD_PUTCH(':');
   LCD_PUT_FLOAT(sl->total);
   LCD_CLRLINE(1);
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))

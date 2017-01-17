@@ -534,7 +534,7 @@ main(int argc, char *argv[])
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   date_t date;
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  date.day = tm.tm_mday, date.month=(tm.tm_mon)+1, date.year = 1900+tm.tm_year;
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
     timerDateSet(date);
     for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {
@@ -602,7 +602,7 @@ main(int argc, char *argv[])
   FILE *inf;
 
   if (TEST_LOOP < 10) return MENU_RET_NOERROR;
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  date.day = tm.tm_mday, date.month=(tm.tm_mon)+1, date.year = 1900+tm.tm_year;
   /* choose a random range to delete */
   uint8_t ui8_1 = rand() & 0x3;
   uint8_t ui8_2 = ui8_1 + (rand() & 0x3);
@@ -623,7 +623,7 @@ main(int argc, char *argv[])
   MENU_GET_OPT(menu_str1+(MENU_STR1_IDX_DAY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_DATE, NULL);
   menuDelAllBill(MENU_NOCONFIRM);
   /* now check if the files are deleted */
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
     sprintf(fn, "billdat/%02d-%02d-%04d.dat", date.day, date.month, date.year);
     //printf("File %s : ", fn);

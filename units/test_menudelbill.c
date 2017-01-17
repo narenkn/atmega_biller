@@ -529,7 +529,7 @@ main(int argc, char *argv[])
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   date_t date;
-  date.day = tm.tm_mday, date.month=tm.tm_mon, date.year = 1900+tm.tm_year;
+  date.day = tm.tm_mday, date.month=(tm.tm_mon)+1, date.year = 1900+tm.tm_year;
   for (uint32_t loop=0; loop<TEST_LOOP; loop++) {
     timerDateSet(date);
     for (ui1=0; ui1<NVF_SALE_MAX_BILLS; ui1++) {

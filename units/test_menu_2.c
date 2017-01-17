@@ -287,7 +287,7 @@ main(int argc, char *argv[])
       inp2[ui3] = (rand() & 1) ? 'a' + (rand()%26) : 'A' + (rand()%26);
     }
     inp2[ui2] = 0;
-    assert( (ui1 & 1) == (1 & menuGetYesNo(inp2, ui2)) );
+    assert( (ui1 & 1) == (1 & menuGetYesNo(inp2, ui2, 0)) );
     ui2 += (ui1 & 1) ? sprintf(inp2+ui2, ":No ?") :
       sprintf(inp2+ui2, ":Yes?");
     assert(0 == strncmp(inp2, lcd_buf[LCD_MAX_ROW-1], ui2));
