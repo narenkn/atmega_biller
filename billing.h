@@ -74,7 +74,7 @@ void billingInit(void);
       (addr < ITEM_MAX_ADDR) ? _ret : ITEM_MAX;		\
     })
 #define itemNxtAddr(addr) \
-  (((addr+(ITEM_SIZEOF>>2))<ITEM_MAX_ADDR) ? (addr+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)) : 0)
+  (((addr+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT))<ITEM_MAX_ADDR) ? (addr+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)) : 0)
 #define itemNxtId(id) \
   ((id<ITEM_MAX) ? id+1 : 1)
 #define ITEM_MAX_ADDR ((uint16_t)(ITEM_MAX*(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)))
@@ -91,7 +91,7 @@ void billingInit(void);
    If address stored in 16-bits
    4*64KB == 256KBytes == 2^^18, so SALE should be 4 byte aligned.
  */
-#define SALE_DATA_SIZEOF_NORM    (SIZEOF_SALE_EXCEP_ITEMS>>2)
+#define SALE_DATA_SIZEOF_NORM    (SIZEOF_SALE_EXCEP_ITEMS>>ITEM_ADDR_SHIFT)
 #define EEPROM_SALE_START_ADDR   ITEM_MAX_ADDR
 #define EEPROM_BILL_ADDR(N)      (EEPROM_SALE_START_ADDR+	\
 				  (SALE_DATA_SIZEOF_NORM*N))

@@ -839,7 +839,7 @@ menuInit()
   struct item *it = (void *)bufSS;
   numValidItems = 0;
   for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
-	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
+	ui16_1++, ui16_2 += (ITEM_SIZEOF>>ITEM_ADDR_SHIFT) ) {
     item_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
     for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++)
       ui8_2 = _crc_ibutton_update(ui8_2, bufSS[ui8_1]);
@@ -1350,9 +1350,9 @@ menuBilling(uint8_t mode)
 
   /* Final confirmation before billing */
   LCD_CLRLINE(0);
-  LCD_PUTCH("#");
+  LCD_PUTCH('#');
   LCD_PUT_UINT(ui8_5);
-  LCD_PUTCH(":");
+  LCD_PUTCH(':');
   LCD_PUT_FLOAT(sl->total);
   LCD_CLRLINE(1);
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_FINALIZ*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
@@ -1439,7 +1439,7 @@ menuAddItem(uint8_t mode)
       ui16_2++; ui16_2 = (ui16_2<=ITEM_MAX) ? ui16_2 : 1; /* next id */
       if (0xFF == itIdxs[ui16_2-1].crc_name3) {
 	ui16_1 = itemAddr(ui16_2);
-	item_read_bytes(ui16_1+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+	item_read_bytes(ui16_1+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
 	if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
 	  /* found space */
 	  it->id = ui16_2;
@@ -1757,7 +1757,7 @@ menuDelItem(uint8_t mode)
   /* find address for the id */
   ui16_1 = arg1.value.integer.i16;
   ui16_2 = itemAddr(ui16_1);
-  item_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+  item_read_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
   if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     return MENU_RET_NOTAGAIN;
 
@@ -1766,7 +1766,7 @@ menuDelItem(uint8_t mode)
   itIdxs[ui16_1-1].crc_name3 = 0xFF;
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
   eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1-1, 0xFF);
-  item_write_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, NULL, 4);
+  item_write_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, NULL, 4);
   numValidItems--;
 
   return MENU_RET_NOTAGAIN;
@@ -3543,7 +3543,7 @@ menuSdIterItem(uint8_t mode)
   /* delete all items for load */
   if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
     for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
-	 ui16_1+=((1<<12)>>2)) {
+	 ui16_1+=((1<<12)>>ITEM_ADDR_SHIFT)) {
       nvfBlockErase4K(ui16_1>>9);
     }
   }

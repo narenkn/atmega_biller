@@ -23,6 +23,7 @@ void
 eeprom_update_byte (uint8_t *addr, uint8_t value)
 {
   uint16_t a = (uint16_t) addr;
+  if (a > AVR_EEPROM_SIZE)
   assert(a < AVR_EEPROM_SIZE);
   _avr_eeprom[a] = value;
 }

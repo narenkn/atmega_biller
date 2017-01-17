@@ -60,8 +60,9 @@ main (int argc, char *argv[])
 
   /* */
   for (ui16_1=0, ui16_4=0, ui16_2=0; ui16_1<ITEM_MAX; ui16_1++,
-	 ui16_2 += (ITEM_SIZEOF>>2), ui16_4 = itemNxtAddr(ui16_4)) {
+	 ui16_2 += (ITEM_SIZEOF>>ITEM_ADDR_SHIFT), ui16_4 = itemNxtAddr(ui16_4)) {
     ui16_3 = itemAddr(ui16_1+1);
+    if (ui16_2 != ui16_3)
     assert(ui16_2 == ui16_3);
     assert((ui16_1+1) == itemId(ui16_3));
     assert(ui16_4 == ui16_3);

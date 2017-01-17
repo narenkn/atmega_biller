@@ -186,10 +186,8 @@ menuGetOpt(const uint8_t *prompt, menu_arg_t *arg, uint8_t opt, menuGetOptHelper
 const uint8_t menu_str2[] PROGMEM = "Yes\0No ";
 
 uint8_t
-menuGetYesNo(const uint8_t *quest, uint8_t size)
+menuGetYesNo(const uint8_t *quest, uint8_t size, uint8_t ret)
 {
-  uint8_t ret;
-
   size %= 12; /* 5 bytes for :Yes? */
   assert(size);
   for (ret=0; ;) {

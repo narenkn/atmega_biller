@@ -157,3 +157,12 @@ test_menushowbill.c
 test_sdsettings.c
 
 units : test kbd/keypress pipeline logic
+
+test_bill : FAILED
+test_BillReports : FAILED
+test_HotKey : FAILED
+test_IterBills : FAILED
+test_IterItem : FAILED
+test_menu_3 : FAILED
+test_menu_4 : FAILED
+test_menudelbill : FAILED
