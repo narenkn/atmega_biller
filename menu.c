@@ -200,7 +200,7 @@ const uint8_t menu_str1[] PROGMEM =
   "iscount?" /*22 */
   "Old:    " /*23 */
   "FileErr " /*24 */
-  "CashAmt?" /*25 */
+  "CashAmnt" /*25 */
   "Invalid!" /*26 */
   "HasWtMc?" /*27 */
   "TaxIncl?" /*28 */
@@ -488,17 +488,19 @@ menuGetYesNo(const uint8_t *quest, uint8_t size, uint8_t ret)
   assert(0);
 }
 
-
 static uint32_t
 menuGetOptFloatInitHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
 {
-  static uint32_t _prev;
+  static uint32_t _prev = 0;
 
-  if ((NULL == str) || (NULL == strlen)) {
+  if ((0 == _prev) || (NULL == str) || (NULL == strlen)) {
     _prev = prev;
-  } else {
-    *strlen = sprintf_P((char *)str, PSTR("%d"), prev);
+    return prev;
   }
+
+  float p = _prev; p /= 100;
+  *strlen = sprintf_P((char *)str, PSTR("%.2f"), p);
+  _prev = 0;
 
   return prev;
 }
@@ -1345,6 +1347,7 @@ menuBilling(uint8_t mode)
     }
 
     ui32_1 *= sl->items[ui8_3].quantity / 10;
+    ui32_1 /= 100; /* both cost & quantity are decimals */
     sl->total += ui32_1;
   }
 
@@ -1588,8 +1591,10 @@ menuAddItem(uint8_t mode)
 
   /* Confirm */
   LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("Item:"));
-  LCD_WR_N(it->name, ((ITEM_NAME_BYTEL+5)>LCD_MAX_COL) ? (LCD_MAX_COL-5) : ITEM_NAME_BYTEL);
+  LCD_WR_P(PSTR("Add:"));
+  LCD_PUT_UINT(it->id);
+  LCD_PUTCH(',');
+  LCD_WR_N(it->name, ((ITEM_NAME_BYTEL+9)>LCD_MAX_COL) ? (LCD_MAX_COL-9) : ITEM_NAME_BYTEL);
   if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_CONFI*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
     return 0;
 

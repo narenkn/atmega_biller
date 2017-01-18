@@ -250,6 +250,9 @@ lcd_alert(const char *str)
     if (0 == ui2_t) break;
     LCD_PUTCH(ui2_t);
   }
+#ifdef  __UNITS_KBD_C
+  getch();
+#endif
 }
 
 void
@@ -262,6 +265,9 @@ lcd_alert_n(const char *str, uint32_t n)
     LCD_PUTCH(ui2_t);
   }
   LCD_PUT_UINT(n);
+#ifdef  __UNITS_KBD_C
+  getch();
+#endif
 }
 
 void
