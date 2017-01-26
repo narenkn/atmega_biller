@@ -142,7 +142,7 @@ get_fattime (void)
 
   /* Process date */
   timerDateGet(date);
-  dtFat = date.year;
+  dtFat = (date.year-2000);
   dtFat <<= 4;
   dtFat |= date.month;
   dtFat <<= 5;
