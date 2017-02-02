@@ -949,7 +949,7 @@ menuBilling(uint8_t mode)
   ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
   assert ((ui16_3 >= NVF_SALE_START_ADDR) && (ui16_3 <= NVF_SALE_END_ADDR));
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  printf("efgh ui16_2:%x, ui16_3:%x\n", ui16_2, ui16_3);
+  //  printf("efgh nextBillAddr:%x, todayStartAddr:%x\n", ui16_3, ui16_2);
 
   /* check sufficient args */
   ui8_1 = ui16_4 = 0;
@@ -962,9 +962,17 @@ menuBilling(uint8_t mode)
 
   /* Either of Modify or Void Bill */
   ui8_2 = mode & ~(MENU_MODEMASK|MENU_MREDOCALL);
-  if ((MENU_VOIDBILL == ui8_2) || (MENU_MODITEM == ui8_2)) {
+  if ((MENU_VOIDBILL != ui8_2) && (MENU_MODITEM != ui8_2)) {
+    /* ui16_2 : check we don't overwrite bills */
+    ui16_2 = ui16_3; /* next bill addr */
+    bill_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
+    if ((ui16_2 == ui16_3) && (0xFFFF == (sl->crc ^ sl->crc_invert))) {/* exceeded # bills */
+      LCD_ALERT(PSTR("Bill Memory Full"));
+      return MENU_RET_NOTAGAIN;
+    }
+    menuMemset((void *)sl, 0, SIZEOF_SALE);
+  } else { /* if ((MENU_VOIDBILL == ui8_2) || (MENU_MODITEM == ui8_2)) */
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-    printf("todayStartAddr:%x\n", ui16_2);
     assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
     /* iterate through all records */
@@ -1494,7 +1502,7 @@ menuBilling(uint8_t mode)
   assert(MENU_KOTBILL != ui8_2);
   if ((MENU_MODITEM == ui8_2) || (MENU_VOIDBILL == ui8_2)) {
     assert(0 != sl->info.id);
-    printf("abcdef %x ui16_2:%x exp:%x id:%d\n", NVF_SALE_START_ADDR, ui16_2, itemAddr((sl->info.id)), sl->info.id);
+    //printf("abcdef %x ui16_2:%x exp:%x id:%d\n", NVF_SALE_START_ADDR, ui16_2, itemAddr((sl->info.id)), sl->info.id);
     assert(ui16_2 == itemAddr((sl->info.id)));
   } else {
     sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
@@ -1521,7 +1529,6 @@ menuBilling(uint8_t mode)
   }
 
   LCD_ALERT(PSTR("Bill Saved!"));
-  printf("ui16_2:%x\n", ui16_2);
   menuPrnBill(sl, menuPrnBillNvfHelper);
 
   return 0;
