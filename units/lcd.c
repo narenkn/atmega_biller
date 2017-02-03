@@ -213,6 +213,7 @@ LCD_wrchar(uint8_t ch)
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ch);
   lcd_y++;
   lcd_buf_p[0] = ch; lcd_buf_p++;
+  if (lcd_y > LCD_MAX_COL)
   assert(lcd_y <= LCD_MAX_COL);
   wrefresh(win);
 }

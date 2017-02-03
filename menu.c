@@ -958,27 +958,21 @@ menuBilling(uint8_t mode)
   } else if (MENU_ITEM_ID == arg2.valid) {
     ui16_4 = arg2.value.integer.i16;
   }
-  menuMemset((void *)sl, 0, SIZEOF_SALE);
 
   /* Either of Modify or Void Bill */
   ui8_2 = mode & ~(MENU_MODEMASK|MENU_MREDOCALL);
   if ((MENU_VOIDBILL != ui8_2) && (MENU_MODITEM != ui8_2)) {
     /* ui16_2 : check we don't overwrite bills */
     ui16_2 = ui16_3; /* next bill addr */
-    bill_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
-    if ((ui16_2 == ui16_3) && (0xFFFF == (sl->crc ^ sl->crc_invert))) {/* exceeded # bills */
-      LCD_ALERT(PSTR("Bill Memory Full"));
-      return MENU_RET_NOTAGAIN;
-    }
-    menuMemset((void *)sl, 0, SIZEOF_SALE);
   } else { /* if ((MENU_VOIDBILL == ui8_2) || (MENU_MODITEM == ui8_2)) */
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
     assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
     /* iterate through all records */
+    uint8_t billsFull = (ui16_2 == ui16_3);
     for (ui16_1=0; ui16_1<NVF_SALE_MAX_BILLS; ui16_1++, ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2)) {
       bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
-      if (ui16_2 == ui16_3) break; /* break on last valid bill */
+      if (!billsFull && (ui16_2 == ui16_3)) break; /* break on last valid bill */
       if (0xFFFF != (sl->crc ^ sl->crc_invert)) /* not valid bill */
 	continue;
 
@@ -986,6 +980,13 @@ menuBilling(uint8_t mode)
       if ((MENU_VOIDBILL == ui8_2) && (ui16_4>0) && (ui16_4 <= ITEM_MAX)) {
 	if ((ui16_4 == sl->info.id) && (sl->info.is_void))
 	  break;
+      } else if ((MENU_MODITEM == ui8_2) && (ui16_4>0)) {
+	if ((ui16_4 == sl->info.id) && !(sl->info.is_void) && !(sl->info.is_kot))
+	  break;
+      } else if ((MENU_VOIDBILL == ui8_2) && !(sl->info.is_void)) {
+	continue;
+      } else if ((MENU_MODITEM == ui8_2) && (sl->info.is_void || sl->info.is_kot)) {
+	continue;
       } else {
 	/* User consent */
 	LCD_CLRLINE(0);
@@ -1018,9 +1019,9 @@ menuBilling(uint8_t mode)
       LCD_PUT_UINT(sl->info.time_hh);
       LCD_PUTCH(':');
       LCD_PUT_UINT(sl->info.time_mm);
-      LCD_PUTCH(':');
-      LCD_PUT_UINT(sl->info.time_ss);
-      LCD_CLRLINE(LCD_MAX_ROW-1);
+      //LCD_PUTCH(':');
+      //LCD_PUT_UINT(sl->info.time_ss);
+      //LCD_CLRLINE(LCD_MAX_ROW-1);
     } else {
       LCD_ALERT(PSTR("Bill Not Found"));
       goto menuModBillReturn;
@@ -1085,6 +1086,18 @@ menuBilling(uint8_t mode)
   if (MENU_KOTBILL == (mode & ~(MENU_MODEMASK|MENU_MREDOCALL))) {
     assert(ui8_1);
     sl->tableNo = ui8_1;
+  }
+
+  /* Check if bill mem is full */
+  ui8_2 = mode & ~(MENU_MODEMASK|MENU_MREDOCALL);
+  if ((ui8_2 != MENU_KOTBILL) && (MENU_VOIDBILL != ui8_2) &&
+      (MENU_MODITEM != ui8_2)) {
+    bill_read_bytes(ui16_2, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS);
+    if (0xFFFF == (sl->crc ^ sl->crc_invert)) {/* exceeded # bills */
+      LCD_ALERT(PSTR("Bill Memory Full"));
+      return MENU_RET_NOTAGAIN;
+    }
+    menuMemset((void *)sl, 0, SIZEOF_SALE);
   }
 
   /* Billing loop */
@@ -1503,7 +1516,6 @@ menuBilling(uint8_t mode)
   if ((MENU_MODITEM == ui8_2) || (MENU_VOIDBILL == ui8_2)) {
     assert(0 != sl->info.id);
     //printf("abcdef %x ui16_2:%x exp:%x id:%d\n", NVF_SALE_START_ADDR, ui16_2, itemAddr((sl->info.id)), sl->info.id);
-    assert(ui16_2 == itemAddr((sl->info.id)));
   } else {
     sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
     eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.id);
@@ -2416,7 +2428,7 @@ menuViewOldBill(uint8_t mode)
       break;
     } else if (ASCII_DEL == keyHitData.KbdData) {
       if (0 == menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0)) {
-	sl->info.is_deleted = 1;
+	sl->crc = sl->crc_invert = 0xFFFF;
 	f_lseek(&Fil, loc);
 	f_write(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
 	if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) {
