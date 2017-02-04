@@ -43,8 +43,8 @@ test_init3()
 
   /* time */
   time_t t = time(NULL);
-  struct tm tm = *localtime(&t);
-  date_t d = {tm.tm_mday, (tm.tm_mon+1), tm.tm_year};
+  struct tm tm = *localtime(&t); /* returns YYYY-1900 */
+  date_t d = {tm.tm_mday, (tm.tm_mon+1), (tm.tm_year+1900)};
   timerDateSet(d);
   s_time_t st = {tm.tm_hour, tm.tm_min, 0};
   timerTimeSet(st);

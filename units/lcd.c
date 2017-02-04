@@ -213,6 +213,7 @@ LCD_wrchar(uint8_t ch)
   mvaddch(lcd_x+LCD_WIN_STARTX+1, lcd_y+LCD_WIN_STARTY+1, ch);
   lcd_y++;
   lcd_buf_p[0] = ch; lcd_buf_p++;
+  if (lcd_y > LCD_MAX_COL)
   assert(lcd_y <= LCD_MAX_COL);
   wrefresh(win);
 }
@@ -250,6 +251,9 @@ lcd_alert(const char *str)
     if (0 == ui2_t) break;
     LCD_PUTCH(ui2_t);
   }
+#ifdef  __UNITS_KBD_C
+  getch();
+#endif
 }
 
 void
@@ -262,6 +266,9 @@ lcd_alert_n(const char *str, uint32_t n)
     LCD_PUTCH(ui2_t);
   }
   LCD_PUT_UINT(n);
+#ifdef  __UNITS_KBD_C
+  getch();
+#endif
 }
 
 void
