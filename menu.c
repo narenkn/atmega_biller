@@ -498,8 +498,11 @@ menuGetOptFloatInitHelper(uint8_t *str, uint16_t *strlen, uint32_t prev)
     return prev;
   }
 
-  float p = _prev; p /= 100;
-  *strlen = sprintf_P((char *)str, PSTR("%.2f"), p);
+  uint32_t p = _prev; p /= 100;
+  *strlen = sprintf_P((char *)str, PSTR("%d"), p);
+  str[*strlen] = '.'; (*strlen)++;
+  p = _prev % 100;
+  *strlen += sprintf_P((char *)(str+(*strlen)+1), PSTR("%02d"), p);
   _prev = 0;
 
   return prev;
@@ -977,7 +980,7 @@ menuBilling(uint8_t mode)
 	continue;
 
       /* is this bill ? */
-      if ((MENU_VOIDBILL == ui8_2) && (ui16_4>0) && (ui16_4 <= ITEM_MAX)) {
+      if ((MENU_VOIDBILL == ui8_2) && (ui16_4>0)) {
 	if ((ui16_4 == sl->info.id) && (sl->info.is_void))
 	  break;
       } else if ((MENU_MODITEM == ui8_2) && (ui16_4>0)) {
