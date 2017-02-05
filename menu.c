@@ -863,14 +863,17 @@ menuInit()
 	  itIdxs[ui16_1].crc_name3 = ui8_2;
       }
       //      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName)), ui8_2);
+      /* FIXME: have NVF update */
       for (ui8_1=0, ui8_2=0; ui8_1<ITEM_PROD_CODE_BYTEL; ui8_1++)
 	ui8_2 = _crc_ibutton_update(ui8_2, it->prod_code[ui8_1]);
       //      eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code)), ui8_2);
+      /* FIXME: have NVF update */
       numValidItems++;
     } else {
 	itIdxs[ui16_1].crc_name3 = 0xFF;
 	//	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1, 0xFF);
 	//	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
+	/* FIXME: have NVF update */
     }
   }
   LCD_ALERT_N((const char *)PSTR("#Items:"), numValidItems);
@@ -1799,6 +1802,7 @@ menuIndexItem(struct item *it)
     itIdxs[it->id-1].crc_name3 = 0xFF;
     //    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, 0xFF);
     //    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, 0xFF);
+    /* FIXME: have NVF update */
     assert(0); /* I suppose we never reach here */
     return;
   }
@@ -1817,6 +1821,7 @@ menuIndexItem(struct item *it)
   itIdxs[it->id-1].crc_name3 = cn3;
   //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+it->id-1, cn);
   //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+it->id-1, cpc);
+  /* FIXME: have NVF update */
 }
 
 /* either name or prod_code be NULL
@@ -3703,7 +3708,7 @@ menuSdIterItem(uint8_t mode)
   if (MENU_ITEM_LOAD & (mode & ~MENU_MODEMASK)) {
     for (ui16_1=0; (0 == ui8_1) && (ui16_1 < ITEM_MAX_ADDR);
 	 ui16_1+=((1<<12)>>ITEM_ADDR_SHIFT)) {
-      nvfBlockErase4K(ui16_1>>9);
+      nvfBlockErase4K(ui16_1>>NVF_BLOCK_SZ_LOGN2);
     }
   }
 
