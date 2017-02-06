@@ -491,7 +491,7 @@ main(int argc, char *argv[])
     ui1 = time(NULL);
   else
     ui1 = atoi(argv[1]);
-  ui1 = 1486157840;
+  //ui1 = 1486157840;
   printf("seed : %d\n", ui1);
   srand(ui1);
 
@@ -517,6 +517,7 @@ main(int argc, char *argv[])
 
   /* */
   struct sale *sl = (void *)inp4;
+  uint32_t loop;
 
   /* Add 1 item, bill only that */
   for (ui1=0; ui1<TEST_NUM_ITEMS; ui1++) {
@@ -532,8 +533,6 @@ main(int argc, char *argv[])
   ui16_3 = ui16_1 = NVF_SALE_START_ADDR;
 
   /* Make few bills */
-  uint32_t loop;
-#if 0
   for (loop=0; loop<(NVF_SALE_MAX_BILLS+1); loop=randNumItems?loop+1:loop, ui16_3=randNumItems?NVF_NEXT_SALE_RECORD(ui16_3):ui16_3) {
     /* */
     ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
@@ -590,7 +589,14 @@ main(int argc, char *argv[])
 
   /* delete all bills */
   menuDelAllBill(0);
-#endif
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+  assert(ui16_2 == ui16_3);
+  assert(ui16_2 == NVF_SALE_START_ADDR);
+  //printf("todayStartAddr:%x nextBillAddr:%x\n", ui16_2, ui16_3);
+
+  /* check after power-on-reset */
+  ui16_3 = ui16_1 = NVF_SALE_START_ADDR;
 
   /* Create Mixed of void bill & valid bills */
   for (loop=0; loop<NVF_SALE_MAX_BILLS; loop=randNumItems?loop+1:loop, ui16_3=randNumItems?NVF_NEXT_SALE_RECORD(ui16_3):ui16_3) {
@@ -627,7 +633,7 @@ main(int argc, char *argv[])
 	break;
     }
     if (ui3 >= NVF_SALE_MAX_BILLS) {
-      printf("No more valid bills !!\n");
+      //printf("No more void bills !!\n");
       break; /* No more void bills */
     }
 
