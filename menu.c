@@ -2209,12 +2209,40 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 #endif
 }
 
+static uint8_t *
+menuPrnDS(uint8_t *buf, uint32_t var)
+{
+  if (var>9)
+    buf = menuPrnDS(buf, var/10);
+  buf[0] = '0'+(var%10);
+  buf++;
+  return buf;
+}
+
+static uint8_t *
+menuPrnFS(uint8_t *buf, uint32_t var)
+{
+  buf = menuPrnDS(buf, var/100);
+  buf[0] = '.'; buf++;
+  var %= 100;
+  if (var < 10) {
+    buf[0] = '0';
+    buf++;
+  }
+  buf = menuPrnDS(buf, var%100);
+
+  return buf;
+}
+
+#define CALC_MAX_RHS  ((BUFSS_SIZE-(LCD_MAX_COL*4)-sizeof(calc_t))/sizeof(rhs_t))
 typedef struct {
   uint32_t oper;
+  uint32_t result;
   uint8_t  op;
   uint8_t  valid;
 } rhs_t;
 typedef struct {
+  uint32_t result;
   uint16_t numRhs;
   rhs_t    rhs[1];
 } calc_t;
@@ -2222,130 +2250,217 @@ typedef struct {
 static void
 reduceCalc(calc_t *calc)
 {
-  uint16_t ui16_1;
+  uint16_t ui16_1, ui16_2;
 
-  /* no more operands */
-  if (calc->numRhs < 2) return;
+  /* */
+  for (ui16_1=0; ui16_1<calc->numRhs; ui16_1++) {
+    assert(calc->rhs[ui16_1].valid);
+    uint8_t ui8_1 = calc->rhs[ui16_1].op;
+    assert(('+' == ui8_1)||('-' == ui8_1)||('*' == ui8_1)||('n' == ui8_1));
+    if ('n' == ui8_1) assert(ui16_1 == (calc->numRhs-1));
+    calc->rhs[ui16_1].result = calc->rhs[ui16_1].oper;
+    calc->rhs[ui16_1].valid = calc->rhs[ui16_1].op;
+  }
 
   /* first do all multiplications */
   while (calc->numRhs > 1) {
+    uint8_t operated = 0;
     for (ui16_1=0; ui16_1<(calc->numRhs-1); ui16_1++) {
-      if ('n' == calc->rhs[ui16_1].op) continue; /* invalid op */
-      if (('*' == calc->rhs[ui16_1].op) && calc->rhs[ui16_1].valid &&
-	  calc->rhs[ui16_1+1].valid) {
-	calc->rhs[ui16_1].oper *= calc->rhs[ui16_1+1].oper;
-	calc->rhs[ui16_1].op = calc->rhs[ui16_1+1].op;
-	calc->rhs[ui16_1+1].valid = 0;
-	calc->numRhs--;
+      if (('n' == calc->rhs[ui16_1].valid) || (0 == calc->rhs[ui16_1].valid))
+	continue;
+      if ('*' == calc->rhs[ui16_1].valid) {
+	for (ui16_2=ui16_1+1; ui16_2<calc->numRhs; ui16_2++)
+	  if (calc->rhs[ui16_2].valid) break;
+	if (ui16_2 >= calc->numRhs)
+	  break;
+	operated = 1;
+	calc->rhs[ui16_1].result *= calc->rhs[ui16_2].result;
+	calc->rhs[ui16_1].result /= 100;
+	calc->rhs[ui16_1].valid = calc->rhs[ui16_2].valid;
+	calc->rhs[ui16_2].valid = 0;
 	break;
       }
     }
-    if (ui16_1 >= (calc->numRhs-1)) /* no '*' in operation */
+    if (0 == operated) /* no '*' in operation */
       break;
-    for (ui16_1++; ui16_1<(calc->numRhs-1); ui16_1++) {
-      memcpy(((uint8_t *)&(calc->rhs[0]))+(sizeof(rhs_t)*ui16_1),
-	     ((uint8_t *)&(calc->rhs[0]))+(sizeof(rhs_t)*(ui16_1+1)),
-	     sizeof(rhs_t));
-    }
   }
 
   /* Compute all other ops */
   while (calc->numRhs > 1) {
+    uint8_t operated = 0;
     for (ui16_1=0; ui16_1<(calc->numRhs-1); ui16_1++) {
-      if ('n' == calc->rhs[ui16_1].op) continue; /* invalid op */
-      if (calc->rhs[ui16_1].valid && calc->rhs[ui16_1+1].valid) {
-	calc->rhs[ui16_1].oper += ('+' == calc->rhs[ui16_1].op) ?
-	  calc->rhs[ui16_1+1].oper : -(calc->rhs[ui16_1+1].oper);
-	calc->rhs[ui16_1].op = calc->rhs[ui16_1+1].op;
-	calc->rhs[ui16_1+1].valid = 0;
- 	calc->numRhs--;
+      if (('n' == calc->rhs[ui16_1].valid) || (0 == calc->rhs[ui16_1].valid))
+	continue;
+      if ('*' != calc->rhs[ui16_1].valid) {
+	for (ui16_2=ui16_1+1; ui16_2<calc->numRhs; ui16_2++)
+	  if (calc->rhs[ui16_2].valid) break;
+	if (ui16_2 >= calc->numRhs)
+	  break;
+	operated = 1;
+	calc->rhs[ui16_1].result += ('+' == calc->rhs[ui16_1].valid) ?
+	  calc->rhs[ui16_2].result : -(calc->rhs[ui16_2].result);
+	calc->rhs[ui16_1].valid = calc->rhs[ui16_2].valid;
+	calc->rhs[ui16_2].valid = 0;
 	break;
       }
     }
-    for (ui16_1++; ui16_1<(calc->numRhs-1); ui16_1++) {
-      memcpy(((uint8_t *)&(calc->rhs[0]))+(sizeof(rhs_t)*ui16_1),
-	     ((uint8_t *)&(calc->rhs[0]))+(sizeof(rhs_t)*(ui16_1+1)),
-	     sizeof(rhs_t));
-    }
+    if (0 == operated) /* no '+' in operation */
+      break;
+  }
+
+  /* end of routine */
+  calc->result = 0;
+  if (calc->rhs[0].valid) {
+    calc->result = calc->rhs[0].result;
+  }
+  for (ui16_1=0; ui16_1<calc->numRhs; ui16_1++) {
+    calc->rhs[ui16_1].valid = 1;
   }
 }
 
+/* FIXME: needs UI testing
+   Display : 1-st row History of operands
+             2-nd row default operand + current operand
+ */
 uint8_t
 menuCalculator(uint8_t mode)
 {
-  calc_t *calc = (void *) (bufSS+LCD_MAX_COL+LCD_MAX_COL+8);
-  uint8_t *buf = (void *) bufSS;
-  uint8_t bufLen;
+  calc_t *calc = (void *) (bufSS+(LCD_MAX_COL*4));
+  uint8_t *buf = (void *) bufSS+(LCD_MAX_COL*2);
+  uint8_t bufLen, redisplay;
 
-  for (uint8_t numEscapeRcvd=0; numEscapeRcvd<2; ) {
-    /* */
+  /* init */
+  assert(0 == (LCD_MAX_COL&1)); /* half buf used to get operand */
+  menuMemset((void *)bufSS, 0, BUFSS_SIZE);
+  redisplay = 3;
+
+  /* */
+  uint8_t restartCalc=1;
+  if (restartCalc) {
     calc->numRhs = 0;
     calc->rhs[0].oper = 0;
+    calc->rhs[0].valid = 0;
+    calc->result = 0;
     bufLen = 0;
+    restartCalc = 0;
+  }
 
+  for (uint8_t numEscapeRcvd=0; numEscapeRcvd<2; ) {
     while (1) {
       /* Display */
-      LCD_CLRLINE(0);
-      LCD_WR_N(bufSS, LCD_MAX_COL);
-      LCD_CLRLINE(1);
-      LCD_PUT_UINT(calc->rhs[0].oper);
-      uint8_t ui8_1 = sprintf_P((char *)(bufSS+LCD_MAX_COL), PSTR("%d"), calc->rhs[0].oper);
-      LCD_cmd((LCD_CMD_CUR_20|(0x10-ui8_1)));
-      LCD_WR((char *)(bufSS+LCD_MAX_COL));
+      if (redisplay) {
+	uint8_t ui8_1, ui8_2;
+	if (redisplay & 1) {
+	  for (ui8_1=0; ui8_1<(LCD_MAX_COL*2); ui8_1++) {
+	    bufSS[ui8_1] = ' ';
+	  }
+	  uint8_t *b1 = bufSS;
+	  for (ui8_1=1; (ui8_1<=4) && (calc->numRhs>0); ui8_1++) {
+	    if (ui8_1 > calc->numRhs) break;
+	    ui8_2 = calc->numRhs-ui8_1;
+	    assert (1 == calc->rhs[ui8_2].valid);
+	    if ('n' != calc->rhs[ui8_2].op) {
+	      b1[0] = calc->rhs[ui8_2].op;
+	      b1++;
+	    }
+	    b1 = menuPrnFS(b1, calc->rhs[ui8_2].oper);
+	  }
+	  LCD_CLRLINE(0);
+	  LCD_WR_N(bufSS, LCD_MAX_COL);
+	}
+	if (redisplay & 2) {
+	  reduceCalc(calc);
+	  /* Updated result */
+	  LCD_CLRLINE(1);
+	  LCD_PUT_FLOAT(calc->result);
+	  /* Cursor */
+#if UNIT_TEST
+	  LCD_PUTCH(' ');
+#else
+	  LCD_cmd((LCD_CMD_CUR_20|(0x10-bufLen)));
+#endif
+	  LCD_WR_N((char *)buf, bufLen);
+	}
+	redisplay = 0;
+      }
 
       /* wait for user */
       KBD_RESET_KEY;
       KBD_GETCH;
-      if ((keyHitData.KbdData >= '0') &&
-	  (keyHitData.KbdData <= '9')) {
-	if (bufLen < (LCD_MAX_COL>>1))
-	  buf[bufLen++] = keyHitData.KbdData;
-	numEscapeRcvd = 0;
-      } else if ((ASCII_LEFT == keyHitData.KbdData) && (bufLen>0)) {
-	/* one char back */
-	--bufLen;
-	buf[bufLen] = 0;
-	numEscapeRcvd = 0;
-      } else if ((ASCII_RIGHT == keyHitData.KbdData) || /* + */
-		 (ASCII_LGUI == keyHitData.KbdData) || /* - */
-		 (ASCII_ALT == keyHitData.KbdData) /* * */) {
-	uint32_t ui32_1;
-	numEscapeRcvd = 0;
-	/* stray op */
-	if (0 == bufLen) continue;
-	/* get the operand */
-	buf[bufLen] = 0;
-	SSCAND(buf, ui32_1);
-	calc->rhs[calc->numRhs].oper = ui32_1;
-	calc->rhs[calc->numRhs].valid = 1;
-	calc->rhs[calc->numRhs+1].valid = 0;
-	/* now mark operator */
-	calc->rhs[calc->numRhs].op = (ASCII_RIGHT == keyHitData.KbdData) ? '+':
-	  (ASCII_LGUI == keyHitData.KbdData) ? '-' : '*';
-	calc->numRhs++;
+      move(0,30); isgraph(keyHitData.KbdData) ? printw("%c", keyHitData.KbdData) : printw("0x%x", keyHitData.KbdData);
+      /* */
+      if (restartCalc) {
+	calc->numRhs = 0;
+	calc->rhs[0].oper = 0;
+	calc->rhs[0].valid = 0;
+	calc->result = 0;
 	bufLen = 0;
-	if (ASCII_ALT != keyHitData.KbdData)
-	  reduceCalc(calc);
-      } else if (ASCII_ENTER == keyHitData.KbdData) {
+	restartCalc = 0;
+      }
+
+      if ((ASCII_ENTER == keyHitData.KbdData) || (calc->numRhs>=CALC_MAX_RHS)) {
 	uint32_t ui32_1;
 	/* Compute result */
 	if (0 != bufLen) {
 	  /* get the operand */
 	  buf[bufLen] = 0;
-	  SSCAND(buf, ui32_1);
+	  SSCANF(buf, ui32_1);
 	  calc->rhs[calc->numRhs].oper = ui32_1;
 	  calc->rhs[calc->numRhs].valid = 1;
 	  calc->rhs[calc->numRhs+1].valid = 0;
 	  /* now mark operator */
-	  calc->rhs[calc->numRhs].op = 'n';
 	  calc->numRhs++;
 	  bufLen = 0;
 	}
-	reduceCalc(calc);
+	if (calc->numRhs)
+	  calc->rhs[calc->numRhs-1].op = 'n';
 	numEscapeRcvd = 0;
-      } else if (ASCII_LEFT == keyHitData.KbdData) {
+	redisplay = 3;
+	restartCalc = 1;
+      } else if (((keyHitData.KbdData >= '0') &&
+	   (keyHitData.KbdData <= '9')) ||
+	  ('.' == keyHitData.KbdData)) {
+	if (bufLen < (LCD_MAX_COL>>1))
+	  buf[bufLen++] = keyHitData.KbdData;
+	numEscapeRcvd = 0;
+	redisplay = 2;
+      } else if (((ASCII_LEFT == keyHitData.KbdData)||(ASCII_BACKSPACE == keyHitData.KbdData)) && (bufLen>0)) {
+	/* one char back */
+	--bufLen;
+	buf[bufLen] = 0;
+	numEscapeRcvd = 0;
+	redisplay = 2;
+      } else if ((ASCII_LEFT == keyHitData.KbdData)||(ASCII_BACKSPACE == keyHitData.KbdData)) { /* && 0==bufLen */
 	numEscapeRcvd++;
 	break;
+      } else if ( (ASCII_RIGHT == keyHitData.KbdData) || /* + */
+		  (ASCII_LGUI == keyHitData.KbdData) || /* - */
+		  (ASCII_ALT == keyHitData.KbdData) || /* * */
+		  ('+' == keyHitData.KbdData) ||
+		  ('-' == keyHitData.KbdData) ||
+		  ('*' == keyHitData.KbdData) ) {
+	uint32_t ui32_1;
+	numEscapeRcvd = 0;
+	/* stray op, change operator */
+	if (0 == bufLen) {
+	  if (calc->numRhs>0) { 
+	    calc->rhs[calc->numRhs-1].op = ((ASCII_RIGHT == keyHitData.KbdData)||('+' == keyHitData.KbdData)) ? '+':
+	      ((ASCII_LGUI == keyHitData.KbdData)||('-' == keyHitData.KbdData)) ? '-' : '*';
+	  }
+	  continue;
+	}
+	/* get the operand */
+	buf[bufLen] = 0;
+	SSCANF(buf, ui32_1);
+	calc->rhs[calc->numRhs].oper = ui32_1;
+	calc->rhs[calc->numRhs].valid = 1;
+	calc->rhs[calc->numRhs+1].valid = 0;
+	/* now mark operator */
+	calc->rhs[calc->numRhs].op = ((ASCII_RIGHT == keyHitData.KbdData)||('+' == keyHitData.KbdData)) ? '+':
+	  ((ASCII_LGUI == keyHitData.KbdData)||('-' == keyHitData.KbdData)) ? '-' : '*';
+	calc->numRhs++;
+	bufLen = 0;
+	redisplay = 3;
       }
     }
   }
