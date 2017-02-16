@@ -2545,7 +2545,10 @@ menuViewOldBill(uint8_t mode)
   while (1) {
     /* this bill */
     f_read(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val);
-    if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) break;
+    if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) {
+      //printf("unexpected break\n");
+      break;
+    }
     assert (0xFFFF == (sl->crc_invert ^ sl->crc));
 
     /* check for id */

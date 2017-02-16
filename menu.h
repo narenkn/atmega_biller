@@ -241,10 +241,10 @@ void menuIndexItem(struct item *it);
 uint16_t menuItemFind(uint8_t *name, uint8_t *prod_code, struct item *it, uint16_t idx);
 
 /* billing routines */
-uint8_t menuBilling(uint8_t mode); // unverified
+uint8_t menuBilling(uint8_t mode); // KOT Bill : unverified
 uint8_t menuDelAllBill(uint8_t mode);
 uint8_t menuCalculator(uint8_t mode);
-uint8_t menuViewOldBill(uint8_t mode); // unverified
+uint8_t menuViewOldBill(uint8_t mode);
 typedef void (*menuPrnBillItemHelper)(uint16_t item_id, struct item *it, uint16_t it_index);
 void menuPrnBillNvfHelper(uint16_t item_addr, struct item *it, uint16_t it_index);
 void menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem);
