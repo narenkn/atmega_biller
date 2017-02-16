@@ -20,8 +20,9 @@ FIL Fil;			/* File object needed for each open file */
      2.a : FA_WRITE|FA_OPEN_APPEND : check appends to file
    3. f_putc
      3.a : ascii gets written
-   //4. menuSdSwallowComma()
-   //5. menuSdSwallowUntilNL()
+   4. Delete just one bill
+   //5. menuSdSwallowComma()
+   //6. menuSdSwallowUntilNL()
  */
 
 BYTE work[SD_SECTOR_SIZE*4];
@@ -93,12 +94,26 @@ int main (int argc, char *argv[])
       printf("Error(%d): Obtained string:\'%s\'\n", __LINE__, str);
     }
     str[24] = 0;
-    printf("Info: Obtained string:\'%s\'\n", str);
 
     f_close(&Fil);								/* Close the file */
   } else {
     printf("Error(%d): Can't open billdat\\newfile.txt\n", __LINE__);
   }
+
+  /* 4. Delete just one bill */
+#if 0
+	sl->crc = sl->crc_invert = 0xFFFF;
+	if (FR_OK == f_lseek(&Fil, loc)) {
+	  if (FR_OK == f_write(&Fil, (void *)sl, SIZEOF_SALE_EXCEP_ITEMS, &ret_val)) {
+	    if (SIZEOF_SALE_EXCEP_ITEMS != ret_val) {
+	      LCD_ALERT(PSTR("Save Failed"));
+	      break;
+	    }
+	  }
+	}
+#else
+#error "Not yet testing 4."
+#endif
 
   f_mount(NULL, "", 0);
 

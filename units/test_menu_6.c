@@ -1,8 +1,24 @@
 #include "common_incl.c"
 
+/* test menuBilling */
+
+typedef struct {
+  uint32_t                  discount;
+  uint32_t                      cost;
+  uint8_t                 prod_code[ITEM_PROD_CODE_BYTEL];
+  uint8_t                      name[ITEM_NAME_BYTEL];
+} shopItems_t;
+
+shopItems_t shopItems[] = {
+  {0, 15.5, "", "milk"},
+  {0, 25.1, "", "soap"},
+  {0, 75.0, "", "colgate tooth"},
+  {0, 40.0, "", "Powder"},
+};
+#define TEST_NUM_ITEMS (sizeof(shopItems)/sizeof(shopItems_t))
+
 /* place to store items */
 struct item all_items[ITEM_MAX];
-struct sale all_sales[NVF_SALE_MAX_BILLS*2];
 
 uint8_t inp5[6][TEST_KEY_ARR_SIZE];
 
@@ -14,14 +30,13 @@ make_item(struct item *ri1, uint8_t rand_save)
 
   RESET_TEST_KEYS;
 
+  static uint8_t itemIdx = 0;
+
   /* Construct a random item name */
-  ui3 = (rand() % (ITEM_NAME_BYTEL>>1)) + (ITEM_NAME_BYTEL>>1);
-  for (ui1=0; ui1<ui3; ui1++) {
-    inp5[0][ui1] = ' ' + (rand()%('~'-' '));
-    if (',' == inp5[0][ui1]) {
-      inp5[0][ui1] = '_';
-    }
-    ri1->name[ui1] = inp5[0][ui1];
+  for (ui1=0; ui1<ITEM_NAME_BYTEL; ui1++) {
+    ri1->name[ui1] = shopItems[itemIdx].name[ui1];
+    if (0 == shopItems[itemIdx].name[ui1])
+      break;
   }
   inp5[0][ui1] = 0;
   for (ui1=0;ui1<ITEM_NAME_BYTEL;ui1++) {
@@ -47,16 +62,9 @@ make_item(struct item *ri1, uint8_t rand_save)
   /* Prod code */
   ui2 = (rand() % (ITEM_PROD_CODE_BYTEL>>1)) + (ITEM_PROD_CODE_BYTEL>>1);
   for (ui1=0; ui1<ui2; ui1++) {
-    inp[ui1] = '!' + (rand() % ('~'-'!'));
-    if (',' == inp[ui1]) {
-      inp[ui1] = '_';
-    }
-    ri1->prod_code[ui1] = inp[ui1];
+    ri1->prod_code[ui1] = inp[ui1] = '!' + (rand() % ('~'-'!'));
   }
   inp[ui2] = 0;
-  if ('#' == inp[0]) { /* comment line */
-    inp[0] = '$';
-  }
   for (ui1=0;ui1<ITEM_PROD_CODE_BYTEL;ui1++) {
     ri1->prod_code[ui1] = toupper(ri1->prod_code[ui1]);
   }
@@ -66,8 +74,8 @@ make_item(struct item *ri1, uint8_t rand_save)
   INIT_TEST_KEYS(inp);
 
   /* cost, discount */
-  ri1->cost = (rand() % (1<<14))+1;
-  ri1->discount = rand() % ri1->cost;
+  ri1->cost = shopItems[itemIdx].cost;
+  ri1->discount = shopItems[itemIdx].discount;
   ui2 = 0;
   int2str(inp5[1], ri1->cost, &ui2);
   inp5[1][ui2] = 0;
@@ -122,11 +130,12 @@ make_item(struct item *ri1, uint8_t rand_save)
   ri1->has_tax3 = (ui2 & 1) ? 0 : 1;
   INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(4*LCD_MAX_COL)); /* Tax3 */
   ui2 = rand() % (LCD_MAX_COL-1);
+  ui2 &= 0xFE; /* doesn't have weiging mc */
   for (ui1=0; ui1<ui2; ui1++) {
     inp5[4][ui1+(5*LCD_MAX_COL)] = (rand()&1) ? ASCII_RIGHT : ASCII_LEFT;
   }
   inp5[4][ui2+(5*LCD_MAX_COL)] = 0;
-  ri1->has_weighing_mc = (ui2 & 1) ? 0 : 1;
+  ri1->has_weighing_mc = (ui2 & 1);
   INIT_TEST_KEYS(((uint8_t*)&(inp5[4][0]))+(5*LCD_MAX_COL)); /* has_weighing_mc */
   ui2 = rand() % (LCD_MAX_COL-1);
   for (ui1=0; ui1<ui2; ui1++) {
@@ -159,7 +168,7 @@ make_item(struct item *ri1, uint8_t rand_save)
   menuGetOpt(menu_str1+(MENU_STR1_IDX_NAME*MENU_PROMPT_LEN), &arg1, MENU_ITEM_STR, NULL);
   //  printf("test_key[0]:'%s'\n", arg1.value.str.sptr);
   arg2.valid = MENU_ITEM_NONE;
-  arg2.value.str.sptr = bufSS+LCD_MAX_COL;
+  arg2.value.str.sptr = bufSS+LCD_MAX_COL+2;
   arg2.value.str.len = ITEM_NAME_BYTEL;
   menuGetOpt(menu_str1+(MENU_STR1_IDX_ITEM*MENU_PROMPT_LEN), &arg2, MENU_ITEM_ID|MENU_ITEM_OPTIONAL, NULL);
   //PRINT_TEST_KEYS(ui1);
@@ -178,6 +187,7 @@ make_item(struct item *ri1, uint8_t rand_save)
     assert(0 == strncmp(lcd_buf[0], "Items Mem Full..", LCD_MAX_COL));
     return;
   }
+  itemIdx++;
   if (!save) {
     return;
   }
@@ -209,8 +219,6 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
 
   /* load item */
   assert(ITEM_SIZEOF == item_read_bytes(ee24x_addr, bufTT, ITEM_SIZEOF));
-
-  /* both can be invalid items */
 
   //printf("rif.name:'%s'\n", rif.name);
   if (ri->id != rif.id) {
@@ -264,6 +272,7 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   uint8_t cn, cpc, cn3;
   for (ui1=0, cn=0; ui1<ITEM_NAME_BYTEL; ui1++) {
     assert(ri->name[ui1] == rif.name[ui1]);
+    if ((ri->name[ui1] < ' '))
     assert((ri->name[ui1] >= ' '));
     assert(ri->name[ui1] < '~');
     //printf("%d:%d\n", ui1, ri->name[ui1]);
@@ -280,169 +289,6 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   assert(cn == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+(ri->id)-1) );
   assert(cpc == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+(ri->id)-1) );
   //  printf("ee24xaddr:%x cpc:%x cn:%x\n", ee24x_addr, cpc, cn);
-}
-
-void
-make_bill(struct sale *sl, uint8_t rand_save)
-{
-  uint16_t ui16_1, ui16_2, ui16_3;
-
-  /* check if bill addr is free */
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
-  if (0xFFFF == (sl->crc ^ sl->crc_invert)) {
-    assert(0 == __LINE__);
-    return;
-  }
-
-  /* randomize everything */
-  sl->info.n_items = (rand() % MAX_ITEMS_IN_BILL) + 1;
-  strcpy(sl->info.user, "naren");
-
-  /* */
-  sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), sl->info.id);
-  sl->info.is_void = (0 == (rand() % 5));
-  date_t date; s_time_t time;
-  timerDateGet(date);
-  timerTimeGet(time);
-  sl->info.date_yy = date.year; sl->info.date_mm = date.month; sl->info.date_dd = date.day;
-  sl->info.time_hh = time.hour; sl->info.time_mm = time.min; sl->info.time_ss = time.sec;
-  sl->tableNo = rand();
-  for (uint16_t ui16_1 = sl->info.n_items; ui16_1; ui16_1--) {
-    uint16_t itNo = (rand() % ITEM_MAX)+1;
-    sl->items[ui16_1].ep_item_ptr = itemAddr(itNo);
-    sl->items[ui16_1].quantity = (rand() % 100000)+1;
-    sl->items[ui16_1].cost = (rand() % 9999) + 1;
-    sl->items[ui16_1].discount = (rand() % sl->items[ui16_1].cost) + 1;
-    sl->items[ui16_1].has_common_discount = rand() & 1;
-    sl->items[ui16_1].has_vat = rand() & 1;
-    sl->items[ui16_1].has_tax1 = rand() & 1;
-    sl->items[ui16_1].has_tax2 = rand() & 1;
-    sl->items[ui16_1].has_tax3 = rand() & 1;
-    sl->items[ui16_1].is_reverse_tax = rand() & 1;
-  }
-
-  /* Calculate bill and tax */
-  uint32_t ui32_1=0;
-  sl->t_tax1 = sl->t_tax2 = sl->t_tax3 = sl->t_vat = 0;
-  sl->t_discount = 0, sl->total = 0;
-  uint32_t ui32_2 = 0;
-  for (uint8_t ui8_3 = sl->info.n_items; ui8_3; ui8_3--) {
-    // Start original source
-    if ( (0 != sl->items[ui8_3].discount) && (sl->items[ui8_3].cost >= sl->items[ui8_3].discount) ) {
-      ui32_1 = (sl->items[ui8_3].cost - sl->items[ui8_3].discount);
-      sl->t_discount += sl->items[ui8_3].discount * sl->items[ui8_3].quantity / 10;
-    } else if (sl->items[ui8_3].has_common_discount) {
-      ui32_1 = eeprom_read_word((uint16_t *)offsetof(struct ep_store_layout, CommonDisc));
-      if (ui32_1 <= 10000) {
-	ui32_1 = (10000 - ui32_1) * sl->items[ui8_3].cost;
-	ui32_1 /= 100;
-	sl->t_discount += (sl->items[ui8_3].cost - ui32_1) * sl->items[ui8_3].quantity / 10;
-      } else {
-	ui32_1 = sl->items[ui8_3].cost;
-	LCD_ALERT(PSTR("Err: ComnDis > 100%"));
-      }
-    } else
-      ui32_1 = sl->items[ui8_3].cost;
-
-    if (sl->items[ui8_3].has_vat) {
-      ui32_2 = sl->it[0].Vat;
-      ui32_2 *= ui32_1;
-      ui32_2 /= 100;
-      sl->t_vat += ui32_2;
-      if (!(sl->items[ui8_3].is_reverse_tax))
-	sl->total += ui32_2;
-    }
-    if (sl->items[ui8_3].has_tax1) {
-      ui32_2 = sl->it[0].Tax1;
-      ui32_2 *= ui32_1;
-      ui32_2 /= 100;
-      sl->t_tax1 += ui32_2;
-      if (!(sl->items[ui8_3].is_reverse_tax))
-	sl->total += ui32_2;
-    }
-    if (sl->items[ui8_3].has_tax2) {
-      ui32_2 = sl->it[0].Tax2;
-      ui32_2 *= ui32_1;
-      ui32_2 /= 100;
-      sl->t_tax2 += ui32_2;
-      if (!(sl->items[ui8_3].is_reverse_tax))
-	sl->total += ui32_2;
-    }
-    if (sl->items[ui8_3].has_tax3) {
-      ui32_2 = sl->it[0].Tax3;
-      ui32_2 *= ui32_1;
-      ui32_2 /= 100;
-      sl->t_tax3 += ui32_2;
-      if (!(sl->items[ui8_3].is_reverse_tax))
-	sl->total += ui32_2;
-    }
-
-    ui32_1 *= sl->items[ui8_3].quantity / 10;
-    sl->total += ui32_1;
-    // End original source
-  }
-
-  /* now save the data */
-  for (ui16_1=offsetof(struct sale, info), ui16_3=0; ui16_1<SIZEOF_SALE_EXCEP_ITEMS; ui16_1++)
-    ui16_3 = _crc16_update(ui16_3, ((uint8_t *)sl)[ui16_1]);
-  sl->crc = ui16_3;
-  sl->crc_invert = ~ui16_3;
-  //printf("sl->crc:%x sl->crc_invert:%x\n", sl->crc, sl->crc_invert);
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  bill_write_bytes(ui16_2, (uint8_t *)sl, SIZEOF_SALE_EXCEP_ITEMS);
-  ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
-  eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)), ui16_2);
-}
-
-void
-compare_bills(struct sale *osl, struct sale *sl)
-{
-  if ((osl->crc != sl->crc) || (osl->crc_invert != sl->crc_invert)) {
-    printf("compare_bills:crc mismatch\n");
-  }
-  if ((osl->info.n_items != sl->info.n_items) ||
-      (0 != strncmp(osl->info.user, sl->info.user, EPS_MAX_UNAME)) ||
-      (osl->info.id != sl->info.id) ||
-      (osl->info.is_kot != sl->info.is_kot) ||
-      (osl->info.dup_bill_issued != sl->info.dup_bill_issued) ||
-      (osl->info.is_void != sl->info.is_void) ||
-      (osl->info.date_yy != sl->info.date_yy) ||
-      (osl->info.date_mm != sl->info.date_mm) ||
-      (osl->info.date_dd != sl->info.date_dd) ||
-      (osl->info.time_hh != sl->info.time_hh) ||
-      (osl->info.time_mm != sl->info.time_mm) ||
-      (osl->info.time_ss != sl->info.time_ss)) {
-    printf("compare_bills:sale_info mismatch\n");
-  }
-  if ((osl->tableNo != sl->tableNo) ||
-      (osl->t_tax1 != sl->t_tax1) ||
-      (osl->t_tax2 != sl->t_tax2) ||
-      (osl->t_tax3 != sl->t_tax3) ||
-      (osl->t_vat != sl->t_vat) ||
-      (osl->t_discount != sl->t_discount) ||
-      (osl->total != sl->total) ||
-      (osl->t_cash_pay != sl->t_cash_pay) ||
-      (osl->t_other_pay != sl->t_other_pay)) {
-    printf("compare_bills:total mismatch\n");
-  }
-  for (uint16_t ui1=osl->info.n_items; ui1; ) {
-    ui1--;
-    if ((osl->items[ui1].quantity != sl->items[ui1].quantity) ||
-	(osl->items[ui1].cost != sl->items[ui1].cost) ||
-	(osl->items[ui1].discount != sl->items[ui1].discount) ||
-	(osl->items[ui1].ep_item_ptr != sl->items[ui1].ep_item_ptr) ||
-	(osl->items[ui1].has_common_discount != sl->items[ui1].has_common_discount) ||
-	(osl->items[ui1].has_vat != sl->items[ui1].has_vat) ||
-	(osl->items[ui1].has_tax1 != sl->items[ui1].has_tax1) ||
-	(osl->items[ui1].has_tax2 != sl->items[ui1].has_tax2) ||
-	(osl->items[ui1].has_tax3 != sl->items[ui1].has_tax3) ||
-	(osl->items[ui1].is_reverse_tax != sl->items[ui1].is_reverse_tax) ||
-	(osl->items[ui1].has_weighing_mc != sl->items[ui1].has_weighing_mc)) {
-      printf("compare_bills:%d: items mismatch\n", ui1);
-    }
-  }
 }
 
 void
@@ -488,46 +334,129 @@ test_init2()
 		      (void *)(offsetof(struct ep_store_layout, ShopName)), SHOP_NAME_SZ_MAX);
 }
 
+/* shared variables between routines */
+uint8_t randNumItems=0;
+uint32_t ui1, ui2, ui3, ui4, ui5, ui6;
+uint16_t ui16_1, ui16_2, ui16_3;
+
 void
-addDate(date_t *date, date_t *d1)
+make_valid_bill(bool canBeKot)
 {
-  uint8_t max_days_in_month;
+    /* */
+    RESET_TEST_KEYS;
+    arg1.valid = MENU_ITEM_NONE;
+    arg2.valid = MENU_ITEM_NONE;
 
-  /* first add */
-  date->day += d1->day;
-  date->month += d1->month;
-  date->year += d1->year;
+    /* case for just enter */
+    inp[LCD_MAX_COL] = 0;
 
-  /* find max time, keep date */
-  if (2 == date->month) {
-    max_days_in_month = ((0 == (date->year & 0x3)) && (0 != (date->year%100)))? 29 : 28;
-  } else if ( (1 == date->month) || (3 == date->month) ||
-	      (5 == date->month) || (7 == date->month) ||
-	      (8 == date->month) || (10 == date->month) ||
-	      (12 == date->month) )
-    max_days_in_month = 31;
-  else
-    max_days_in_month = 30;
-  if (date->day > max_days_in_month) {
-    date->day %= max_days_in_month;
-    if (++(date->month) > 12) {
-      date->month %= 12;
+    uint8_t randItem = (rand()%TEST_NUM_ITEMS)+1;
+    ui1 = 0;
+    int2str(inp, randItem, &ui1);
+    INIT_TEST_KEYS(inp); /* item id */
+
+    randNumItems = rand()%50;
+    inp[(LCD_MAX_COL*2)] = inp[(LCD_MAX_COL*2)+1] =
+      inp[(LCD_MAX_COL*2)+2] = inp[(LCD_MAX_COL*2)+3] =
+      inp[(LCD_MAX_COL*2)+4] = ASCII_DEL;
+    ui1 = 0;
+    int2str(inp+(LCD_MAX_COL*2)+5, randNumItems, &ui1);
+    INIT_TEST_KEYS(inp+(LCD_MAX_COL*2)); /* num items */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm item */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* goto finalize */
+
+    bool makeKotBill = canBeKot && (rand()&1) && (randNumItems>0);
+    if (makeKotBill) {
+      inp[LCD_MAX_COL*3] = ASCII_RIGHT;
+      inp[(LCD_MAX_COL*3)+1] = 0;
+      INIT_TEST_KEYS(inp+(LCD_MAX_COL*3)); /* finalize */
+    } else {
+      INIT_TEST_KEYS(inp+LCD_MAX_COL); /* finalize */
+
+      INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
+
+      INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
     }
-  }
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm bill */
+
+    menuBilling(0);
+
+    struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
+    if (makeKotBill) {
+      assert(1 == sl->info.is_void);
+    } else {
+      assert(0 == sl->info.is_void);
+    }
+}
+
+void
+addto_void_bill(struct sale *sl)
+{
+    /* */
+    RESET_TEST_KEYS;
+    arg1.valid = MENU_ITEM_NONE;
+    arg2.valid = MENU_ITEM_NONE;
+
+    /* case for just enter */
+    inp[LCD_MAX_COL] = 0;
+
+    for (ui1=0; ui1<sl->info.n_items; ui1++)
+      INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm old items */
+
+    /* */
+    uint8_t randItem = (rand()%TEST_NUM_ITEMS)+1;
+    ui1 = 0;
+    int2str(inp, randItem, &ui1);
+    INIT_TEST_KEYS(inp); /* item id */
+
+    randNumItems = rand()%50;
+    inp[(LCD_MAX_COL*2)] = inp[(LCD_MAX_COL*2)+1] =
+      inp[(LCD_MAX_COL*2)+2] = inp[(LCD_MAX_COL*2)+3] =
+      inp[(LCD_MAX_COL*2)+4] = ASCII_DEL;
+    ui1 = 0;
+    int2str(inp+(LCD_MAX_COL*2)+5, randNumItems, &ui1);
+    INIT_TEST_KEYS(inp+(LCD_MAX_COL*2)); /* num items */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm item */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* goto finalize */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* finalize */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
+
+    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm bill */
+
+    arg2.valid = MENU_ITEM_ID;
+    arg2.value.integer.i16 = sl->info.id;
+    menuBilling(MENU_VOIDBILL);
 }
 
 int
 main(int argc, char *argv[])
 {
   struct item ri, ri1;
-  uint32_t ui1, ui2;
 
   if ((argc == 1) || (0 == argv[1]))
     ui1 = time(NULL);
   else
     ui1 = atoi(argv[1]);
+  //ui1 = 1486157840;
   printf("seed : %d\n", ui1);
   srand(ui1);
+
+  /* test init */
+  for (ui1=0; ui1<EEPROM_SIZE; ui1++)
+    I2C_EEPROM_DIRECT_ASSIGN(ui1, 0xFF);
+  for (ui1=0; ui1<AVR_EEPROM_SIZE; ui1++)
+    AVR_EEPROM_DIRECT_ASSIGN(ui1, rand());
+  KBD_RESET_KEY;
+  memset(all_items, 0xFF, ITEM_SIZEOF*ITEM_MAX);
 
   /* */
   common_init();
@@ -536,85 +465,85 @@ main(int argc, char *argv[])
   ep_store_init();
   KbdInit();
   test_init1();
-  menuInit();
   test_init2();
   nvfInit();
   printerInit();
+  menuInit();
 
-  /* test init */
-#define NUM_ITEMS2TEST  ITEM_MAX
-  /* Test to check the number of items that could be stored */
-  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+  /* */
+  struct sale *sl = (void *)inp4;
+  uint32_t loop;
+
+  /* Add 1 item, bill only that */
+  for (ui1=0; ui1<TEST_NUM_ITEMS; ui1++) {
     make_item(all_items+ui1, 0);
   }
 
   /* Check all items as per expectations */
-  for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+  for (ui1=0; ui1<TEST_NUM_ITEMS; ui1++) {
     compare_item(all_items+ui1, itemAddr(ui1+1));
   }
 
-  /* Create 10 days of bills */
-  #define TEST_LOOP 10
-  uint16_t billsInDay = rand() & 0xF;
-  uint16_t billsInMonth = rand() & 0xF;
-  uint16_t billYears = rand() & 0xF;
-  date_t addDay = {0, 0, 0}, addMon = {0, 1, 0}, addYr = {0, 0, 1};
-  /* Test for all bills saved & retrieved */
-  time_t t = time(NULL);
-  struct tm tm = *localtime(&t);
-  date_t date;
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-#if 0
-  for (uint32_t yrLoop=0; yrLoop<billYears; yrLoop++) {
-    for (uint32_t monLoop=0; monLoop<12; monLoop++) {
-      for (uint32_t dayLoop=0; dayLoop<billsInMonth; dayLoop++) {
-	/* day */
-	timerDateSet(date);
-	for (ui1=0; ui1<billsInDay; ui1++) {
-	  make_bill(all_sales+ui1, 0);
-	}
+  /* check after power-on-reset */
+  ui16_3 = ui16_1 = NVF_SALE_START_ADDR;
 
-	/* Save to file */
-	uint16_t addr = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-	menuSdSaveBillDat(addr);
-
-	/* incr rand days */
-	addDay.day = rand()%3;
-	addDate(&date, &addDay);
-      }
-      addDate(&date, &addMon);
+  /* Create Mixed of void bill & valid bills */
+  for (loop=0; loop<NVF_SALE_MAX_BILLS; loop=randNumItems?loop+1:loop, ui16_3=randNumItems?NVF_NEXT_SALE_RECORD(ui16_3):ui16_3) {
+    /* */
+    ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+    assert(ui16_1 == ui16_2);
+    if (ui16_1 != ui16_2) {
+      printf("lcd_buf:%s ui16_1:%x ui16_2:%x\n", lcd_buf[0], ui16_1, ui16_2);
     }
-    addDate(&date, &addYr);
-    date.day = 1; date.month = 1;
+    ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+    assert(ui16_3 == ui16_2);
+    if (ui16_3 != ui16_2) {
+      printf("lcd_buf:%s ui16_3:%x ui16_2:%x\n", lcd_buf[0], ui16_3, ui16_2);
+    }
+
+    make_valid_bill(true);
+
+    if (loop<NVF_SALE_MAX_BILLS) {
+      assert(0 != strncmp("Bill Memory Full", lcd_buf[0], 16));
+    } else {
+      assert(0 == strncmp("Bill Memory Full", lcd_buf[0], 16));
+    }
   }
-#endif
 
-  /* Supported Bills are
-     MENU_REPO_BWISE, MENU_REPO_VOID, MENU_REPO_DUP,
-     MENU_REPO_ITWISE, MENU_REPO_TAX
-  */
-  date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-  timerDateSet(date);
-  RESET_TEST_KEYS;
+  /* Take few void bills & make them valid bills */
+  loop = rand() % (NVF_SALE_MAX_BILLS/2);
+  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
+  for (; loop; loop--) {
+    for (ui3=0; ui3<NVF_SALE_MAX_BILLS; ui3++) { /* find bill to modify */
+      ui2 = rand() % 5;
+      ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
+      bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
+      if ((0xFFFF == (sl->crc ^ sl->crc_invert)) && (sl->info.is_void))
+	break;
+    }
+    if (ui3 >= NVF_SALE_MAX_BILLS) {
+      //printf("No more void bills !!\n");
+      break; /* No more void bills */
+    }
 
-  /* */
-  arg1.valid = arg2.valid = MENU_ITEM_DATE;
-  arg1.value.date = (date_t){28, 11, 2016};
-  arg2.value.date = (date_t){31, 12, 2029};
-  arg2.value.date = (date_t){28, 11, 2017};
+    /* */
+    //printf("Modify @%d\n", sl->info.id);
+    assert(1 == sl->info.is_void);
+    assert(0xFFFF == (sl->crc ^ sl->crc_invert));
+    uint16_t prev_n_items = sl->info.n_items;
+    addto_void_bill(sl);
 
-  /* twise option */
-  inp2[0] = ASCII_RIGHT;
-  inp2[1] = ASCII_RIGHT;
-  inp2[2] = ASCII_RIGHT;
-  inp2[3] = 0;
-  INIT_TEST_KEYS(inp2);
+    /* */
+    bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
+    assert(0 == sl->info.is_void);
+    if (randNumItems) {
+      assert((prev_n_items+1) == sl->info.n_items);
+      //printf("lcd_buf:%s\n", lcd_buf[0]);
+      //printf("prev_n_items:%d, sl->info.n_items:%d\n", prev_n_items, sl->info.n_items);
+    } else {
+      assert(prev_n_items == sl->info.n_items);
+    }
+  }
 
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  //  menuBillReports(MENU_REPO_ALL);
-  menuBillReports(MENU_REPO_TALLY);
+  return 0;
 }

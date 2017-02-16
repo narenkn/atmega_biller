@@ -405,7 +405,7 @@ compare_bills(struct sale *osl, struct sale *sl)
   if ((osl->info.n_items != sl->info.n_items) ||
       (0 != strncmp(osl->info.user, sl->info.user, EPS_MAX_UNAME)) ||
       (osl->info.id != sl->info.id) ||
-      (osl->info.is_deleted != sl->info.is_deleted) ||
+      (osl->info.is_kot != sl->info.is_kot) ||
       (osl->info.dup_bill_issued != sl->info.dup_bill_issued) ||
       (osl->info.is_void != sl->info.is_void) ||
       (osl->info.date_yy != sl->info.date_yy) ||

@@ -152,8 +152,6 @@ Atmega128 Product:
 ++++ : unit tests passing
 
 Failing :
-test_menubilling.c
-test_menushowbill.c
 test_sdsettings.c
 
 units : test kbd/keypress pipeline logic
