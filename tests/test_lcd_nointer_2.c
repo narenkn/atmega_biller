@@ -1,14 +1,15 @@
 #include "lcd.c"
-#include "i2c.c"
+//#include "i2c.c"
 
 int
 main(void)
 {
-  DDRD = 0x10;
-  PORTD = 0x10;
-
-  DDRA = 0x0F;
-  DDRC = 0xC0;
+  DDRG |= _BV(2);
+  DDRD |= 0xF0;
+  DDRA |= 0x0F;
+  DDRB |= 0xE0;
+  PORTD &= ~0xF0; PORTA &= ~0x0F; PORTB &= ~0xE0;
+  LCD_bl_on;
 
 #if 4 == LCD_DPORT_SIZE
   _delay_ms(100);
@@ -22,7 +23,7 @@ main(void)
   _delay_ms(10);
 #endif
 
-  /*  Function set: 2 Line, 8-bit, 5x7 dots */
+  /* Function set: 2 Line, 8-bit, 5x7 dots */
   LCD_cmd(LCD_CMD_2LINE_5x7);
   LCD_cmd(LCD_CMD_2LINE_5x7);
   LCD_cmd(LCD_CMD_2LINE_5x7);
@@ -46,14 +47,11 @@ main(void)
   _delay_ms(100);
 
   while (1) {
-    PORTD |= 0x10;
     LCD_wrchar('H');
     LCD_wrchar('e');
     LCD_wrchar('l');
     LCD_wrchar('l');
     LCD_wrchar('o');
-    _delay_ms(1000);
-    PORTD &= ~0x10;
     _delay_ms(1000);
   }
   return 0;

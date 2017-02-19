@@ -564,7 +564,6 @@ main(int argc, char *argv[])
   struct tm tm = *localtime(&t);
   date_t date;
   date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
-#if 0
   for (uint32_t yrLoop=0; yrLoop<billYears; yrLoop++) {
     for (uint32_t monLoop=0; monLoop<12; monLoop++) {
       for (uint32_t dayLoop=0; dayLoop<billsInMonth; dayLoop++) {
@@ -587,7 +586,6 @@ main(int argc, char *argv[])
     addDate(&date, &addYr);
     date.day = 1; date.month = 1;
   }
-#endif
 
   /* Supported Bills are
      MENU_REPO_BWISE, MENU_REPO_VOID, MENU_REPO_DUP,
@@ -615,6 +613,10 @@ main(int argc, char *argv[])
   add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
   add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
   add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  //  menuBillReports(MENU_REPO_ALL);
+
   menuBillReports(MENU_REPO_TALLY);
+  menuBillReports(MENU_REPO_TAX);
+  menuBillReports(MENU_REPO_DUP);
+  menuBillReports(MENU_REPO_VOID);
+  menuBillReports(MENU_REPO_VALID);
 }

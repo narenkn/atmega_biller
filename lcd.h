@@ -5,10 +5,10 @@
 #define LCD_MAX_COL           16
 
 #if 8 == LCD_DPORT_SIZE
-# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= 0xF; PORTA |= val & 0xF
+# define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= ~0xF; PORTA |= val & 0xF
 #elif 4 == LCD_DPORT_SIZE
 # define LCD_PORT(val)				\
-  PORTA = (PORTA & ~0xF) | ((val) & 0xF)
+  PORTD = (PORTD & ~0xF0) | ((val<<4) & 0xF0)
 #endif
 #define LCD_en_high  PORTB |= _BV(7)
 #define LCD_en_low   PORTB &= ~_BV(7)
@@ -70,44 +70,60 @@
 # define LCD_CMD_2LINE_5x7     0x38   /* Use 2 lines and 5×7 matrix */
 
 # define LCD_cmd(var)   \
+  LCD_rw_low;		\
   LCD_PORT(var);	\
   LCD_rs_low;		\
+  _delay_us(50);	\
   LCD_en_high;		\
+  _delay_us(50);	\
   LCD_en_low;		\
-  _delay_ms(2)
+  LCD_rw_high;		\
+  _delay_us(50)
 
 # define LCD_idle_drive \
   LCD_PORT(0);		\
   LCD_rs_low;		\
-  LCD_en_low
+  LCD_en_low;		\
+  LCD_rw_high;		\
+  _delay_us(100)
 
 # define LCD_wrchar(var)\
+  LCD_rw_low;		\
   LCD_PORT(var);	\
   LCD_rs_high;		\
+  _delay_us(50);	\
   LCD_en_high;		\
+  _delay_us(50);	\
   LCD_en_low;		\
-  _delay_ms(2)
+  LCD_rw_high;		\
+  _delay_us(50)
 
 #elif 4 == LCD_DPORT_SIZE
 
 # define LCD_CMD_2LINE_5x7     0x28   /* Use 2 lines and 5×7 matrix */
 
 # define LCD_wrnib(var)	\
+  LCD_rw_low;		\
   LCD_PORT(var);	\
   _delay_us(50);	\
   LCD_rs_high;		\
   _delay_us(50);	\
   LCD_en_high;		\
   _delay_us(50);	\
-  LCD_en_low
+  LCD_en_low;		\
+  LCD_rw_high;		\
+  _delay_us(50)
 
 # define LCD_wrchar(var)\
+  LCD_rw_low;		\
   LCD_wrnib(var>>4);	\
   _delay_us(50);	\
   LCD_wrnib(var);	\
+  LCD_rw_high;		\
   _delay_us(50)
 
 # define LCD_cmd(var)   \
+  LCD_rw_low;		\
   LCD_PORT(var>>4);	\
   _delay_us(50);	\
   LCD_rs_low;		\
@@ -123,12 +139,14 @@
   LCD_en_high;		\
   _delay_us(50);	\
   LCD_en_low;		\
+  LCD_rw_high;		\
   _delay_us(50)
 
 # define LCD_idle_drive \
   LCD_PORT(0);		\
   LCD_rs_low;		\
   LCD_en_low;		\
+  LCD_rw_high;		\
   _delay_us(100)
 
 #endif // #if LCD_DPORT_SIZE
