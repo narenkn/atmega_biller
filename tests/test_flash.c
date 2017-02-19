@@ -29,8 +29,6 @@ uint16_t testLoc[SPM_PAGESIZE] PROGMEM =
 
 void boot_program_page() BOOTLOADER_SECTION;
 
-const uint8_t data[8] PROGMEM = {0x1, 0x3, 0x5, 0x8, 0x13, 0x21, 0x34, 0x55};
-
 int
 main()
 {
@@ -101,5 +99,5 @@ boot_program_page()
   /* report */
   LCD_CLRLINE(1);
   LCD_WR_P(PSTR("#errors:"));
-  LCD_PUT_UINT16X(ui16_3);
+  LCD_PUT_UINT(ui16_3);
 }

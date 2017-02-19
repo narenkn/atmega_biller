@@ -137,7 +137,7 @@ uint8_t twst;
 #define EEPROM_ADDR_SHIFT              2
 
 /* */
-#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x3FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
+#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x0FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
 
 #if ! NVFLASH_EN
 

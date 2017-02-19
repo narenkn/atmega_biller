@@ -34,6 +34,8 @@
 
 #include "i2c.h"
 
+void tmr_init(void);
+
 //************************************************
 // TWI initialize
 // bit rate:18 (freq: 100Khz @16MHz)
@@ -74,7 +76,7 @@ i2c_init(void)
   //TWCR= 0x44; //enable twi
 #endif
 
-#if DS1307
+#if !DS1307
   tmr_init();
 #endif
 }

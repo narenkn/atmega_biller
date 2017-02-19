@@ -7,12 +7,15 @@
 void
 spiInit(void)
 {
-  DDRB |=  (1<<0) | (1<<1) | (1<<3) | (1<<4) | (1<<5) | (1<<7);
-  DDRB &=  ~(1<<6);
+  DDRB |=  (1<<0) | (1<<1) | (1<<2);
+  DDRB &=  ~_BV(3);
+  PORTB |=  (1<<0);
+  PORTB &= ~((1<<1) | (1<<2));
 
   /* setup SPI: Master mode, MSB first,
      SCK phase low, SCK idle low */
-  SPCR = 0x50;
+  SPCR = (1<<SPE)|(1<<MSTR);
+  SPCR |= (1<<SPR1)|(1<<SPR0);
   SPSR = 0x00;
 
 #if NVFLASH_EN
@@ -30,7 +33,6 @@ spiTransmit(uint8_t data)
 
   /* Wait for transmission complete */
   while(!(SPSR & (1<<SPIF)));
-  data = SPDR;
 
-  return data;
+  return SPDR;
 }
