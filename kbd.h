@@ -17,11 +17,11 @@
 # define KBD_INT_PIN_VAL			\
   (PINE & 0x10)
 # define KBD_NODRIVE				\
-  PORTC |= 0xF0;  /* pullup */			\
-  PORTC &= ~0x0F; /* drive 0 */			\
+  PORTC &= ~0xF0;  /* drive 0 */			\
+  PORTC |= 0x0F; /* pullup */			\
   PORTE |= 0x10;  /* pullup */			\
-  DDRC &= ~0xF0;  /* in */			\
-  DDRC |= 0x0F;   /* out */			\
+  DDRC |= 0xF0;  /* out */			\
+  DDRC &= ~0x0F;   /* in */			\
   DDRE &= ~0x10   /* in */
 # define KBD_IPIN_PHI				\
   DDRC  &= ~0x0F; /* input */			\
@@ -119,7 +119,13 @@
 #define ASCII_SHIFT      0xB8
 
 #define KBD_RESET_KEY							\
-  keyHitData.hbCnt-=keyHitData.hbCnt?1:0, keyHitData.KbdData=(keyHitData.hitBuf>>(keyHitData.hbCnt<<3)), keyHitData.KbdDataAvail=(keyHitData.availBuf>>(keyHitData.hbCnt<<3))
+  if (0 == keyHitData.hbCnt) {						\
+    keyHitData.KbdDataAvail = 0;							\
+  } else {   								\
+    keyHitData.hbCnt--;							\
+    keyHitData.KbdData=(keyHitData.hitBuf>>(keyHitData.hbCnt<<3));	\
+    keyHitData.KbdDataAvail=(keyHitData.availBuf>>(keyHitData.hbCnt<<3)); \
+  }
 
 #define kbdAltHit   (1<<0)
 #define kbdWinHit   (1<<1)
@@ -155,13 +161,16 @@ extern const uint8_t keyMapR[] PROGMEM;
 #define KCHAR_ROWS        10
 #define KCHAR_COLS         9
 #define KCHAR_SHIFT_SZ     5
-#define KBD_SHIFT       0x80
 
 typedef struct s_keyHitData {
+  /* to program */
   uint8_t KbdData;
   uint8_t KbdDataAvail;
+  /* keypad data in transit */
   uint8_t _kbdData;
+  uint8_t _kbdDataAvail;
   uint8_t count;
+  /* keypad+keyboard data in transit */
   uint8_t  hbCnt;
   uint64_t hitBuf;
   uint64_t availBuf;
@@ -172,8 +181,6 @@ extern volatile uint8_t keypadMultiKeyModeOff;
 
 void    kbdInit(void);
 void    kbdScan(void);
-extern volatile uint8_t KbdData;
-extern volatile uint8_t KbdDataAvail;
 extern const uint8_t ps2code2ascii[] PROGMEM;
 extern const uint8_t ps2code2asciiE0[] PROGMEM;
 extern const uint8_t keyChars[] PROGMEM;

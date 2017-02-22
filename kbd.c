@@ -40,27 +40,35 @@ keyChars[] PROGMEM = {
 
 const uint8_t
 keyMap[] PROGMEM = {
-  1,           2,            3,        ASCII_ESCAPE,
+  1,           2,            3,        ASCII_ALT,
   4,           5,            6,        ASCII_LGUI,
-  7,           8,            9,        ASCII_ALT,
+  7,           8,            9,        ASCII_SHIFT,
   ASCII_LEFT,  0,  ASCII_RIGHT,        ASCII_ENTER
 };
 
 const uint8_t
 keyMapR[] PROGMEM = {
-  'N','u','1',  'N','u','2',  'N','u','3',  'E','s','c',
+  'N','u','1',  'N','u','2',  'N','u','3',  'A','l','t',
   'N','u','4',  'N','u','5',  'N','u','6',  'W','i','n',
-  'N','u','7',  'N','u','8',  'N','u','9',  'A','l','t',
+  'N','u','7',  'N','u','8',  'N','u','9',  'S','h','f',
   ' ','<','-',  'N','u','0',  ' ','<','-',  '<','=','|'
 };
 
-//const uint8_t
-//keyMapLGui[] PROGMEM = {
-//  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_DEL,
-//  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UP,
-//  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_DOWN,
-//  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
-//};
+const uint8_t
+keyMapLGui[] PROGMEM = {
+  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_UNDEF,
+  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UNDEF,
+  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_UNDEF,
+  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
+};
+
+const uint8_t
+keyMapAlt[] PROGMEM = {
+  ASCII_F1,    ASCII_F2,     ASCII_F3,    ASCII_UNDEF,
+  ASCII_F4,    ASCII_F5,     ASCII_F6,    ASCII_UNDEF,
+  ASCII_F7,    ASCII_F8,     ASCII_F9,    ASCII_UNDEF,
+  ASCII_F10,   ASCII_F11,    ASCII_F12,   ASCII_PRNSCRN
+};
 
 volatile keyHitData_t keyHitData;
 ps2LineStat_t kbd0, kbd1, kbd2;
@@ -77,13 +85,15 @@ ps2LineStat_t kbd0, kbd1, kbd2;
 # error "Not a known device"
 #endif
 
+#define TCNT1_DELAY (0xFFFF - (F_CPU>>11))
+
 void
 kbdInit(void)
 {
   /* Reset state
-     Port A   : output  (drive 0)
-     Port C   : input   (pull high)
-     Port B.2 : input   (pull high)
+     Port C[7:4]   : output  (drive 0)
+     Port C[3:0]   : input   (pull high)
+     Port E.4 : input   (pull high)
    */
   KBD_NODRIVE;
 
@@ -91,6 +101,7 @@ kbdInit(void)
   KBD_IO_INIT;
 
   /* No data yet */
+  keyHitData.count = 0, keyHitData.hbCnt = 0, keyHitData._kbdDataAvail = 0;
   KBD_RESET_KEY;
 
   /* setup timer 1 */
@@ -99,7 +110,7 @@ kbdInit(void)
   // Set CS10 bit so timer runs at clock speed:
   TCCR1B |= (0x5 << CS10);
   //
-  TCNT1 = 0xFFFF - (F_CPU>>11);
+  TCNT1 = TCNT1_DELAY;
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   /* */
@@ -110,7 +121,7 @@ kbdInit(void)
   EIMSK |= _BV(INT4) | _BV(INT5) | _BV(INT6) | _BV(INT7);
 
   /* when sleep get to powerdown mode */
-  set_sleep_mode(2);
+  set_sleep_mode(3);
 
   /* */
   kbd0.KeyData = 0, kbd0.bitC = 0, kbd0.drC = 0;
@@ -128,51 +139,59 @@ kbdPushKeyHit(uint8_t key, uint8_t avail)
   if (keyHitData.hbCnt >= sizeof(keyHitData.hitBuf))
     return;
 
-  keyHitData.hbCnt++;
-  keyHitData.hitBuf <<= 8; keyHitData.hitBuf |= key;
-  keyHitData.availBuf <<= 8; keyHitData.availBuf |= avail;
+  if ((KBD_NOT_HIT) && (0 != avail)) {
+    keyHitData.KbdData = key;
+    keyHitData.KbdDataAvail = avail;
+  } else if (0 != avail) {
+    keyHitData.hbCnt++;
+    keyHitData.hitBuf <<= 8; keyHitData.hitBuf |= key;
+    keyHitData.availBuf <<= 8; keyHitData.availBuf |= avail;
+  } else if ((0 == keyHitData.KbdDataAvail) && (0 != keyHitData.hbCnt)) {
+    /* not sure if this is required ... */
+    KBD_RESET_KEY;
+  }
 }
 
-static volatile uint8_t timer1_iter = 0;
 void
 keypadPushHit()
 {
   uint8_t key;
 
   /* swallow the first key when lcd was off */
-  timer1_iter = 0;
-  if ((!LCD_WAS_ON) || (0 == keyHitData.count)) return;
+  if ((!LCD_IS_ON) || (0 == keyHitData.count)) return;
 
   /* */
-  if (keyHitData.count < (KCHAR_ROWS<<1)) {
-    keyHitData.count--;
-    keyHitData.count %= KCHAR_COLS;
-    keyHitData._kbdData--;
-    keyHitData._kbdData &= 0xF;
-    key = pgm_read_byte(keyMap+keyHitData._kbdData);
-    if (keyHitData.KbdDataAvail & (kbdWinHit|kbdAltHit)) {
-      key = keyHitData._kbdData;
-    } else if (keyHitData.KbdData < 10) {
-      key = pgm_read_byte(keyChars+((keyHitData.KbdData*KCHAR_COLS) + keyHitData.count + ((keyHitData.KbdDataAvail & kbdShiftHit)*5) ));
-    } else if (ASCII_LGUI == keyHitData.KbdData) {
-      keyHitData.KbdDataAvail |= kbdWinHit;
-      goto keypadPushHitRet;
-    } else if (ASCII_ALT == keyHitData.KbdData) {
-      keyHitData.KbdDataAvail |= kbdAltHit;
-      goto keypadPushHitRet;
-    }
-    kbdPushKeyHit(key, keyHitData.KbdDataAvail|kbdHit);
-    keyHitData.KbdDataAvail = 0;
+  keyHitData.count--;
+  keyHitData.count %= KCHAR_COLS;
+  keyHitData._kbdData &= 0xF;
+  key = pgm_read_byte(keyMap+keyHitData._kbdData);
+  if (ASCII_LGUI == key) {
+    keyHitData._kbdDataAvail |= kbdWinHit;
+    goto keypadPushHitRet;
+  } else if (ASCII_SHIFT == key) {
+    keyHitData._kbdDataAvail |= kbdShiftHit;
+    goto keypadPushHitRet;
+  } else if (ASCII_ALT == key) {
+    keyHitData._kbdDataAvail |= kbdShiftHit;
+    goto keypadPushHitRet;
+  } else if (keyHitData._kbdDataAvail & kbdWinHit) {
+    key = pgm_read_byte(keyMapLGui+keyHitData._kbdData);
+  } else if (keyHitData._kbdDataAvail & kbdAltHit) {
+    key = pgm_read_byte(keyMapAlt+keyHitData._kbdData);
+  } else if (key < 10) {
+    key = pgm_read_byte( keyChars+ ((key*KCHAR_COLS) + keyHitData.count + ((keyHitData._kbdDataAvail & kbdShiftHit)?KCHAR_SHIFT_SZ:0) ) );
   }
+  kbdPushKeyHit(key, keyHitData._kbdDataAvail|kbdHit);
+  keyHitData._kbdDataAvail = 0;
 
  keypadPushHitRet:
   keyHitData.count = 0;
 }
 
 /* At reset/ idle state
-     Port A   : output   (pull high)
-     Port C   : input  (drive 0)
-     Port B.2 : input   (pull high)
+     Port C[7:4]   : input   (pull high)
+     Port C[3:0]   : output  (drive 0)
+     Port E.4      : input   (pull high)
    After key is hit two scans take place
    Scan 1:
      Port A   : input   (pull high)
@@ -183,7 +202,7 @@ keypadPushHit()
      Port C   : input   (pull high)
      Port B.2 : output  (drive 1)
  */
-ISR(INT2_vect)
+ISR(INT4_vect)
 {
   uint8_t kbdData = 0;
 
@@ -240,21 +259,24 @@ ISR(INT2_vect)
   }
 
   /* next callback in 0.5s */
-  TCNT1 = 0xFFFF - (F_CPU>>11);
+  TCNT1 = TCNT1_DELAY;
   TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 
   /* first time any key is hit */
-  if (0 == keyHitData.count) {
-    keyHitData._kbdData = kbdData;
-    keyHitData.count = 1;
-  } else if (keyHitData._kbdData != kbdData) {
-    /* diff key, miss any previous key that's pending */
-    keypadPushHit();
-    keyHitData._kbdData = kbdData;
-    keyHitData.count = 1;
-  } else {
-    /* same key was hit */
-    keyHitData.count ++;
+  if (0 != kbdData) {
+    kbdData--;
+    if (0 == keyHitData.count) {
+      keyHitData._kbdData = kbdData;
+      keyHitData.count = 1;
+    } else if (keyHitData._kbdData != kbdData) {
+      /* diff key, miss any previous key that's pending */
+      keypadPushHit();
+      keyHitData._kbdData = kbdData;
+      keyHitData.count = 1;
+    } else {
+      /* same key was hit */
+      keyHitData.count ++;
+    }
   }
 
   /* Back to idle state */
@@ -278,21 +300,15 @@ ISR(INT2_vect)
  */
 ISR(TIMER1_OVF_vect)
 {
+  BUZZER_ON;
+  _delay_ms(10);
+  BUZZER_OFF;
   /* key hit */
   keypadPushHit();
-
-  /* Wait for 5 secs to disable timer permanently
-     assume we need to get call next */
-  timer1_iter++;
-  TCNT1 = 0xFFFF - (F_CPU>>11);
-  LCD_bl_on;
-//  LCD_cmd(LCD_CMD_CUR_10 + 14);
-//  LCD_uint8x(timer1_iter);
-  if (timer1_iter > 10) {
-    TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
-    LCD_bl_off;
-    timer1_iter = 0;
-  }
+  kbdPushKeyHit(0, 0);
+  /* */
+  TCNT1 = TCNT1_DELAY;
+  TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
 }
 
 #define PS2CODE2ASCII_MASK  0x7F
@@ -413,12 +429,11 @@ ps2Intr(ps2LineStat_t *kbd)
     /* */
     if (ASCII_NUMLK == key) {
       /* FIXME: Switch TOGGLE the light */
-    } else if ((ASCII_UNDEF != key) && KBD_NOT_HIT && LCD_WAS_ON) {
+    } else if ((ASCII_UNDEF != key) && KBD_NOT_HIT && LCD_IS_ON) {
       kbdPushKeyHit(key, kbd->kbdStatus);
       /* */
-      TCNT1 = 0xFFFF - (F_CPU>>11);
+      TCNT1 = TCNT1_DELAY;
       TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
-      timer1_iter = 0;
     }
     kbd->kbdTransL = 1;
     for (; (kbd->drC<LENOF_DR) && (--(kbd->drC)); )
