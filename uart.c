@@ -46,10 +46,8 @@ uartInit(void)
 #if 1
   uint16_t ui1;
 
-  UCSR0B = 0x00;
-  UCSR0A = 0x00;
-  UCSR1B = 0x00;
-  UCSR1A = 0x00;
+  UCSR0B = 0x00;  UCSR0A = 0x00;
+  UCSR1B = 0x00;  UCSR1A = 0x00;
 #if F_CPU <= 1000000UL
   /*
    * Note [4]
@@ -58,16 +56,17 @@ uartInit(void)
   UCSR0A = _BV(U2X0);
   UCSR1A = _BV(U2X1);
   ui1 = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
+  #error "no reach"
 #else
   ui1 = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
 #endif
   /* Printer uart 0 */
-  UCSR0C = (1 << UMSEL0) | 0x06 | _BV(USBS0);
+  UCSR0C = 0x06 | _BV(USBS0);
   UBRR0L = ui1;
   UBRR0H = ui1 >> 8;
   UCSR0B = _BV(TXEN0) | _BV(RXEN0); /* rx, tx enable */
   /* Weighing mc uart 1 */
-  UCSR1C = (1 << UMSEL1) | 0x06 | _BV(USBS0);
+  UCSR1C = 0x06 | _BV(USBS0);
   UBRR1L = ui1;
   UBRR1H = ui1 >> 8;
   UCSR1B = _BV(RXEN1); /* rx enable */
@@ -75,10 +74,10 @@ uartInit(void)
 
   /* For UART0 select */
   DDRE &= ~_BV(PE0); DDRE |= _BV(PE1);
-  PORTE &= ~(_BV(PE0)|_BV(PE1));
+  PORTE &= ~_BV(PE0); PORTE |= _BV(PE1);
   /* For UART1 select */
   DDRD &= ~_BV(PD2); DDRA |= _BV(PA4);
-  PORTD &= ~_BV(PD2); PORTA &= ~_BV(PA4);
+  PORTD &= ~_BV(PD2); PORTA |= _BV(PA4);
 
   /* Enable the USART Recieve Complete interrupt (USART_RXC) */
   UCSR0B |= _BV(RXCIE0);
@@ -92,24 +91,22 @@ uartInit(void)
 ISR(USART1_RX_vect)
 {
   uint8_t ReceivedByte;
-
-  if (0 != uartDecimalPlace)
-    uartDecimalPlace ++;
+  static uint8_t _decimal = 0;
+  static uint32_t _weight = 0;
 
   ReceivedByte = UDR1;
 
-  /* */
-  if ( ('\n' == ReceivedByte) || ('\r' == ReceivedByte) ) {
-    uartWeight = 0;
-    uartDecimalPlace = 0;
-  }
-
   if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
-    uartWeight *= 10;
-    uartWeight += ReceivedByte-'0';
-    uartDecimalPlace = (0 == uartDecimalPlace) ? 0 : uartDecimalPlace+1;
+    _weight *= 10;
+    _weight += ReceivedByte-'0';
+    _decimal = (0 == _decimal) ? 0 : _decimal+1;
   } else if ('.' == ReceivedByte) {
-    uartDecimalPlace = 1;
+    _decimal = 1;
+  } else {
+    uartWeight = _weight;
+    uartDecimalPlace = _decimal;
+    _weight = 0;
+    _decimal = 0;
   }
 }
 
@@ -187,12 +184,17 @@ uart1TransmitBit(void)
 void
 uart1TransmitByte( uint8_t data )
 {
+  cli();
+
   /* 1 start + 8 data + 2 stop */
-  uint8_t uart0TxBuffer = ((uint16_t)data << 1) | ((uint16_t)3<<9);
+  uint16_t uart1TxBuffer = ((uint16_t)data << 1) | ((uint16_t)3<<9);
   for (uint8_t ui1=11; ui1; ui1--) {
-    (uart0TxBuffer & 1) ? (PORTA |= _BV(4)) : (PORTA &= ~_BV(4));
-    uart0TxBuffer >>= 1;
-    _delay_us(104);
+    (uart1TxBuffer & 1) ? (PORTA |= _BV(PA4)) : (PORTA &= ~_BV(PA4));
+    uart1TxBuffer >>= 1;
+    _delay_us(104); /* 9600 bits per second */
   }
+
+  PORTA |= _BV(PA4);
+  sei();
 }
 #endif
