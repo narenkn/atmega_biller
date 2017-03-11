@@ -120,7 +120,7 @@
 
 #define KBD_RESET_KEY							\
   if (0 == keyHitData.hbCnt) {						\
-    keyHitData.KbdDataAvail = 0;							\
+    keyHitData.KbdDataAvail = 0;					\
   } else {   								\
     keyHitData.hbCnt--;							\
     keyHitData.KbdData=(keyHitData.hitBuf>>(keyHitData.hbCnt<<3));	\

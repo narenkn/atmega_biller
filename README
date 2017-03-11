@@ -157,23 +157,28 @@ test_sdsettings.c
 units : test kbd/keypress pipeline logic
 
 Programming Commands:
-avrdude.exe -c usbasp -p atmega128 -u -U flash:w:test_lcd.hex
+avrdude.exe -c usbasp -p atmega128 -u -V -U flash:w:test_lcd.hex
 
 avrdude.exe -c usbasp -p atmega128 -u -U lfuse:w:0xff:m
 avrdude.exe -c usbasp -p atmega128 -u -U hfuse:w:0x89:m
 avrdude.exe -c usbasp -p atmega128 -u -U efuse:w:0xff:m
 
+Timer Allocations:
+1. Timer0 : RTC
+2. Timer1 : KBD
+3. Timer2 : 10ms callback
+
 To Test:
-1. Printer
-2. Uart
 3. FatFs
 4. PS2
 5. SPI Flash
 6. Lazer barcode scanner
-7. UV LED
-8. LCD Bright/dim
+##8. LCD Bright/dim
 
 Fixes Required:
 1. PS2 needs rotation
 2. uSD reader can be pushed out a bit
-3. 
+##3. Oscillator on LED's light : Options PE3, PB4, PB5, PB6, PB7
+4. LED for plug power ON
+5. PS2 : Power & Gnd wrongly connected
+6. Flash chip : Pin 3 : NC

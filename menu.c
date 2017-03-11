@@ -1215,7 +1215,30 @@ menuBilling(uint8_t mode)
       sl->items[ui8_5].quantity = arg2.value.integer.i32;
       sl->items[ui8_5].quantity *= 10;
     } else {
-      assert(0); /* Unimplemented */
+      /* Obtain weight from scale */
+      do {
+	/* wait for a char */
+	LCD_CLRLINE(1);
+	LCD_PUT_UINT(uartWeight);
+	do {
+	  KBD_RESET_KEY;
+	  sleep_enable();
+	  sleep_cpu();
+	  sleep_disable();
+	  if ((KBD_HIT) && (ASCII_ENTER == keyHitData.KbdData))
+	    break;
+	} while (weight == uartWeight);
+	weight = uartWeight;
+	if ((KBD_HIT) && (ASCII_ENTER == keyHitData.KbdData))
+	  break;
+      } while (1);
+      KBD_RESET_KEY;
+      sl->items[ui8_5].quantity = uartWeight;
+
+      /* Allow to edit the quantity */
+      /* FIXME: allow 3 decimal points */
+      menuGetOptFloatInitHelper(NULL, NULL, uartWeight/10);
+      menuGetOpt(menu_str1+(MENU_STR1_IDX_SALEQTY*MENU_PROMPT_LEN), &arg2, MENU_ITEM_FLOAT, menuGetOptFloatInitHelper);
     }
 
   menuBillingConfirm:

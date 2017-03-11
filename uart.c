@@ -21,9 +21,7 @@
 #include "i2c.h"
 #include "uart.h"
 
-static volatile uint8_t uart0TxBusy;
 volatile uint32_t uartWeight;
-volatile uint8_t  uartDecimalPlace;
 
 //**************************************************
 //UART initialize
@@ -34,43 +32,28 @@ volatile uint8_t  uartDecimalPlace;
 void
 uartInit(void)
 {
-#if 0
-  UCSRB = 0x00; //disable while setting baud rate
-  UCSRA = 0x00;
-  UCSRC = (1 << URSEL) | 0x06;
-  UBRRL = 0x19; //set baud rate lo
-  UBRRH = 0x00; //set baud rate hi
-  UCSRB = 0x18;
-#endif
-
-#if 1
-  uint16_t ui1;
+  uint16_t ui0, ui1;
 
   UCSR0B = 0x00;  UCSR0A = 0x00;
   UCSR1B = 0x00;  UCSR1A = 0x00;
-#if F_CPU <= 1000000UL
   /*
    * Note [4]
    * Slow system clock, double Baud rate to improve rate error.
    */
   UCSR0A = _BV(U2X0);
   UCSR1A = _BV(U2X1);
-  ui1 = (F_CPU / (8 * 9600UL)) - 1; /* 9600 Bd */
-  #error "no reach"
-#else
-  ui1 = (F_CPU / (16 * 9600UL)) - 1; /* 9600 Bd */
-#endif
+  ui0 = (F_CPU / (8 * UART0_BAUD));
+  ui1 = (F_CPU / (8 * UART1_BAUD)) - 1;
   /* Printer uart 0 */
   UCSR0C = 0x06 | _BV(USBS0);
-  UBRR0L = ui1;
-  UBRR0H = ui1 >> 8;
+  UBRR0L = ui0;
+  UBRR0H = ui0 >> 8;
   UCSR0B = _BV(TXEN0) | _BV(RXEN0); /* rx, tx enable */
   /* Weighing mc uart 1 */
   UCSR1C = 0x06 | _BV(USBS0);
   UBRR1L = ui1;
   UBRR1H = ui1 >> 8;
   UCSR1B = _BV(RXEN1); /* rx enable */
-#endif
 
   /* For UART0 select */
   DDRE &= ~_BV(PE0); DDRE |= _BV(PE1);
@@ -84,7 +67,6 @@ uartInit(void)
   UCSR1B |= _BV(RXCIE1);
 
   /* init */
-  uartDecimalPlace = 0;
   uartWeight = 0;
 }
 
@@ -96,15 +78,17 @@ ISR(USART1_RX_vect)
 
   ReceivedByte = UDR1;
 
-  if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) ) {
+  if ( ('0' <= ReceivedByte) && ('9' >= ReceivedByte) && (_decimal < 4) ) {
     _weight *= 10;
     _weight += ReceivedByte-'0';
     _decimal = (0 == _decimal) ? 0 : _decimal+1;
   } else if ('.' == ReceivedByte) {
     _decimal = 1;
   } else {
+    for (; _decimal<4; _decimal++) {
+      _weight *= 10;
+    }
     uartWeight = _weight;
-    uartDecimalPlace = _decimal;
     _weight = 0;
     _decimal = 0;
   }
@@ -148,9 +132,9 @@ uart1ReceiveByte( void )
 void
 uart0TransmitByte( uint8_t data )
 {
-  while ( !(UCSR1A & _BV(UDRE1)) )
+  while ( !(UCSR0A & _BV(UDRE0)) )
     ; 			                /* Wait for empty transmit buffer */
-  UDR1 = data; 			        /* Start transmition */
+  UDR0 = data; 			        /* Start transmition */
 }
 #if 0
 static uint8_t uart0TxBitsLeft;
