@@ -78,21 +78,17 @@ main()
   set_sleep_mode(SLEEP_MODE_IDLE);
 
   uint32_t weight = uartWeight;
-  uint32_t decimal = uartDecimalPlace;
   sei();
   while (1) {
     /* wait for a char */
     LCD_CLRLINE(1);
     LCD_PUT_UINT(weight);
-    LCD_PUTCH(' ');
-    LCD_PUT_UINT(decimal);
     do {
       sleep_enable();
       sleep_cpu();
       sleep_disable();
-    } while ((weight == uartWeight) && (decimal == uartDecimalPlace));
+    } while (weight == uartWeight);
     weight = uartWeight;
-    decimal = uartDecimalPlace;
   }
 #endif
 
