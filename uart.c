@@ -94,21 +94,18 @@ ISR(USART1_RX_vect)
   }
 }
 
-//**************************************************
-//Function to receive a single byte
-//*************************************************
+/* Wait for timeout for 1 byte */
 uint8_t
 uart0ReceiveByte( void )
 {
-  uint8_t data, status;
-
   // Wait for incomming data
-  while(!(UCSR0A & _BV(RXC0)));
+  for (uint8_t ui8_1=10; ui8_1; ui8_1--) {
+    if (UCSR0A & _BV(RXC0))
+      return UCSR0A;
+    _delay_us(50);
+  }
 
-  status = UCSR0A;
-  data = UDR0;
-
-  return(data);
+  return UCSR0A;
 }
 #if 0
 uint8_t

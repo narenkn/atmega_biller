@@ -140,6 +140,7 @@ extern const uint8_t keyMapR[] PROGMEM;
 
 #if UNIT_TEST
 # define KBD_GETCH KbdGetCh()
+# define KBD_ANY_EVENT KbdGetCh()
 #else
 # define KBD_GETCH				\
   while (KBD_NOT_HIT) {				\
@@ -155,6 +156,15 @@ extern const uint8_t keyMapR[] PROGMEM;
       LCD_init();				\
     }						\
   }						\
+  LCD_bl_on
+# define KBD_ANY_EVENT				\
+  do {						\
+    /* put the device to sleep */		\
+    sleep_enable();				\
+    sleep_cpu();				\
+    /* some event has to occur to come here */	\
+    sleep_disable();				\
+  } while (0);					\
   LCD_bl_on
 #endif
 

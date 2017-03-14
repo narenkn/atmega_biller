@@ -1217,18 +1217,11 @@ menuBilling(uint8_t mode)
     } else {
       /* Obtain weight from scale */
       do {
-	/* wait for a char */
+	/* wait for a commn */
 	LCD_CLRLINE(1);
 	LCD_PUT_UINT(uartWeight);
-	do {
-	  KBD_RESET_KEY;
-	  sleep_enable();
-	  sleep_cpu();
-	  sleep_disable();
-	  if ((KBD_HIT) && (ASCII_ENTER == keyHitData.KbdData))
-	    break;
-	} while (weight == uartWeight);
-	weight = uartWeight;
+	KBD_RESET_KEY;
+	KBD_ANY_EVENT;
 	if ((KBD_HIT) && (ASCII_ENTER == keyHitData.KbdData))
 	  break;
       } while (1);
@@ -2457,7 +2450,7 @@ menuCalculator(uint8_t mode)
       /* wait for user */
       KBD_RESET_KEY;
       KBD_GETCH;
-      move(0,30); isgraph(keyHitData.KbdData) ? printw("%c", keyHitData.KbdData) : printw("0x%x", keyHitData.KbdData);
+      //move(0,30); isgraph(keyHitData.KbdData) ? printw("%c", keyHitData.KbdData) : printw("0x%x", keyHitData.KbdData);
       /* */
       if (restartCalc) {
 	calc->numRhs = 0;
@@ -3146,11 +3139,12 @@ menuRunDiag(uint8_t mode)
   LCD_WR_NP((const char *)PSTR("Diagnosis Prntr"), 15);
   _delay_ms(1000);
   ui8_1 = printerStatus();
-  if (0 == ui8_1) {
+  if (ui8_1 & PRINTER_STATUS_PAPEROUT) {
     LCD_ALERT(PSTR("Printer:No Paper"));
-    diagStatus |= DIAG_PRINTER;
-  } else if (ui8_1 >= 60) {
+  } else if (ui8_1 & PRINTER_STATUS_THIGH) {
     LCD_ALERT(PSTR("Printer Too Hot"));
+  } else if (ui8_1 & PRINTER_STATUS_VHIGH) {
+    LCD_ALERT(PSTR("Printer High Volt"));
   } else {
     LCD_ALERT(PSTR("Printer OK"));
     diagStatus |= DIAG_PRINTER;

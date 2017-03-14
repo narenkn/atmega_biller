@@ -6,6 +6,7 @@
 #define UART_DEV_PRINTER 3
 
 static uint8_t uart_device;
+volatile uint32_t uartWeight;
 
 void
 uartInit(void)
