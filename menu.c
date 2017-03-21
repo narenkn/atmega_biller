@@ -1980,22 +1980,27 @@ menuPrintTestPage(uint8_t mode)
 #endif
 }
 
-static void
-menuPrnD(uint32_t var)
+static uint8_t
+menuPrnD(uint32_t var, uint8_t charsPrinted)
 {
   if (var>9)
-    menuPrnD(var/10);
-  PRINTER_PRINT('0'+(var%10));
+    charsPrinted = menuPrnD(var/10, charsPrinted);
+  if (charsPrinted & 0x80) PRINTER_PRINT('0'+(var%10));
+  return charsPrinted + 1;
 }
 
-static void
-menuPrnF(uint32_t var)
+static uint8_t
+menuPrnF(uint32_t var, uint8_t charsPrinted)
 {
-  menuPrnD(var/100);
-  PRINTER_PRINT('.');
+  charsPrinted = menuPrnD(var/100, charsPrinted);
+  if (charsPrinted & 0x80) PRINTER_PRINT('.');
+  charsPrinted++;
   var %= 100;
-  if (var < 10) PRINTER_PRINT('0');
-  menuPrnD(var%100);
+  if (var < 10) {
+    if (charsPrinted & 0x80) PRINTER_PRINT('0');
+    charsPrinted++;
+  }
+  return menuPrnD(var%100, charsPrinted);
 }
 
 static void
@@ -2136,42 +2141,43 @@ menuSdScanF(uint32_t *f, uint8_t *s)
   return 0;
 }
 
+static bool firstTimePrnHeader = true;
 static void
 menuPrnHeader()
 {
   uint8_t ui8_1, ui8_2, ui8_3;
 
+  /* */
+  if (!firstTimePrnHeader) {
+    return;
+  }
+
   /* Shop name */
-  PRINTER_FONT_ENLARGE(2);
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_2);
   PRINTER_JUSTIFY(PRINTER_JCENTER);
   for (ui8_2=ui8_1=0; ui8_1<SHOP_NAME_SZ_MAX; ui8_2++, ui8_1++) {
-    if (ui8_2 > (PRINTER_MAX_CHARS_ON_LINE>>1)) {
-      PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+#if 0 /* not required */
+    if (ui8_2 >= (PRINTER_FONTA_CHARSINLINE>>1)) {
+      PRINTER_PRINT_NL;
       ui8_2 = 0;
     }
+#endif
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, ShopName)+ui8_1));
     if (0 == ui8_3) break;
     PRINTER_PRINT(ui8_3);
   }
-  PRINTER_FONT_ENLARGE(1);
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_1);
+  PRINTER_MODE_SEL(PRINTER_CHAR_FONTB);
 
   /* Header */
   for (ui8_1=0; ui8_1<HEADER_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, BillHeader)+ui8_1));
     PRINTER_PRINT(ui8_3);
   }
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
 
-  /* date printed */
-  date_t date;
-  timerDateGet(date);
-  PRINTER_PSTR(PSTR("Print Date:"));
-  PRINTER_PRINT_D(date.day); PRINTER_PRINT('/');
-  PRINTER_PRINT_D(date.month); PRINTER_PRINT('/');
-  PRINTER_PRINT_D(date.year); PRINTER_PRINT(' ');
+  /* */
+  firstTimePrnHeader = false;
 }
 
 static void
@@ -2180,21 +2186,18 @@ menuPrnFooter()
   uint8_t ui8_1, ui8_2, ui8_3;
 
   /* Footer */
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
   ui8_2 = 0;
   for (ui8_1=0; ui8_1<FOOTER_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, BillFooter)+ui8_1));
     ui8_2 = ('\n' == ui8_3) ? 0 :
-      ( (PRINTER_MAX_CHARS_ON_LINE == ui8_2) ? 0 : ui8_2+1 );
+      ( (PRINTER_FONTA_CHARSINLINE == ui8_2) ? 0 : ui8_2+1 );
     if (0 == ui8_2) {
-      PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+      PRINTER_PRINT_NL;
     }
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
   }
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
 }
 
 void
@@ -2206,70 +2209,119 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
   menuPrnHeader();
 
   /* Caption, Date */
-  PRINTER_FONT_ENLARGE(2);
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_2);
   PRINTER_JUSTIFY(PRINTER_JCENTER);
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, Caption)+ui8_1));
     if ('\n' != ui8_3)
       PRINTER_PRINT(ui8_3);
   }
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_FONT_ENLARGE(1);
+  PRINTER_PRINT_NL;
+
+  /* */
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_1);
   PRINTER_JUSTIFY(PRINTER_JLEFT);
-  PRINTER_PSTR(PSTR("Bill #"));
+  {
+    date_t date;
+    timerDateGet(date);
+    PRINTER_PSTR(PSTR(" Printed:"));
+    PRINTER_PRINT_D(date.day); PRINTER_PRINT('/');
+    PRINTER_PRINT_D(date.month); PRINTER_PRINT('/');
+    PRINTER_PRINT_D(date.year);
+  }
+  PRINTER_PSTR(PSTR("  by:"));
+  for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
+    ui8_3 = sl->info.user[ui8_1];
+    PRINTER_PRINT(ui8_3);
+  }
+  PRINTER_PRINT_NL;
+
+  /* */
+  PRINTER_PSTR(PSTR(" Bill #"));
   PRINTER_PRINT_D(sl->info.id);
-  PRINTER_PRINT(':');
-  PRINTER_PRINT_D(sl->info.date_dd); PRINTER_PRINT('-');
-  PRINTER_PRINT_D(sl->info.date_mm); PRINTER_PRINT('-');
+  PRINTER_PRINT(' '); PRINTER_PRINT('@');
+  PRINTER_PRINT_D(sl->info.date_dd); PRINTER_PRINT('/');
+  PRINTER_PRINT_D(sl->info.date_mm); PRINTER_PRINT('/');
   PRINTER_PRINT_D(sl->info.date_yy); PRINTER_PRINT(' ');
   PRINTER_PRINT_D(sl->info.time_hh); PRINTER_PRINT(':');
   PRINTER_PRINT_D(sl->info.time_mm); PRINTER_PRINT(':');
-  PRINTER_PRINT_D(sl->info.time_ss); PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PSTR(PSTR("Sl. Item             Nos  Price   Disc   Tax \r\n"));
-  PRINTER_PSTR(PSTR("---------------------------------------------\r\n"));
+  PRINTER_PRINT_D(sl->info.time_ss); PRINTER_PRINT_NL;
+  PRINTER_MODE_SEL(PRINTER_CHAR_FONTB);
+  PRINTER_PSTR(PSTR("Sl. Item              Qty   Price  Sub-Tot\n"));
+  PRINTER_PSTR(PSTR("------------------------------------------\n"));
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
     if (EEPROM_MAX_ADDRESS != sl->items[ui8_1].ep_item_ptr) {
       nitem(sl->items[ui8_1].ep_item_ptr, &(sl->it[0]), ui8_1);
     }
+    ui8_3 = PRINTER_PRINT_D_N((ui8_1+1));
+    for (;ui8_3<2; ui8_3++) {
+      PRINTER_PRINT(' ');
+    }
     PRINTER_PRINT_D((ui8_1+1));
-    PRINTER_PRINT('.'); PRINTER_PRINT(' ');
-    for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
+    PRINTER_PRINT('.');
+    for (ui8_3=0; ui8_3<((ITEM_NAME_BYTEL<16)?ITEM_NAME_BYTEL:16); ui8_3++) {
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
-    PRINTER_PSTR(PSTR("  "));
-    PRINTER_PRINT_F(sl->items[ui8_1].cost);
-    PRINTER_PSTR(PSTR("  "));
-    PRINTER_PRINT_F(sl->items[ui8_1].discount);
-    PRINTER_PSTR(PSTR("  "));
-    PRINTER_PRINT_F(sl->items[ui8_1].quantity/10);
-    PRINTER_PSTR(PSTR("  "));
+    }
+    PRINTER_PRINT(' ');
+    ui8_3 = PRINTER_PRINT_F_N(sl->items[ui8_1].quantity/10);
+    for (;ui8_3<6; ui8_3++) {
+      PRINTER_PRINT(' ');
+    }
+    PRINTER_PRINT_F(sl->items[ui8_1].quantity/10); PRINTER_PRINT(' ');
+    ui8_3 = PRINTER_PRINT_F_N(sl->items[ui8_1].cost);
+    for (;ui8_3<7; ui8_3++) {
+      PRINTER_PRINT(' ');
+    }
+    PRINTER_PRINT_F(sl->items[ui8_1].cost); PRINTER_PRINT(' ');
     uint32_t total = (sl->items[ui8_1].cost-sl->items[ui8_1].discount)/100*sl->items[ui8_1].quantity/1000;
-#if 0
+#if 0 /* FIXME */
     uint32_t t_tax;
     t_tax = total * 
     if (! sl->items[ui8_1].is_reverse_tax) {
       total 
     }
 #endif
+    ui8_3 = PRINTER_PRINT_F_N(total);
+    for (;ui8_3<7; ui8_3++) {
+      PRINTER_PRINT(' ');
+    }
     PRINTER_PRINT_F(total);
-    PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+    PRINTER_PRINT_NL;
   }
 
   /* Total */
-  PRINTER_PSTR(PSTR("--------------------------------\r\n"));
-  PRINTER_PSTR(PSTR("           "));
+  PRINTER_PSTR(PSTR("------------------------------------------\n"));
+/*PRINTER_PSTR(PSTR("Sl. Item             Qty   Price  SubTotal\n"));*/
+  PRINTER_PSTR(PSTR("             Total Discount: "));
+  ui8_3 = PRINTER_PRINT_F_N(sl->t_discount);
+  for (;ui8_3<12; ui8_3++) {
+    PRINTER_PRINT(' ');
+  }
   PRINTER_PRINT_F(sl->t_discount);
-  PRINTER_PSTR(PSTR(" "));
-  PRINTER_PRINT_F(sl->t_vat);
-  PRINTER_PSTR(PSTR(" "));
+  PRINTER_PRINT_NL;
+  PRINTER_PSTR(PSTR("                  Total Tax: "));
+  ui8_3 = PRINTER_PRINT_F_N(sl->t_tax1+sl->t_tax2+sl->t_tax3+sl->t_vat);
+  for (;ui8_3<12; ui8_3++) {
+    PRINTER_PRINT(' ');
+  }
   PRINTER_PRINT_F(sl->t_tax1+sl->t_tax2+sl->t_tax3+sl->t_vat);
-  PRINTER_PSTR(PSTR(" "));
+  PRINTER_PRINT_NL;
+  PRINTER_PSTR(PSTR("------------------------------------------\n"));
+  PRINTER_PSTR(PSTR("                      Total: "));
+  ui8_3 = PRINTER_PRINT_F_N(sl->total);
+  for (;ui8_3<12; ui8_3++) {
+    PRINTER_PRINT(' ');
+  }
   PRINTER_PRINT_F(sl->total);
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
+  PRINTER_MODE_SEL(PRINTER_CHAR_FONTA);
 
   menuPrnFooter();
+
+  firstTimePrnHeader = true;
+  menuPrnHeader();
 #endif
 }
 
@@ -3840,7 +3892,7 @@ menuSdReportItemHelper(uint8_t mode)
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
-    PRINTER_PSTR(PSTR("  id     name     prod_code    Rs.   Disc.   Vat  Tax1, Tax2, Tax3\r\n"));
+    PRINTER_PSTR(PSTR("  id     name     prod_code    Rs.   Disc.   Vat  Tax1, Tax2, Tax3\n"));
     return 0;
   }
   if (MENU_HELPER_QUIT == (mode & MENU_MODEMASK)) {
@@ -3848,7 +3900,7 @@ menuSdReportItemHelper(uint8_t mode)
   }
 
   /* body */
-  menuPrnD(it->id);
+  PRINTER_PRINT_D(it->id);
   PRINTER_PRINT(' ');
   for (uint8_t ui8_1=0; ui8_1<ITEM_NAME_BYTEL; ui8_1++) {
     PRINTER_PRINT(it->name[ui8_1]);
@@ -3858,18 +3910,18 @@ menuSdReportItemHelper(uint8_t mode)
     PRINTER_PRINT(it->prod_code[ui8_1]);
   }
   PRINTER_PRINT(' ');
-  menuPrnF(it->cost);
+  PRINTER_PRINT_F(it->cost);
   PRINTER_PRINT(' ');
-  menuPrnF(it->discount);
+  PRINTER_PRINT_F(it->discount);
   PRINTER_PRINT(' ');
-  menuPrnF(it->Vat);
+  PRINTER_PRINT_F(it->Vat);
   PRINTER_PRINT(' ');
-  menuPrnF(it->Tax1);
+  PRINTER_PRINT_F(it->Tax1);
   PRINTER_PRINT(' ');
-  menuPrnF(it->Tax2);
+  PRINTER_PRINT_F(it->Tax2);
   PRINTER_PRINT(' ');
-  menuPrnF(it->Tax3);
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_F(it->Tax3);
+  PRINTER_PRINT_NL;
 
   return 0;
 }
@@ -3983,7 +4035,7 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   cumuBillData_t *cumu = (void *)bufSS;
 
   if (MENU_HELPER_INIT == (mode & MENU_MODEMASK)) {
-    PRINTER_PSTR(PSTR("Date  User  BillId  #Items  #Tax #Discount #Total\r\n"));
+    PRINTER_PSTR(PSTR("Date  User  BillId  #Items  #Tax #Discount #Total\n"));
     menuMemset( bufSS, 0, sizeof(cumuBillData_t) );
     assert(sizeof(cumuBillData_t) <= (LCD_MAX_COL+LCD_MAX_COL));
     return 0;
@@ -4041,31 +4093,31 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   /* print the bill date */
   if (!(cumu->has_data)) goto menuBillRpt1LSkipPrint;
   if (twise == MENU_REPO_DAYWISE) {
-    menuPrnD(cumu->date.day); PRINTER_PRINT('/');
+    PRINTER_PRINT_D(cumu->date.day); PRINTER_PRINT('/');
   }
   if ((twise == MENU_REPO_DAYWISE) ||
       (twise == MENU_REPO_MONWISE)) {
-    menuPrnD(cumu->date.month); PRINTER_PRINT('/');
+    PRINTER_PRINT_D(cumu->date.month); PRINTER_PRINT('/');
   }
-  menuPrnD(cumu->date.year); PRINTER_PRINT(' ');
+  PRINTER_PRINT_D(cumu->date.year); PRINTER_PRINT(' ');
   if (twise != MENU_REPO_BWISE) {
-    menuPrnD(cumu->num_bills);
+    PRINTER_PRINT_D(cumu->num_bills);
   } else {
-    menuPrnD(sl->info.id);
+    PRINTER_PRINT_D(sl->info.id);
   }
   PRINTER_PRINT(' ');
 
   if (MENU_REPO_TALLY == tbill) {
-    PRINTER_PSTR(PSTR("#Bills   #TotTax   #TotDisc   #TotCashCollected\r\n"));
+    PRINTER_PSTR(PSTR("#Bills   #TotTax   #TotDisc   #TotCashCollected\n"));
   }
 
   /* */
-  menuPrnF(cumu->t_tax);  PRINTER_PRINT(' ');
-  menuPrnF(cumu->t_discount);  PRINTER_PRINT(' ');
-  menuPrnF(cumu->total);
+  PRINTER_PRINT_F(cumu->t_tax);  PRINTER_PRINT(' ');
+  PRINTER_PRINT_F(cumu->t_discount);  PRINTER_PRINT(' ');
+  PRINTER_PRINT_F(cumu->total);
 
   /* finish of record */
-  PRINTER_PRINT('\r');  PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
 
   /* tally cash handled seperately */
   if (MENU_REPO_TALLY == tbill) {
@@ -4110,9 +4162,9 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   /* Quit : So, print the final statements */
   if (cumu->has_data) {
     PRINTER_PSTR(PSTR("                "));
-    menuPrnF(cumu->t_tax); PRINTER_PRINT(' ');
-    menuPrnF(cumu->t_discount); PRINTER_PRINT(' ');
-    menuPrnF(cumu->total);
+    PRINTER_PRINT_F(cumu->t_tax); PRINTER_PRINT(' ');
+    PRINTER_PRINT_F(cumu->t_discount); PRINTER_PRINT(' ');
+    PRINTER_PRINT_F(cumu->total);
   }
   if (MENU_REPO_TALLY == tbill) {
     LCD_CLRLINE(LCD_MAX_ROW-1);
@@ -4121,8 +4173,8 @@ menuBillRpt1L(uint8_t mode, struct sale *sl)
   }
 
   /* end spaces */
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
+  PRINTER_PRINT_NL;
 
   return 0;
 }
@@ -4170,25 +4222,25 @@ menuBillReports(uint8_t mode)
 
   /* */
   menuPrnHeader();
-  PRINTER_PRINT('\r'); PRINTER_PRINT('\n');
+  PRINTER_PRINT_NL;
   PRINTER_JUSTIFY(PRINTER_JCENTER);
-  PRINTER_FONT_ENLARGE(2);
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_2);
   PRINTER_PRINTN((bufSS+(LCD_MAX_COL*2)), WISE_STR_OPT_LEN);
   if (rpt == MENU_REPO_BWISE) {
-    PRINTER_PSTR(PSTR("All Bill Report\r\n"));
+    PRINTER_PSTR(PSTR("All Bill Report\n"));
   } else if (rpt == MENU_REPO_VOID) {
-    PRINTER_PSTR(PSTR("Void Bill Report\r\n"));
+    PRINTER_PSTR(PSTR("Void Bill Report\n"));
   } else if (rpt == MENU_REPO_DUP) {
-    PRINTER_PSTR(PSTR("Duplicate Bill Report\r\n"));
+    PRINTER_PSTR(PSTR("Duplicate Bill Report\n"));
   } else if (rpt == MENU_REPO_ITWISE) {
-    PRINTER_PSTR(PSTR("Itemwise Bill Report\r\n"));
+    PRINTER_PSTR(PSTR("Itemwise Bill Report\n"));
   } else if (rpt == MENU_REPO_TALLY) {
-    PRINTER_PSTR(PSTR("Tally Cash Report\r\n"));
+    PRINTER_PSTR(PSTR("Tally Cash Report\n"));
   } else {
-    PRINTER_PSTR(PSTR("Tax Report\r\n"));
+    PRINTER_PSTR(PSTR("Tax Report\n"));
   }
   ((rpt == MENU_REPO_ITWISE) ? menuItemWiseRpt: menuBillRpt1L)(MENU_HELPER_INIT|rpt, NULL);
-  PRINTER_FONT_ENLARGE(1);
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_1);
 
   /* */
  menuBillReportsRedo:

@@ -3,37 +3,74 @@
 
 #include "a1micro2mm.h"
 
+#undef ASCII_PRINTER_ESC
+#undef ASCII_PRINTER_GS
+
 #undef  PRINTER_PRINT
 #define PRINTER_PRINT(c)			\
   putc(c, prn_outf)
 
-#undef  PRINTER_FEED_DOTS
-#define PRINTER_FEED_DOTS(n)			\
-  fprintf(prn_outf, "<feed dots %d>\n", n)
-
-#undef  PRINTER_FEED_LINES
-#define PRINTER_FEED_LINES(n)			\
-  fprintf(prn_outf, "<feed lines %d>\n", n)
-
-#undef PRINTER_FONT_ENLARGE
-#define PRINTER_FONT_ENLARGE(N)			\
-  fprintf(prn_outf, "<size %d>\n", N)
-
-#undef  PRINTER_BOLD
-#define PRINTER_BOLD(N)				\
-  fprintf(prn_outf, "<bold %d>\n", N)
-
+#undef  PRINTER_PAPER_STATUS
+#define PRINTER_PAPER_STATUS			\
+  assert(0)
+#undef  PRINTER_PRINT_FEED
+#define PRINTER_PRINT_FEED(N)			\
+  fprintf(prn_outf, "<feed " #N ">\n")
+#undef  PRINTER_EMPHASIZE
+#define PRINTER_EMPHASIZE(N)			\
+  fprintf(prn_outf, "<emphasize " #N ">\n")
+#undef  PRINTER_REVERSE
+#define PRINTER_REVERSE(N)			\
+  fprintf(prn_outf, "<reverse " #N ">\n")
+#undef  PRINTER_INITIALIZE
+#define PRINTER_INITIALIZE			\
+  fprintf(prn_outf, "<printer-init>\n")
 #undef  PRINTER_UNDERLINE
 #define PRINTER_UNDERLINE(N)			\
-  fprintf(prn_outf, "<underline %d>\n", N)
-
+  fprintf(prn_outf, "<underline " #N ">\n")
+#undef  PRINTER_RX_TIMEOUT
+#define PRINTER_RX_TIMEOUT			\
+  fprintf(prn_outf, "<timeout>\n")
+#undef  PRINTER_WAKE
+#define PRINTER_WAKE				\
+  fprintf(prn_outf, "<WAKE>\n")
+#undef  PRINTER_PRINT_TEST_PAGE
+#define PRINTER_PRINT_TEST_PAGE			\
+  fprintf(prn_outf, "<print-test-page>\n")
+#undef  PRINTER_SLEEP_SET
+#define PRINTER_SLEEP_SET(N)			\
+  fprintf(prn_outf, "<sleep-set>\n")
 #undef  PRINTER_JUSTIFY
-#define PRINTER_JUSTIFY(X)                        \
-  fprintf(prn_outf, "<justify %d>\n", X)
+#define PRINTER_JUSTIFY(N)			\
+  fprintf(prn_outf, "<justify " #N ">\n")
+#undef  PRINTER_LINESPACE_DEFAULT
+#define PRINTER_LINESPACE_DEFAULT		\
+  fprintf(prn_outf, "<linespace-default>\n")
+#undef  PRINTER_LINESPACE
+#define PRINTER_LINESPACE(N)			\
+  fprintf(prn_outf, "<linespace-" #N ">\n")
+#undef  PRINTER_MODE_SEL
+#define PRINTER_MODE_SEL(N)			\
+  fprintf(prn_outf, "<mode-sel " #N ">\n")
+#undef  PRINTER_FONT_ENLARGE
+#define PRINTER_FONT_ENLARGE(N)			\
+  fprintf(prn_outf, "<font-enlarge " #N ">\n")
 
-#undef  PRINTER_USERCHAR_ENDIS
-#define PRINTER_USERCHAR_ENDIS(N)		\
-  assert(0)
+bool printer_onoff = true;
+#undef  PRINTER_TOGGLE_ONOFF
+#undef  PRINTER_ONLINE
+#define PRINTER_ONLINE				\
+  printer_onoff = true; fprintf(prn_outf, "<PRINTER_ONLINE>\n")
+#undef  PRINTER_OFFLINE
+#define PRINTER_OFFLINE				\
+  printer_onoff = false; fprintf(prn_outf, "<PRINTER_OFFLINE>\n")
+//#undef  PRINTER_FEED_DOTS
+//#define PRINTER_FEED_DOTS(n)			\
+//  fprintf(prn_outf, "<feed dots %d>\n", n)
+//
+//#undef  PRINTER_FEED_LINES
+//#define PRINTER_FEED_LINES(n)			\
+//  fprintf(prn_outf, "<feed lines %d>\n", n)
 
 FILE *prn_outf = NULL;
 
@@ -43,18 +80,10 @@ printerInit(void)
   prn_outf = fopen("printer.out", "w");
 }
 
-void
-printerDefineUserChar(uint8_t idx)
-{
-  /* FIXME */
-  assert(0);
-}
-
-/* return temperature if paper is available */
 uint8_t
 printerStatus(void)
 {
-  return PRINTER_STATUS_ONLINE;
+  return (printer_onoff?(1<<0):(0<<0));
 }
 
 uint32_t

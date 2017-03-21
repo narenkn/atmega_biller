@@ -297,7 +297,7 @@ make_bill(struct sale *sl, uint8_t rand_save)
 
   /* randomize everything */
   sl->info.n_items = (rand() % MAX_ITEMS_IN_BILL) + 1;
-  strcpy(sl->info.user, "naren");
+  strncpy(sl->info.user, "naren   ", 8);
 
   /* */
   sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
@@ -522,6 +522,7 @@ main(int argc, char *argv[])
 
   make_bill(all_sales+0, 0);
 
+  menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
   menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
 
   return 0;

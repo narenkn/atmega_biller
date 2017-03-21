@@ -1,12 +1,11 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-#define PRINTER_MAX_CHARS_ON_LINE   32
-
 #define PRINTER_PRINT(c)			\
   uart0TransmitByte(c)
 
 #define ASCII_PRINTER_ESC        0x1B
+#define ASCII_PRINTER_GS         0x1D
 
 #define PRINTER_PAPER_STATUS			\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('v'); PRINTER_PRINT(0)
@@ -45,9 +44,21 @@
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('2')
 #define PRINTER_LINESPACE(N)				\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('3'); PRINTER_PRINT('0'+N)
+#define PRINTER_CHAR_FONTA               (0<<0)
+#define PRINTER_CHAR_FONTB               (1<<0)
+#define PRINTER_CHAR_REVERSE_OFF         (0<<1)
+#define PRINTER_CHAR_REVERSE_ON          (1<<1)
+#define PRINTER_CHAR_EMPHASIZE_OFF       (0<<3)
+#define PRINTER_CHAR_EMPHASIZE_ON        (1<<3)
 #define PRINTER_MODE_SEL(A)				\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('!'); PRINTER_PRINT(A)
-#define PRINTER_MODE_CHARA (0<<0)
+#define PRINTER_FONT_1     0x00
+#define PRINTER_FONT_2     0x11
+#define PRINTER_FONT_3     0x22
+#define PRINTER_FONT_ENLARGE(N)				\
+  PRINTER_PRINT(ASCII_PRINTER_GS); PRINTER_PRINT('!'); PRINTER_PRINT(N)
+#define PRINTER_PRINT_NL			\
+  PRINTER_PRINT('\n')
 
 #define PRINTER_TOGGLE_ONOFF			\
   PRINTER_PRINT(ASCII_PRINTER_ESC); PRINTER_PRINT('=')
@@ -64,19 +75,13 @@
 #define PRINTER_STATUS_THIGH             (1<<6)
 #define PRINTER_STATUS_UNCONNECTED       (1<<7)
 
-#define PRINTER_CHAR_FONTA               (0<<0)
-#define PRINTER_CHAR_FONTB               (1<<0)
-#define PRINTER_CHAR_REVERSE_OFF         (0<<1)
-#define PRINTER_CHAR_REVERSE_ON          (1<<1)
-#define PRINTER_CHAR_EMPHASIZE_OFF       (0<<3)
-#define PRINTER_CHAR_EMPHASIZE_ON        (1<<3)
+#define PRINTER_PRINT_D_N(v) menuPrnD(v, 0)
+#define PRINTER_PRINT_F_N(v) menuPrnF(v, 0)
+#define PRINTER_PRINT_D(v) menuPrnD(v, 0x80)
+#define PRINTER_PRINT_F(v) menuPrnF(v, 0x80)
 
-void PRINTER_FONT_ENLARGE(uint8_t N);
-void PRINTER_CHARSET(uint8_t N);
-void PRINTER_PSTR(const char *P);
-
-#define PRINTER_PRINT_D menuPrnD
-#define PRINTER_PRINT_F menuPrnF
+#define PRINTER_FONTA_CHARSINLINE  31
+#define PRINTER_FONTB_CHARSINLINE  42
 
 #define PRINTER_SPRINTF(STR, FMT, ...)	do {		\
     uint8_t ui8_1t, ui8_2t;				\
@@ -94,5 +99,6 @@ void PRINTER_PSTR(const char *P);
 void printerInit(void);
 void printerDefineUserChar(uint8_t idx);
 uint8_t printerStatus(void);
+void PRINTER_PSTR(const char *P);
 
 #endif

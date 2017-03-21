@@ -182,3 +182,6 @@ Fixes Required:
 4. LED for plug power ON
 5. PS2 : Power & Gnd wrongly connected
 6. Flash chip : Pin 3 : NC
+##7. 5v->3.3v : Increase resistor 10k+20k
+8. 10u cap on SPI Flash Pin 8
+9. 

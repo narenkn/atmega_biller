@@ -15,9 +15,11 @@ printerInit(void)
   PRINTER_INITIALIZE;  /* init */
   PRINTER_SLEEP_SET(30);
   PRINTER_RX_TIMEOUT;
+
+  PRINTER_MODE_SEL(PRINTER_CHAR_FONTA);
 }
 
-/* return temperature if paper is available */
+/* return printer status */
 uint8_t
 printerStatus(void)
 {
@@ -26,22 +28,6 @@ printerStatus(void)
     return PRINTER_STATUS_UNCONNECTED;
 
   return UDR0;
-}
-
-void
-PRINTER_FONT_ENLARGE(uint8_t N)
-{
-  uart0TransmitByte(0x1D);
-  uart0TransmitByte('!');
-  uart0TransmitByte(N);
-}
-
-void
-PRINTER_CHARSET(uint8_t N)
-{
-  uart0TransmitByte(ASCII_PRINTER_ESC);
-  uart0TransmitByte('!');
-  uart0TransmitByte(N);
 }
 
 void
