@@ -78,7 +78,12 @@ LCD_CLRLINE(uint8_t n)
   uint8_t ui8_1;
 
   /* which line */
-  n = (n&1) ? LCD_CMD_CUR_20 : LCD_CMD_CUR_10;
+  n =
+#if LCD2004
+    (3==(n&3)) ? LCD_CMD_CUR_40 :
+    (2==(n&3)) ? LCD_CMD_CUR_30 :
+#endif
+    (n&1) ? LCD_CMD_CUR_20 : LCD_CMD_CUR_10;
   LCD_cmd(n);
   for (ui8_1=0; ui8_1<LCD_MAX_COL; ui8_1++) {
     LCD_PUTCH(' ');

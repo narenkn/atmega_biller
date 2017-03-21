@@ -1,8 +1,13 @@
 #ifndef LCD__H
 #define LCD__H
 
+#if LCD2004
+#define LCD_MAX_ROW            4
+#define LCD_MAX_COL           20
+#else
 #define LCD_MAX_ROW            2
 #define LCD_MAX_COL           16
+#endif
 
 #if 8 == LCD_DPORT_SIZE
 # define LCD_PORT(val)  PORTD &= ~0xF0; PORTD |= val & 0xF0; PORTA &= ~0xF; PORTA |= val & 0xF
@@ -30,16 +35,28 @@
 # define LCD_CMD_DISON_CURON   assert(0)
 # define LCD_CMD_CUR_10        0x80
 # define LCD_CMD_CUR_20        0xC0
+#if LCD2004
+# define LCD_CMD_CUR_30        0x94
+# define LCD_CMD_CUR_40        0xD4
+#endif
 # define LCD_CMD_2LINE_5x7     assert(0)
 # define LCD_ACT_LINE2         assert(0)
 # define LCD_cmd(CMD)					\
   do {							\
-  if ((CMD >= 0x80) & (CMD <= 0x8F)) {			\
+  if ((CMD >= 0x80) & (CMD <= 0x93)) {			\
     lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0x80);	\
     lcd_x = 0;						\
     lcd_y = CMD & 0xF;					\
-  } else if ((CMD >= 0xC0) & (CMD <= 0xCF)) {		\
+  } else if ((CMD >= 0xC0) & (CMD <= 0xD3)) {		\
     lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD ^ 0xC0);	\
+    lcd_x = 1;						\
+    lcd_y = CMD & 0xF;					\
+  } else if ((CMD >= 0x94) & (CMD <= 0xA7)) {		\
+    lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD-0x94);	\
+    lcd_x = 1;						\
+    lcd_y = CMD & 0xF;					\
+  } else if ((CMD >= 0xD4) & (CMD <= 0xE7)) {		\
+    lcd_buf_p = ((uint8_t *)lcd_buf) + (CMD-0xD4);	\
     lcd_x = 1;						\
     lcd_y = CMD & 0xF;					\
   }							\
@@ -61,6 +78,10 @@
 # define LCD_CMD_CUR_10        0x80   /* Force cursor to the beginning of 1st line */
 # define LCD_CMD_CUR_MOVL      0x10   /* Move cursor to left one char */
 # define LCD_CMD_CUR_20        0xC0   /* Force cursor to the beginning of 2nd line */
+#if LCD2004
+# define LCD_CMD_CUR_30        0x94
+# define LCD_CMD_CUR_40        0xD4
+#endif
 # define LCD_ACT_LINE2         0x3C   /* Activate second line */
 
 # define KBD_GETCH_ALERT_N     KBD_GETCH
@@ -157,8 +178,13 @@
 
 // Not working
 //#define LCD_CLRSCR  LCD_cmd(LCD_CMD_CLRSCR)
+#if LCD2004
+#define LCD_CLRSCR				\
+  LCD_CLRLINE(3); LCD_CLRLINE(2); LCD_CLRLINE(1); LCD_CLRLINE(0)
+#else
 #define LCD_CLRSCR				\
   LCD_CLRLINE(1); LCD_CLRLINE(0)
+#endif
 
 void LCD_CLRLINE(uint8_t line);
 void LCD_WR(char *str);
