@@ -14,7 +14,7 @@ CC = gcc
 VPATH = .:..
 
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_sdsettings.c
+SOURCE_EXCLUDES = test_sdsettings.c test_ff_features.c
 TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(SOURCE))
 TESTSEXE = $(TESTS:.c=)
 

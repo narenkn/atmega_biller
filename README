@@ -174,11 +174,29 @@ To Test:
 5. SPI Flash
 6. Lazer barcode scanner
 ##8. LCD Bright/dim
+9. Test input voltage
+10. test sw2, sw3 switches
+11. 
 
 Fixes Required:
 1. PS2 needs rotation
 2. uSD reader can be pushed out a bit
-##3. Oscillator on LED's light : Options PE3, PB4, PB5, PB6, PB7
+##3. Oscillator on LED's Back light : Options PE3, PB4, PB5, PB6, PB7
 4. LED for plug power ON
 5. PS2 : Power & Gnd wrongly connected
 6. Flash chip : Pin 3 : NC
+## NO ##7. 5v->3.3v : Increase resistor 10k+20k
+8. 10u cap on SPI Flash Pin 8
+9. Battery terminals are for LIPO, so that connector is required
+10. Remove Debug Port
+11. Change {Q1}, {Q2} -> 2N7002
+12. SW20 switch was shorting
+13. Remove J7
+14. uUSB interface for power input
+15. Remove extra switches??
+16. Remove 24c512??
+17. Power LED with 330ohm resistor, parallel 10uF 6.3V
+18. Add inductor to circuit.
+19. LCD Bright/ Dim
+20. Battery voltage divided to a pin
+21. 
