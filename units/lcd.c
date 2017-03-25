@@ -1,5 +1,9 @@
 #include "lcd.h"
+#ifdef __CYGWIN__
 #include <ncurses/ncurses.h>
+#else
+#include <ncurses.h>
+#endif
 
 static uint8_t lcd_x, lcd_y;
 static uint8_t lcd_buf[LCD_MAX_ROW][LCD_MAX_COL];
