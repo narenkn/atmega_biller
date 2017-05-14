@@ -326,7 +326,8 @@ FRESULT f_stat (
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
-  return (0 == stat(path, NULL)) ? FR_OK : FR_DISK_ERR;
+  struct stat s;
+  return (0 == stat(path, &s)) ? FR_OK : FR_DISK_ERR;
 }
 
 

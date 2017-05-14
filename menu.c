@@ -580,7 +580,7 @@ eeprom_update_byte_NP(uint16_t addr, const char *pstr, uint8_t size)
 static void
 menuSdSaveBillDat(uint16_t ui16_2)
 {
-  uint16_t ui16_1, ui16_3, ui16_4;
+  uint16_t ui16_1, ui16_4;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
   /* Check location, return if location is free */
@@ -589,7 +589,7 @@ menuSdSaveBillDat(uint16_t ui16_2)
     return;
 
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
+  //ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
   assert ((ui16_2 >= NVF_SALE_START_ADDR) && (ui16_2 <= NVF_SALE_END_ADDR));
 
   /* check that first bill is valid anyway */
@@ -2494,7 +2494,7 @@ menuCalculator(uint8_t mode)
 #else
 	  LCD_cmd((LCD_CMD_CUR_20|(0x10-bufLen)));
 #endif
-	  LCD_WR_N((char *)buf, bufLen);
+	  LCD_WR_N((uint8_t *)buf, bufLen);
 	}
 	redisplay = 0;
       }
@@ -3368,7 +3368,7 @@ menuRunDiag(uint8_t mode)
 #define MENU_FUNC(A) A
 #define ARG1(A, B)
 #define ARG2(A, B)
-menu_func_t menu_handlers[] PROGMEM = {
+const menu_func_t menu_handlers[] PROGMEM = {
   MENU_ITEMS
 };
 #undef  ARG2
@@ -3478,7 +3478,7 @@ menuMainStart:
     if ( (arg1.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)))) || (MENU_ITEM_OPTIONAL&pgm_read_byte(menu_args+(menu_selected<<1))) ) {
       if ( (arg2.valid == (MENU_ITEM_TYPE_MASK&pgm_read_byte(menu_args+(menu_selected<<1)+1))) || (MENU_ITEM_OPTIONAL&pgm_read_byte(menu_args+(menu_selected<<1)+1)) ) {
 	menuRet |= MENU_RET_CALLED;
-#if UNIT_TEST_MENU_1
+#if defined(UNIT_TEST_MENU_1) && UNIT_TEST_MENU_1
 	UNIT_TEST_MENU_1(menu_selected);
 #else
 	if (0 == (devStatus & DS_DEV_INVALID)) {
