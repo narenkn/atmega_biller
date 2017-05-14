@@ -9,7 +9,7 @@
 /* Port controls  (Platform dependent) */
 #define CS_LOW()	PORTB &= ~_BV(0)   /* CS=low */
 #define	CS_HIGH()	PORTB |= _BV(0)    /* CS=high */
-#define SOCKINS		((PINB & _BV(4)) ? 0 : 1) /* Card detected.   yes:true, no:false, default:true */
+#define SOCKINS		((RES_OK == disk_inserted()) ? 1 : 0) /* Card detected.   1:true, 0:false */
 #define SOCKWP		(0)	/* Write protected. yes:true, no:false, default:false */
 #define	FCLK_SLOW()	SPCR = 0x52	/* Set slow clock (F_CPU / 64) */
 #define	FCLK_FAST()	SPCR = 0x50	/* Set fast clock (F_CPU / 2) */
@@ -73,24 +73,11 @@ void power_on (void)
 //naren		DDRE |= _BV(7);
 //naren		for (Timer1 = 2; Timer1; );	/* Wait for 20ms */
 //naren	}
-
-  /* Configure SCK/MOSI/CS as output */
-  DDRB  |= _BV(0) | _BV(1) | _BV(2);
-  PORTB |= _BV(0) | _BV(1) | _BV(2);
-  DDRB &= ~(_BV(3) | _BV(4));
-
-  /* Enable 2x SPI function in mode 0 */
-  SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
-  SPSR = 0x1;
 }
 
 static
 void power_off (void)
 {
-  SPCR = 0;				/* Disable SPI function */
-
-  DDRB  &= ~(_BV(0) | _BV(1) | _BV(2));
-
 //naren	{	/* Remove this block if no socket power control */
 //naren		PORTE |= _BV(7);		/* Socket power off (PE7=high) */
 //naren		for (Timer1 = 20; Timer1; );	/* Wait for 20ms */
@@ -111,7 +98,7 @@ BYTE xchg_spi (		/* Returns received data */
 {
 	SPDR = dat;
 	loop_until_bit_is_set(SPSR, SPIF);
-	return SPDR;
+	return ~SPDR;
 }
 
 /* Send a data block fast */
@@ -135,8 +122,8 @@ void rcvr_spi_multi (
 )
 {
 	do {
-		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = SPDR;
-		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = SPDR;
+		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = ~SPDR;
+		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = ~SPDR;
 	} while (cnt -= 2);
 }
 
@@ -156,7 +143,7 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 	Timer2 = wt / 10;
 	do
 		d = xchg_spi(0xFF);
-	while (d != 0xFF && Timer2);
+	while ((d != 0xFF) && Timer2));
 
 	return (d == 0xFF) ? 1 : 0;
 }
@@ -263,18 +250,21 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 {
 	BYTE n, res;
 
+	LCD_PUTCH('a');
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
 		cmd &= 0x7F;
 		res = send_cmd(CMD55, 0);
 		if (res > 1) return res;
 	}
 
+	LCD_PUTCH('b');
 	/* Select the card and wait for ready except to stop multiple block read */
 	if (cmd != CMD12) {
 		deselect();
 		if (!select()) return 0xFF;
 	}
 
+	LCD_PUTCH('c');
 	/* Send command packet */
 	xchg_spi(0x40 | cmd);				/* Start + Command index */
 	xchg_spi((BYTE)(arg >> 24));		/* Argument[31..24] */
@@ -285,10 +275,12 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 	if (cmd == CMD0) n = 0x95;			/* Valid CRC for CMD0(0) + Stop */
 	if (cmd == CMD8) n = 0x87;			/* Valid CRC for CMD8(0x1AA) Stop */
 	xchg_spi(n);
+	LCD_PUTCH('e');
 
 	/* Receive command response */
 	if (cmd == CMD12) xchg_spi(0xFF);		/* Skip a stuff byte when stop reading */
 	n = 10;								/* Wait for a valid response in timeout of 10 attempts */
+	LCD_PUTCH('f');
 	do
 		res = xchg_spi(0xFF);
 	while ((res & 0x80) && --n);
@@ -303,14 +295,21 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
    Public Functions
 
 ---------------------------------------------------------------------------*/
-
 DSTATUS disk_inserted()
 {
   uint8_t res;
-  DDRA  |= _BV(5);
-  for (uint8_t _ui1=0xF; _ui1; _ui1--) {}
-  res = (PINB & _BV(4)) ? RES_OK : RES_ERROR;
-  DDRA  &= ~_BV(5);
+
+  /* drive PA5 */
+  DDRA  |= _BV(5); PORTA |= _BV(5);
+  DDRB  &= ~_BV(4);
+
+  /* tiny delay */
+  _delay_us(1);
+  res = (PINB & _BV(4)) ? RES_ERROR : RES_OK;
+
+  /* undrive PA5 */
+  DDRA  &= ~_BV(5); PORTA &= ~_BV(5);
+
   return res;
 }
 
@@ -324,19 +323,22 @@ DSTATUS disk_initialize (
 {
 	BYTE n, cmd, ty, ocr[4];
 
-	PORTA |= _BV(5);
+	//PORTA |= _BV(5);
 
 	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
-	power_off();						/* Turn off the socket power to reset the card */
+	power_off();				/* Turn off the socket power to reset the card */
 	if (Stat & STA_NODISK) return Stat;	/* No card in the socket */
-	power_on();							/* Turn on the socket power */
+	power_on();				/* Turn on the socket power */
 	FCLK_SLOW();
 	for (n = 10; n; n--) xchg_spi(0xFF);	/* 80 dummy clocks */
+	LCD_PUTCH('1');
 
 	ty = 0;
-	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
-		Timer1 = 100;						/* Initialization timeout of 1000 msec */
+	if (send_cmd(CMD0, 0) == 1) {		/* Enter Idle state */
+		Timer1 = 100;			/* Initialization timeout of 1000 msec */
+		LCD_PUTCH('2');
 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
+		LCD_PUTCH('3');
 			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);		/* Get trailing return value of R7 resp */
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* The card can work at vdd range of 2.7-3.6V */
 				while (Timer1 && send_cmd(ACMD41, 1UL << 30));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
@@ -346,6 +348,7 @@ DSTATUS disk_initialize (
 				}
 			}
 		} else {							/* SDv1 or MMCv3 */
+		LCD_PUTCH('4');
 			if (send_cmd(ACMD41, 0) <= 1) 	{
 				ty = CT_SD1; cmd = ACMD41;	/* SDv1 */
 			} else {
@@ -355,9 +358,11 @@ DSTATUS disk_initialize (
 			if (!Timer1 || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
 				ty = 0;
 		}
+		LCD_PUTCH('5');
 	}
 	CardType = ty;
 	deselect();
+	LCD_PUTCH('9');
 
 	if (ty) {			/* Initialization succeded */
 		Stat &= ~STA_NOINIT;		/* Clear STA_NOINIT */
@@ -365,6 +370,7 @@ DSTATUS disk_initialize (
 	} else {			/* Initialization failed */
 		power_off();
 	}
+	LCD_PUTCH('0');
 
 	return Stat;
 }
@@ -591,7 +597,6 @@ DRESULT disk_ioctl (
 /* Device Timer Interrupt Procedure                                      */
 /*-----------------------------------------------------------------------*/
 /* This function must be called in period of 10ms                        */
-
 void disk_timerproc (void)
 {
 	BYTE n, s;

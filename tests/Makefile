@@ -14,7 +14,7 @@ COMMON = -mmcu=$(MCU) -I.. -DNO_MAIN -DLCD_USE_FUNCTIONS=1
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON) $(CLINE_ARG)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=1000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 BUILD_FLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 BUILD_FLAGS += -DBUFSS_SIZE=1056 -DDS1307=0
 BUILD_FLAGS += -DMENU_USER_ENABLE=1           # 8 different Users, login

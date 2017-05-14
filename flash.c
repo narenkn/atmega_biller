@@ -101,20 +101,33 @@ nvfUnSelect()
 bool
 nvfInit()
 {
-  nvfUnSelect();
-  nvfWakeUp();
+  bool ret=false;
 
   /* all flash devices */
   for (uint8_t id=0; id<NVF_NUM_DEVICES; id++) {
-    if (JEDEC_ID != nvfReadDeviceId())
-      return false;
+    _selected = id;
+    nvfUnSelect();
+    nvfWakeUp();
+  }
+  _delay_ms(500);
+  ret = true;
+
+  for (uint8_t id=0; id<NVF_NUM_DEVICES; id++) {
+    _selected = id;
+    uint32_t ui1 = nvfReadDeviceId();
+    LCD_PUT_UINT(id);
+    LCD_PUTCH(':');
+    LCD_PUT_UINT16X(ui1>>16);
+    LCD_PUT_UINT16X(ui1);
+    ret &= (JEDEC_ID == ui1);
 
     nvfCommand(SPIFLASH_STATUSWRITE, true); // Write Status Register
     spiTransmit(0);                     // Global Unprotect
     nvfUnSelect();
   }
+  _delay_ms(500);
 
-  return true;
+  return ret;
 }
 
 /// Get the manufacturer and device ID bytes (as a short word)
@@ -300,5 +313,9 @@ void
 nvfWakeUp()
 {
   nvfCommand(SPIFLASH_WAKE, false);
+  spiTransmit(0);
+  spiTransmit(0);
+  spiTransmit(0);
+  spiTransmit(0);
   nvfUnSelect();
 }

@@ -135,7 +135,7 @@
 #define kbdCapsHit  (1<<5)
 
 #define KBD_HIT      (keyHitData.KbdDataAvail & kbdHit)
-#define KBD_NOT_HIT  (0x0 == (keyHitData.KbdDataAvail & kbdHit))
+#define KBD_NOT_HIT  (0 == (keyHitData.KbdDataAvail & kbdHit))
 extern const uint8_t keyMapR[] PROGMEM;
 
 #if UNIT_TEST
@@ -150,9 +150,9 @@ extern const uint8_t keyMapR[] PROGMEM;
     /* some event has to occur to come here */	\
     sleep_disable();				\
     /* schedule regular code-check here */	\
-    if (0 == (timer2_beats%1000)) {		\
+    if (/*0 == (timer2_beats%1000)*/0) {		\
     }						\
-    if (menuPendActs & MENU_PEND_LCD_REFRESH) { \
+    if (/*menuPendActs & MENU_PEND_LCD_REFRESH*/0) {	\
       LCD_init();				\
     }						\
   }						\
@@ -196,14 +196,16 @@ extern const uint8_t ps2code2asciiE0[] PROGMEM;
 extern const uint8_t keyChars[] PROGMEM;
 
 #define LENOF_DR    4
+#define PS2DATA_POSITION_IN_STATUS 7
+#define PS2DATA_IN_STATUS_MASK     (1<<PS2DATA_POSITION_IN_STATUS)
 typedef struct {
   uint8_t kbdStatus;
   uint8_t bitC;
   uint8_t drC;
-  uint8_t KeyData;
+  uint8_t KeyData;   
   uint8_t kbdTransL;
   uint8_t kbdDr[LENOF_DR];
 } ps2LineStat_t;
-extern ps2LineStat_t kbd0, kbd1, kbd2;
+extern volatile ps2LineStat_t kbd0, kbd1, kbd2;
 
 #endif

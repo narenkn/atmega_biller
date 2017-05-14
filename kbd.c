@@ -71,7 +71,7 @@ keyMapAlt[] PROGMEM = {
 };
 
 volatile keyHitData_t keyHitData;
-ps2LineStat_t kbd0, kbd1, kbd2;
+volatile ps2LineStat_t kbd0, kbd1, kbd2;
 
 #if defined (__AVR_ATmega32__)
 /* Known device */
@@ -137,14 +137,13 @@ kbdPushKeyHit(uint8_t key, uint8_t avail)
   if (keyHitData.hbCnt >= sizeof(keyHitData.hitBuf))
     return;
 
-  if ((KBD_NOT_HIT) && (0 != avail)) {
-    keyHitData.KbdData = key;
-    keyHitData.KbdDataAvail = avail;
-  } else if (0 != avail) {
+  if (avail & kbdHit) {
     keyHitData.hbCnt++;
     keyHitData.hitBuf <<= 8; keyHitData.hitBuf |= key;
     keyHitData.availBuf <<= 8; keyHitData.availBuf |= avail;
-  } else if ((0 == keyHitData.KbdDataAvail) && (0 != keyHitData.hbCnt)) {
+  }
+
+  if (KBD_NOT_HIT && (0 != keyHitData.hbCnt)) {
     /* not sure if this is required ... */
     KBD_RESET_KEY;
   }
@@ -332,9 +331,8 @@ ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_DEL, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
 
-
 static void
-ps2Intr(ps2LineStat_t *kbd)
+ps2Intr(volatile ps2LineStat_t *kbd)
 {
   uint8_t key = ASCII_UNDEF;
 
@@ -349,7 +347,7 @@ ps2Intr(ps2LineStat_t *kbd)
     kbd->bitC = 0;
   } else {
     kbd->KeyData >>= 1;
-    kbd->KeyData |= (((uint8_t)KBD0_PS2_DATA)<<7);
+    kbd->KeyData |= kbd->kbdStatus & PS2DATA_IN_STATUS_MASK;
   }
 
   if (0 != kbd->bitC)
@@ -424,11 +422,8 @@ ps2Intr(ps2LineStat_t *kbd)
     /* */
     if (ASCII_NUMLK == key) {
       /* FIXME: Switch TOGGLE the light */
-    } else if ((ASCII_UNDEF != key) && KBD_NOT_HIT && LCD_IS_ON) {
-      kbdPushKeyHit(key, kbd->kbdStatus);
-      /* */
-      TCNT1 = TCNT1_DELAY;
-      TIMSK |= (1 << TOIE1); /* enable Timer1 overflow */
+    } else if (ASCII_UNDEF != key) {
+      kbdPushKeyHit(key, (kbd->kbdStatus & ~PS2DATA_IN_STATUS_MASK)|kbdHit);
     }
     kbd->kbdTransL = 1;
     for (; (kbd->drC<LENOF_DR) && (--(kbd->drC)); )
@@ -439,13 +434,22 @@ ps2Intr(ps2LineStat_t *kbd)
 
 ISR(INT5_vect)
 {
+  _delay_us(10);
+  kbd0.kbdStatus &= ~PS2DATA_IN_STATUS_MASK;
+  if (KBD0_PS2_DATA) kbd0.kbdStatus |= PS2DATA_IN_STATUS_MASK;
   ps2Intr(&kbd0);
 }
 ISR(INT6_vect)
 {
+  _delay_us(10);
+  kbd1.kbdStatus &= ~PS2DATA_IN_STATUS_MASK;
+  if (KBD1_PS2_DATA) kbd1.kbdStatus |= PS2DATA_IN_STATUS_MASK;
   ps2Intr(&kbd1);
 }
 ISR(INT7_vect)
 {
+  _delay_us(10);
+  kbd2.kbdStatus &= ~PS2DATA_IN_STATUS_MASK;
+  if (KBD2_PS2_DATA) kbd2.kbdStatus |= PS2DATA_IN_STATUS_MASK;
   ps2Intr(&kbd2);
 }

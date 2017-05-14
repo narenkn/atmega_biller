@@ -5,8 +5,8 @@
 #include <main.h>
 
 #include "lcd.c"
-#include "i2c.c"
-#include "kbd.c"
+//#include "i2c.c"
+//#include "kbd.c"
 #include "spi.c"
 #include "flash.c"
 #include "main.c"
@@ -20,23 +20,24 @@ int
 main(void) 
 {
   LCD_init();
-  i2c_init();
-  kbdInit();
+  LCD_bl_on;
+  spiInit();
   nvfInit();
   main_init();
 
-  DDRD |= 0x10 ; LCD_bl_on;
-
-  sei();
+  //sei();
 
   LCD_CLRLINE(0);
   LCD_WR_P(PSTR("Test Small R/W"));
-  bill_write_bytes(0, "Hello World", 11);
+  nvfWakeUp();
+  nvfBlockErase4K(0);
+  bill_write_bytes(0, (uint8_t *)"Hello World", 11);
   bill_read_bytes(0, buf1, 11);
   LCD_CLRLINE(1);
   LCD_WR_N(buf1, 11);
-  KBD_GETCH;
+  //KBD_GETCH;
 
+#if 0
   /* init randomizer */
   uint32_t time = get_fattime();
   srand(time);
@@ -95,6 +96,7 @@ main(void)
   LCD_PUT_UINT(time_before);
   LCD_PUTCH(' ');
   LCD_PUT_UINT(time_after);
+#endif
 
   /* stuck forever */
   while (1) {};

@@ -37,30 +37,41 @@ main(void)
   uint8_t ui1;
 
   LCD_init();
-  KbdInit();
+  kbdInit();
 
   /* Enable Global Interrupts */
   sei();
 
   LCD_bl_on;
-  _delay_ms(1000);
+  DDRA |= 0x80;
+  BUZZER_ON;
+  _delay_ms(500);
+  BUZZER_OFF;
 
   for (ui1=0; ; ui1++) {
-    LCD_CLRLINE(0);
-    LCD_WR_P(PSTR("PS2 Kbd: "));
+    KBD_RESET_KEY;
+    KBD_GETCH;
     if (KBD_HIT) {
+      LCD_CLRLINE(0);
+      LCD_WR_P(PSTR("PS2 Kbd: "));
       LCD_PUTCH(keyHitData.KbdData);
-      KBD_RESET_KEY;
+      LCD_PUTCH(':');
+      _delay_ms(500);
     }
-//    LCD_PUT_UINT8X(drC);
+    LCD_PUT_UINT8X(kbd2.drC);
     LCD_PUT_UINT8X(ui1);
-//    LCD_CLRLINE(1);
-//    LCD_PUT_UINT8X(bitC);
-//    LCD_PUT_UINT8X(kbdDr[0]);
-//    LCD_PUT_UINT8X(kbdDr[1]);
-//    LCD_PUT_UINT8X(kbdDr[2]);
-//    LCD_PUT_UINT8X(kbdDr[3]);
-    _delay_ms(500);
+    LCD_CLRLINE(1);
+#if 0
+    LCD_PUT_UINT8X(kbd2.bitC);
+    LCD_PUT_UINT8X(kbd2.kbdTransL);
+    LCD_PUT_UINT8X(kbd2.kbdDr[0]);
+    LCD_PUT_UINT8X(kbd2.kbdDr[1]);
+    LCD_PUT_UINT8X(kbd2.kbdDr[2]);
+    LCD_PUT_UINT8X(kbd2.kbdDr[3]);
+#endif
+    LCD_PUT_UINT8X(keyHitData.KbdDataAvail);
+    LCD_PUT_UINT8X(keyHitData.hbCnt);
+    LCD_PUT_UINT16X(keyHitData.hitBuf);
   }
 
   return 0;
