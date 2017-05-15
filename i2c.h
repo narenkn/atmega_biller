@@ -24,12 +24,83 @@
 #define TIMER_ADDR_DATE            4
 #define TIMER_ADDR_MONTH           5
 #define TIMER_ADDR_YEAR            6
+#define TIMER_ADDR_MEM             8
 
 // External crystal frequency
 #define RTC_F           32768
 
 // Define delay
 #define RTC_PERIOD_MS   1000
+
+#if DS1307
+#define ds1307_timerDateSet(date)			\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_DATE);			\
+  i2c_sendData(date.day);				\
+  i2c_sendData(date.month);				\
+  i2c_sendData(date.year);				\
+  i2c_stop()
+
+#define ds1307_timerDateGet(date)			\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_DATE); /* date, month, yr */	\
+  i2c_repeatStart();					\
+  i2c_sendAddress(TIMER_CTRL_READ);			\
+  date.day = i2c_receiveData_ACK();			\
+  date.month = i2c_receiveData_ACK();			\
+  date.year = i2c_receiveData_NACK();			\
+  i2c_stop();						\
+  date.year = (((date.year>>4) & 0x0F)*10) + (date.year&0x0F);		\
+  date.month = (((date.month>>4) & 0x0F)*10) + (date.month&0x0F);	\
+  date.day = (((date.day>>4) & 0x0F)*10) + (date.day&0x0F)
+
+#define ds1307_timerTimeSet(time)			\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_SEC);				\
+  i2c_sendData(time.sec);				\
+  i2c_sendData(time.min);				\
+  i2c_sendData(time.hour);				\
+  i2c_stop()
+
+#define ds1307_timerTimeGet(time)			\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_SEC); /* sec, min, hr */	\
+  i2c_repeatStart();					\
+  i2c_sendAddress(TIMER_CTRL_READ);			\
+  time.sec = i2c_receiveData_ACK();			\
+  time.min = i2c_receiveData_ACK();			\
+  time.hour = i2c_receiveData_NACK();			\
+  i2c_stop();						\
+  time.sec = (((time.sec>>4) & 0x0F)*10) + (time.sec&0x0F);	\
+  time.min = (((time.min>>4) & 0x0F)*10) + (time.min&0x0F);	\
+  time.hour = (((time.hour>>4) & 0x0F)*10) + (time.hour&0x0F)
+
+#define ds1307_writesig()				\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_MEM);				\
+  i2c_sendData(0xFA); i2c_sendData(0xC7);		\
+  i2c_sendData(0x05); i2c_sendData(0x1A);		\
+  i2c_stop()
+
+#define ds1307_getsig(sigvar)				\
+  sigvar = 4;						\
+  i2c_start();						\
+  i2c_sendAddress(TIMER_CTRL_WRITE);			\
+  i2c_sendData(TIMER_ADDR_MEM);				\
+  i2c_repeatStart();					\
+  i2c_sendAddress(TIMER_CTRL_READ);			\
+  sigvar -= (0xFA == i2c_receiveData_ACK()) ? 1 : 0;	\
+  sigvar -= (0xC7 == i2c_receiveData_ACK()) ? 1 : 0;	\
+  sigvar -= (0x05 == i2c_receiveData_ACK()) ? 1 : 0;	\
+  sigvar -= (0x1A == i2c_receiveData_ACK()) ? 1 : 0;	\
+  i2c_stop()
+
+#endif
 
 extern volatile uint8_t rtc_sec;
 extern volatile uint8_t rtc_min;

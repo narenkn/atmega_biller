@@ -76,9 +76,7 @@ i2c_init(void)
   //TWCR= 0x44; //enable twi
 #endif
 
-#if !DS1307
   tmr_init();
-#endif
 }
 
 #if DS1307

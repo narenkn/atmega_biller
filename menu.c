@@ -665,23 +665,6 @@ menuFactorySettings(uint8_t mode)
     if (0 != ui8_1) return 0;
   }
 
-  /* date, time */
-#if UNIT_TEST
-  arg1.value.date.year = 2017;
-  arg1.value.date.month = 1;
-  arg1.value.date.day = 1;
-  arg1.valid = MENU_ITEM_DATE;
-  arg2.value.time.hour = 9;
-  arg2.value.time.min = 0;
-  arg2.value.time.sec = 0;
-  arg2.valid = MENU_ITEM_TIME;
-#else
-  MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
-  MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
-  timerDateSet(arg1.value.date);
-  timerTimeSet(arg1.value.time);
-#endif
-
   /* Show progress */
   LCD_CLRLINE(0);
   LCD_WR_NP((const char *)PSTR("FactRst Progress"), 16);
@@ -843,10 +826,38 @@ menuInit()
     menuFactorySettings(MenuMode | MENU_NOCONFIRM);
   }
 
+#if DS1307
+  /* if time in DS1307 is valid, then use it, else ask for setup */
+  ds1307_getsig(ui32_1);
+  if (0 == ui32_1) { /* time is valid */
+    ds1307_timerDateGet(arg1.value.date);
+    ds1307_timerTimeGet(arg2.value.time);
+    timerDateSet(arg1.value.date);
+    timerTimeSet(arg2.value.time);
+  } else { /* get time from user */
+#if UNIT_TEST
+    arg1.value.date.year = 2017;
+    arg1.value.date.month = 1;
+    arg1.value.date.day = 1;
+    arg1.valid = MENU_ITEM_DATE;
+    arg2.value.time.hour = 9;
+    arg2.value.time.min = 0;
+    arg2.value.time.sec = 0;
+    arg2.valid = MENU_ITEM_TIME;
+#else
+    MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
+    MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
+    ds1307_timerDateSet(arg1.value.date);
+    ds1307_timerTimeSet(arg2.value.time);
+#endif
+    timerDateSet(arg1.value.date);
+    timerTimeSet(arg2.value.time);
+  }
+#endif
+
   /* Store away bills */
 #if NVFLASH_EN
-  if (WDT_RESET_WAKEUP)
-    menuSdSaveBillDat(NVF_SALE_START_ADDR);
+  menuSdSaveBillDat(NVF_SALE_START_ADDR);
 #endif
 
   /* Re-scan and index all items */
@@ -2891,6 +2902,9 @@ menuSetDateTime(uint8_t mode)
   MENU_GET_OPT(menu_prompt_str+(MENU_PR_DATE*MENU_PROMPT_LEN), &arg1, MENU_ITEM_DATE, NULL);
   if (MENU_ITEM_DATE == arg1.valid) {
     timerDateSet(arg1.value.date);
+#if DS1307
+    ds1307_timerDateSet(arg1.value.date);
+#endif
   }
 
   s_time_t time;
@@ -2903,6 +2917,9 @@ menuSetDateTime(uint8_t mode)
   MENU_GET_OPT(menu_prompt_str+(MENU_PR_TIME*MENU_PROMPT_LEN), &arg2, MENU_ITEM_TIME, NULL);
   if (MENU_ITEM_TIME == arg2.valid) {
     timerTimeSet(arg2.value.time);
+#if DS1307
+    ds1307_timerTimeSet(arg2.value.time);
+#endif
   }
 
   return MENU_RET_NOTAGAIN;
