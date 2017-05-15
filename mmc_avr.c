@@ -1,8 +1,8 @@
 /*-----------------------------------------------------------------------*/
 /* MMCv3/SDv1/SDv2 (in SPI mode) control module  (C)ChaN, 2010           */
 /*-----------------------------------------------------------------------*/
-
 #include <avr/io.h>
+#include <util/delay.h>
 #include "diskio.h"
 
 
@@ -143,7 +143,7 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 	Timer2 = wt / 10;
 	do
 		d = xchg_spi(0xFF);
-	while ((d != 0xFF) && Timer2));
+	while ((d != 0xFF) && Timer2);
 
 	return (d == 0xFF) ? 1 : 0;
 }
