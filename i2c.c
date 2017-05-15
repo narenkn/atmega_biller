@@ -34,6 +34,8 @@
 
 #include "i2c.h"
 
+void tmr_init(void);
+
 //************************************************
 // TWI initialize
 // bit rate:18 (freq: 100Khz @16MHz)
@@ -74,7 +76,7 @@ i2c_init(void)
   //TWCR= 0x44; //enable twi
 #endif
 
-#if DS1307
+#if !DS1307
   tmr_init();
 #endif
 }
@@ -605,7 +607,20 @@ volatile uint16_t rtc_year;
 // Interrupt handler on compare match (TCNT0 is cleared automatically)
 ISR(TIMER0_COMP_vect)
 {
+  static  uint8_t idleDelay = 0;
   uint8_t max_days_in_month;
+
+  /* Wait for 5 secs to disable timer permanently
+     assume we need to get call next */
+  if ( (0 == keyHitData.hbCnt) && (0 == keyHitData.count) && (0 == keyHitData.KbdDataAvail) )
+    idleDelay++;
+  else idleDelay = 0;
+  if (idleDelay > 4) {
+    LCD_bl_off;
+    TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
+  } else {
+    LCD_bl_on;
+  }
   
   // Increment time
   if (++rtc_sec >= 60) {

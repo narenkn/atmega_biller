@@ -20,12 +20,13 @@ main(void)
   LCD_bl_on;
 
   _delay_ms(1000);
-  date = (date_t){27, 2, 2015};
+  date = (date_t){27, 2, 2017};
   time = (s_time_t){23, 59, 30};
 
   timerDateSet(date);
   timerTimeSet(time);
 
+  sei();
   LCD_CLRLINE(0);
   LCD_WR_P(PSTR("RTC Test!!!"));
 
@@ -38,8 +39,8 @@ main(void)
     LCD_PUT_UINT(date1.day);
     LCD_PUTCH('/');
     LCD_PUT_UINT(date1.month);
-    LCD_PUTCH('/');
-    LCD_PUT_UINT(date1.year);
+    //LCD_PUTCH('/');
+    //LCD_PUT_UINT(date1.year);
     LCD_PUTCH(' ');
 
     timerTimeGet(time1);

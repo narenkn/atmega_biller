@@ -9,17 +9,8 @@
 #include "i2c.c"
 #include "kbd.c"
 
-#define LCD_uint8x(ch) {			\
-  uint8_t ui2_a = (ch>>4) & 0xF;		\
-  ui2_a = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  LCD_wrchar(ui2_a);				\
-  ui2_a = ch & 0xF;				\
-  ui2_a = ((ui2_a>9) ? 'A'-10 : '0') + ui2_a;	\
-  LCD_wrchar(ui2_a);				\
-}
-
-volatile uint16_t timer2_beats;
 volatile uint8_t eeprom_setting0, eeprom_setting1;
+volatile uint16_t timer2_beats;
 volatile uint8_t menuPendActs;
 
 int
@@ -33,6 +24,7 @@ main()
   LCD_WR_P(PSTR("Kbd Testing"));
 
   /* */
+  i2c_init();
   kbdInit();
   sei();
 
@@ -40,6 +32,7 @@ main()
   BUZZER_ON;
   _delay_ms(30);
   BUZZER_OFF;
+  EEPROM_SETTING0_ON(BUZZER);
 
   /* */
   ui8_1=0;
@@ -66,6 +59,8 @@ main()
     LCD_PUTCH(':');
     LCD_PUT_UINT8X(keyHitData.count);
   }
+
+  while (1) {}
 
   return 0;
 }

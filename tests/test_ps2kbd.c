@@ -6,13 +6,12 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
-#include "i2c.c"
+#define BUZZER_ON  PORTA |= 0x80
+#define BUZZER_OFF PORTA &= ~0x80
 
 volatile uint8_t KbdData, KbdDataAvail=0;
 #define KBD_HIT (0 != KbdDataAvail)
-#define KBD_PS2_CLK      ((PIND >> 2)&1)
-#define KBD_PS2_CLK_NS   (PIND & 0x4)
-#define KBD_PS2_DATA     ((PIND >> 3)&1)
+#define KBD_PS2_DATA     ((PINE >> 2)&1)
 
 uint8_t kbdStatus = 0;
 #define ps2ShiftHit (1<<0)
@@ -58,9 +57,25 @@ ps2code2asciiE0[] PROGMEM = {
   ASCII_UNDEF, ASCII_LEFT, ASCII_DOWN, ASCII_UNDEF, ASCII_RIGHT, ASCII_UP, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, /* 112-127 */
 };
 
+ISR(INT6_vect)
+{
+  BUZZER_ON;
+  _delay_ms(100);
+  BUZZER_OFF;
+}
+
+ISR(INT7_vect)
+{
+  BUZZER_ON;
+  _delay_ms(100);
+  BUZZER_OFF;
+}
+
 volatile uint8_t KeyData, bitC=0, drC=0;
-ISR(INT0_vect)
+ISR(INT5_vect)
 {             /* Data come with Clock from Device to MCU together */
+  BUZZER_ON;
+  _delay_ms(50);
   static uint8_t kbdTransL = 1;
   /* ------------------------------------- */
   bitC++;
@@ -75,8 +90,10 @@ ISR(INT0_vect)
     KeyData |= (((uint8_t)KBD_PS2_DATA)<<7);
   }
 
-  if (0 != bitC)
+  if (0 != bitC) {
+    BUZZER_OFF;
     return;
+  }
   if (drC < LENOF_DR) {
     kbdDr[drC] = KeyData;
   }
@@ -144,6 +161,7 @@ ISR(INT0_vect)
     drC = 0;
     kbdTransL = 1;
   }
+  BUZZER_OFF;
 }
 
 #include "lcd.c"
@@ -171,12 +189,13 @@ main(void)
   uint8_t ui1;
 
   LCD_init();
+  LCD_bl_on;
 
-  /* Set pin mode & enable pullup */
+  /* Set pin mode */
   DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));
   DDRA &= ~(1<<PA6);
 
-  /* Enable Int0 on falling edge */
+  /* Enable Int on falling edge */
   EICRB |= 1<<ISC51 | 0<<ISC50;
   EICRB |= 1<<ISC61 | 0<<ISC60;
   EICRB |= 1<<ISC71 | 0<<ISC70;
@@ -185,7 +204,12 @@ main(void)
   /* Enable Global Interrupts */
   sei();
 
-  LCD_bl_on;
+  /* buzzer */
+  DDRA |= 0x80;
+  BUZZER_ON;
+  _delay_ms(50);
+  BUZZER_OFF;
+
   LCD_WriteDirect(LCD_CMD_CUR_10, "PS2 Kbd: ", 9);
   _delay_ms(1000);
 

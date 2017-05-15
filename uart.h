@@ -1,6 +1,9 @@
 #ifndef UART_H
 #define UART_H
 
+#define UART0_BAUD   115200UL
+#define UART1_BAUD     9600UL
+
 void    uartInit(void);
 /* Printer */
 uint8_t uart0ReceiveByte(void);

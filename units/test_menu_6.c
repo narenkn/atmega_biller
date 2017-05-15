@@ -340,7 +340,7 @@ uint32_t ui1, ui2, ui3, ui4, ui5, ui6;
 uint16_t ui16_1, ui16_2, ui16_3;
 
 void
-make_valid_bill(bool canBeVoid)
+make_valid_bill(bool canBeKot)
 {
     /* */
     RESET_TEST_KEYS;
@@ -367,8 +367,8 @@ make_valid_bill(bool canBeVoid)
 
     INIT_TEST_KEYS(inp+LCD_MAX_COL); /* goto finalize */
 
-    bool makeVoidBill = canBeVoid && (rand()&1) && (randNumItems>0);
-    if (makeVoidBill) {
+    bool makeKotBill = canBeKot && (rand()&1) && (randNumItems>0);
+    if (makeKotBill) {
       inp[LCD_MAX_COL*3] = ASCII_RIGHT;
       inp[(LCD_MAX_COL*3)+1] = 0;
       INIT_TEST_KEYS(inp+(LCD_MAX_COL*3)); /* finalize */
@@ -385,56 +385,11 @@ make_valid_bill(bool canBeVoid)
     menuBilling(0);
 
     struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
-    if (makeVoidBill) {
+    if (makeKotBill) {
       assert(1 == sl->info.is_void);
     } else {
       assert(0 == sl->info.is_void);
     }
-}
-
-void
-addto_valid_bill(struct sale *sl)
-{
-    /* */
-    RESET_TEST_KEYS;
-    arg1.valid = MENU_ITEM_NONE;
-    arg2.valid = MENU_ITEM_NONE;
-
-    /* case for just enter */
-    inp[LCD_MAX_COL] = 0;
-
-    for (ui1=0; ui1<sl->info.n_items; ui1++)
-      INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm old items */
-
-    /* */
-    uint8_t randItem = (rand()%TEST_NUM_ITEMS)+1;
-    ui1 = 0;
-    int2str(inp, randItem, &ui1);
-    INIT_TEST_KEYS(inp); /* item id */
-
-    randNumItems = rand()%50;
-    inp[(LCD_MAX_COL*2)] = inp[(LCD_MAX_COL*2)+1] =
-      inp[(LCD_MAX_COL*2)+2] = inp[(LCD_MAX_COL*2)+3] =
-      inp[(LCD_MAX_COL*2)+4] = ASCII_DEL;
-    ui1 = 0;
-    int2str(inp+(LCD_MAX_COL*2)+5, randNumItems, &ui1);
-    INIT_TEST_KEYS(inp+(LCD_MAX_COL*2)); /* num items */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm item */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* goto finalize */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* finalize */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* cash pay */
-
-    INIT_TEST_KEYS(inp+LCD_MAX_COL); /* confirm bill */
-
-    arg2.valid = MENU_ITEM_ID;
-    arg2.value.integer.i16 = sl->info.id;
-    menuBilling(MENU_MODITEM);
 }
 
 void
@@ -528,72 +483,6 @@ main(int argc, char *argv[])
   for (ui1=0; ui1<TEST_NUM_ITEMS; ui1++) {
     compare_item(all_items+ui1, itemAddr(ui1+1));
   }
-
-  /* check after power-on-reset */
-  ui16_3 = ui16_1 = NVF_SALE_START_ADDR;
-
-  /* Make few bills */
-  for (loop=0; loop<(NVF_SALE_MAX_BILLS+1); loop=randNumItems?loop+1:loop, ui16_3=randNumItems?NVF_NEXT_SALE_RECORD(ui16_3):ui16_3) {
-    /* */
-    ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-    assert(ui16_1 == ui16_2);
-    if (ui16_1 != ui16_2) {
-      printf("lcd_buf:%s ui16_1:%x ui16_2:%x\n", lcd_buf[0], ui16_1, ui16_2);
-    }
-    ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-    assert(ui16_3 == ui16_2);
-    if (ui16_3 != ui16_2) {
-      printf("lcd_buf:%s ui16_3:%x ui16_2:%x\n", lcd_buf[0], ui16_3, ui16_2);
-    }
-
-    make_valid_bill(false);
-
-    if (loop<NVF_SALE_MAX_BILLS) {
-      assert(0 != strncmp("Bill Memory Full", lcd_buf[0], 16));
-    } else {
-      assert(0 == strncmp("Bill Memory Full", lcd_buf[0], 16));
-    }
-  }
-
-  /* now delete few bills */
-  loop = rand() % NVF_SALE_MAX_BILLS;
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  for (; loop; loop--, ui16_2=(rand()&1)?NVF_NEXT_SALE_RECORD(ui16_2):ui16_2) {
-    sl->crc = sl->crc_invert = 0;
-    bill_write_bytes(ui16_2, (void *)sl, offsetof(struct sale, info));
-  }
-
-  /* Modify few bills */
-  loop = rand() % (NVF_SALE_MAX_BILLS-loop);
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  for (; loop; loop--) {
-    do { /* find bill to modify */
-      ui2 = rand() % 5;
-      ui16_2 = NVF_NEXT_SALE_RECORD(ui16_2);
-      bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
-    } while (0xFFFF != (sl->crc ^ sl->crc_invert));
-
-    /* */
-    //printf("Modify @%d\n", sl->info.id);
-    uint16_t prev_n_items = sl->info.n_items;
-    addto_valid_bill(sl);
-
-    /* */
-    bill_read_bytes(ui16_2, (void *)sl, offsetof(struct sale, items));
-    if (randNumItems) {
-      assert((prev_n_items+1) == sl->info.n_items);
-    } else {
-      assert(prev_n_items == sl->info.n_items);
-    }
-  }
-
-  /* delete all bills */
-  menuDelAllBill(0);
-  ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)));
-  ui16_3 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
-  assert(ui16_2 == ui16_3);
-  assert(ui16_2 == NVF_SALE_START_ADDR);
-  //printf("todayStartAddr:%x nextBillAddr:%x\n", ui16_2, ui16_3);
 
   /* check after power-on-reset */
   ui16_3 = ui16_1 = NVF_SALE_START_ADDR;

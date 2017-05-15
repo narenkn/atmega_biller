@@ -297,7 +297,7 @@ make_bill(struct sale *sl, uint8_t rand_save)
 
   /* randomize everything */
   sl->info.n_items = (rand() % MAX_ITEMS_IN_BILL) + 1;
-  strcpy(sl->info.user, "naren");
+  strncpy(sl->info.user, "naren   ", 8);
 
   /* */
   sl->info.id = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId))) + 1;
@@ -405,7 +405,7 @@ compare_bills(struct sale *osl, struct sale *sl)
   if ((osl->info.n_items != sl->info.n_items) ||
       (0 != strncmp(osl->info.user, sl->info.user, EPS_MAX_UNAME)) ||
       (osl->info.id != sl->info.id) ||
-      (osl->info.is_deleted != sl->info.is_deleted) ||
+      (osl->info.is_kot != sl->info.is_kot) ||
       (osl->info.dup_bill_issued != sl->info.dup_bill_issued) ||
       (osl->info.is_void != sl->info.is_void) ||
       (osl->info.date_yy != sl->info.date_yy) ||
@@ -519,6 +519,7 @@ main(int argc, char *argv[])
 
   make_bill(all_sales+0, 0);
 
+  menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
   menuPrnBill(all_sales+0, menuPrnBillNvfHelper);
 
   return 0;

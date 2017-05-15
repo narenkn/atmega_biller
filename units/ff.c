@@ -216,8 +216,8 @@ FRESULT f_chdir (
 	const TCHAR* path
 )
 {
-  chdir(path);
-  return FR_OK;
+  uint32_t res = chdir(path);
+  return (0 == res) ? FR_OK : FR_DISK_ERR;
 }
 
 
@@ -245,8 +245,7 @@ FRESULT f_lseek (
 	DWORD ofs		/* File pointer from top of file */
 )
 {
-  fseek(fp->fs, ofs, SEEK_SET);
-  return FR_OK;
+  return (0 == fseek(fp->fs, ofs, SEEK_SET)) ? FR_OK : FR_DISK_ERR;
 }
 
 UINT f_eof(FIL *fp)
@@ -327,7 +326,8 @@ FRESULT f_stat (
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
-  return (0 == stat(path, NULL)) ? FR_OK : FR_DISK_ERR;
+  struct stat s;
+  return (0 == stat(path, &s)) ? FR_OK : FR_DISK_ERR;
 }
 
 

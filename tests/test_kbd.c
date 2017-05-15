@@ -6,7 +6,6 @@
 #include <avr/sleep.h>
 
 #include "lcd.c"
-#include "i2c.c"
 #include "kbd.c"
 
 volatile uint8_t eeprom_setting0=0;
@@ -32,7 +31,7 @@ main()
   LCD_CLRLINE(0);
   LCD_WR_P(PSTR("Keypad Testing"));
   LCD_refresh();
-  KbdInit();
+  kbdInit();
 
   /* sets the direction register of the PORTD */ 
   DDRD |= 0x80;

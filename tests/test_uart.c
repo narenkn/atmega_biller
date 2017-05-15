@@ -10,19 +10,19 @@
 #include "lcd.c"
 #include "uart.c"
 
+#define BUZZER_ON  PORTA |= 0x80
+#define BUZZER_OFF PORTA &= ~0x80
+
 int
 main()
 {
   LCD_init();
   LCD_bl_on;
+  DDRA |= 0x80; /* buzzer */
+
   uint8_t ui1=0, ui2;
 
-  LCD_CLRLINE(0);
-  LCD_WR_P(PSTR("UART Testing:"));
-  LCD_refresh();
-  _delay_ms(1000);
   uartInit();
-
   _delay_ms(1000);
 
 #if 1 // For Printer
@@ -30,7 +30,7 @@ main()
   LCD_WR_P(PSTR("Printer Testing!"));
   LCD_CLRLINE(1);
   LCD_WR_P(PSTR("Sending HW..."));
-  while (1) {
+  for (ui1=10; ui1; ui1--) {
     uart0TransmitByte('H');
     //  _delay_ms(10);
     uart0TransmitByte('e');
@@ -56,39 +56,36 @@ main()
     uart0TransmitByte('!');
     //  _delay_ms(10);
     uart0TransmitByte('\n');
+    BUZZER_ON;
+    _delay_ms(50);
+    BUZZER_OFF;
+    _delay_ms(1000);
   }
 #endif
 
-#if 1 // Weighing machine
-  set_sleep_mode(SLEEP_MODE_IDLE);
-  cli();
-  LCD_CLRLINE(1);
+#if 1
   LCD_CLRLINE(0);
+  LCD_WR_P(PSTR("Printer Status!"));
+  uint8_t ui8_1, ui8_2;
   while (1) {
-    LCD_cmd(LCD_CMD_CUR_10);
-    for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
-
-      while(!(UCSR1A & _BV(RXC1)));
-      ui2 = UDR1;
-
-      if (isgraph(ui2)) {
-	LCD_PUTCH(ui2);
-      } else {
-	LCD_PUTCH('~');
-      }
+    uart0TransmitByte(27);
+    uart0TransmitByte('v');
+    uart0TransmitByte(0);
+    for (ui8_1=8; ui8_1; ui8_1--) {
+      if (UCSR0A & _BV(RXC0)) break;
     }
-    LCD_cmd(LCD_CMD_CUR_20);
-    for (ui1=0; ui1<LCD_MAX_COL; ui1++) {
-
-      while(!(UCSR1A & _BV(RXC1)));
-      ui2 = UDR1;
-
-      if (isgraph(ui2)) {
-	LCD_PUTCH(ui2);
-      } else {
-	LCD_PUTCH('~');
-      }
+    LCD_CLRLINE(1);
+    if (ui8_1) {
+      ui8_2 = UDR0;
+      LCD_PUT_UINT8X(ui8_2);
+    } else {
+      LCD_PUTCH('X');
+      LCD_PUTCH('x');
     }
+    BUZZER_ON;
+    _delay_ms(50);
+    BUZZER_OFF;
+    _delay_ms(1000);
   }
 #endif
 
