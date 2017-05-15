@@ -216,8 +216,8 @@ const uint8_t menu_str1[] PROGMEM =
   ;
 
 /* All PSTR strings */
-const int8_t PSTR_NO_SD[] PROGMEM = "No SD";
-const int8_t PSTR_SKIPOP[] PROGMEM = "Skip Operation";
+const char PSTR_NO_SD[] PROGMEM = "No SD";
+const char PSTR_SKIPOP[] PROGMEM = "Skip Operation";
 
 /* */
 static uint8_t MenuMode = MENU_MRESET;
@@ -3817,7 +3817,7 @@ f_puts_p (const uint8_t* str, FIL* fp)
 }
 #else
 static int
-f_puts_p (const uint8_t* str, FIL* fp)
+f_puts_p (const char* str, FIL* fp)
 {
   putbuff pb;
 
