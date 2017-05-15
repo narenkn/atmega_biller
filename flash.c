@@ -115,10 +115,6 @@ nvfInit()
   for (uint8_t id=0; id<NVF_NUM_DEVICES; id++) {
     _selected = id;
     uint32_t ui1 = nvfReadDeviceId();
-    LCD_PUT_UINT(id);
-    LCD_PUTCH(':');
-    LCD_PUT_UINT16X(ui1>>16);
-    LCD_PUT_UINT16X(ui1);
     ret &= (JEDEC_ID == ui1);
 
     nvfCommand(SPIFLASH_STATUSWRITE, true); // Write Status Register
@@ -179,11 +175,14 @@ bill_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   spiTransmit(addr);
   spiTransmit(0); /* addr[7:0] */
   spiTransmit(0); //"dont care"
-  for (uint16_t i = 0; i < len; ++i)
-    ((uint8_t*) buf)[i] = spiTransmit(0);
+  uint16_t _len;
+  for (_len = 0; _len < len; ++_len) {
+    buf[0] = spiTransmit(0);
+    buf++;
+  }
   nvfUnSelect();
 
-  return len;
+  return _len;
 }
 
 /// Send a command to the flash chip, pass TRUE for isWrite when its a write command
@@ -257,16 +256,13 @@ bill_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
     spiTransmit(0); /* addr[7:0] */
 
     maxBytesInPage = (_len<=NVF_PAGE_SIZE) ? _len : NVF_PAGE_SIZE;
-    for (uint16_t i = 0; i < maxBytesInPage; i++)
-      spiTransmit(((uint8_t*) buf)[offset + i]);
+    for (uint16_t i=maxBytesInPage; i; --i, --_len) {
+      spiTransmit(buf[offset++]);
+    }
     nvfUnSelect();
-
-    offset += maxBytesInPage;
-    _len -= maxBytesInPage;
-    maxBytesInPage = NVF_PAGE_SIZE;   // now we can do up to full page
   }
 
-  return len;
+  return len-_len;
 }
 
 /// erase entire flash memory array
