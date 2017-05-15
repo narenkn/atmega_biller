@@ -20,7 +20,7 @@ TESTSEXE = $(TESTS:.c=)
 
 run_tests: make_tests
 	@echo '------------------------'
-	@rm -rf dir1
+	@if [ -d dir1 ] ; then rm -rf dir1 ; fi
 	@for test in $(TESTSEXE) ; do echo -n $$test ": " ; ./$$test 2>&1 | grep -v '^seed' | wc -l > nu ; if [ "0" = `cat nu` ] ; then echo PASSED ; else echo FAILED ; fi ; done
 
 make_tests: $(TESTSEXE) ../ep_ds.h ../version.h
