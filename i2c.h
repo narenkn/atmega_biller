@@ -55,8 +55,6 @@ extern volatile uint16_t rtc_year;
   t.hour = rtc_hour, t.min = rtc_min, t.sec = rtc_sec
 
 void     i2c_init(void);
-uint16_t ee24xx_read_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
-uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
 
 /*
  * Compatibility defines.  This should work on ATmega8, ATmega16,
@@ -120,31 +118,6 @@ uint16_t ee24xx_write_bytes(uint16_t eeaddr, uint8_t *buf, uint16_t len);
  * page boundary calculations below.
  */
 #define EEPROM_PAGE_SIZE 128
-
-/*
- * Saved TWI status register, for error messages only.  We need to
- * save it in a variable, since the datasheet only guarantees the TWSR
- * register to have valid contents while the TWINT bit in TWCR is set.
- */
-uint8_t twst;
-
-/*
- * Number of EEPROM devices connected in the system
- * Can be 4 or 2 or 1
- */
-#define EEPROM_MAX_DEVICES             1
-#define EEPROM_MAX_DEVICES_LOGN2       0
-#define EEPROM_ADDR_SHIFT              2
-
-/* */
-#define EEPROM_MAX_ADDRESS     ((uint16_t)((0x0FFF<<EEPROM_MAX_DEVICES_LOGN2)|0xF)&0xFFFF)
-
-#if ! NVFLASH_EN
-
-#define bill_read_bytes    ee24xx_read_bytes
-#define bill_write_bytes   ee24xx_write_bytes
-
-#endif
 
 uint32_t get_fattime(void);
 

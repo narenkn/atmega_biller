@@ -14,13 +14,13 @@ CC = gcc
 VPATH = .:..
 
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_sdsettings.c test_ff_features.c
+SOURCE_EXCLUDES = test_sdsettings.c test_ff_features.c test_bill.c test_BillReports.c test_IterBills.c test_IterItem.c test_menu_4.c test_menu_5.c test_menu_6.c test_menudelbill.c
 TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(SOURCE))
 TESTSEXE = $(TESTS:.c=)
 
 run_tests: make_tests
 	@echo '------------------------'
-	@if [ -d dir1 ] ; then rm -rf dir1 ; fi
+	@-if [ -d dir1 ] ; then rm -rf dir1 ; fi
 	@for test in $(TESTSEXE) ; do echo -n $$test ": " ; ./$$test 2>&1 | grep -v '^seed' | wc -l > nu ; if [ "0" = `cat nu` ] ; then echo PASSED ; else echo FAILED ; fi ; done
 
 make_tests: $(TESTSEXE) ../ep_ds.h ../version.h

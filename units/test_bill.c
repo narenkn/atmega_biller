@@ -277,8 +277,8 @@ compare_item(struct item *ri, uint16_t ee24x_addr)
   assert(0 != ri->id);
   assert(ri->id <= ITEM_MAX);
   assert(itIdxs[ri->id-1].crc_name3 == cn3);
-  assert(cn == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+(ri->id)-1) );
-  assert(cpc == eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+(ri->id)-1) );
+  assert(cn == eeprom_read_byte( (uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxs)+(sizeof(itemIdxs_t)*(ri->id-1))) ) );
+  assert(cpc == eeprom_read_byte( (uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxs)+(sizeof(itemIdxs_t)*(ri->id-1))+sizeof(uint16_t)) ) );
   //  printf("ee24xaddr:%x cpc:%x cn:%x\n", ee24x_addr, cpc, cn);
 }
 
