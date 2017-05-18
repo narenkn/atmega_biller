@@ -198,10 +198,11 @@ item_read_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   assert(len > 0);
   assert(len <= NVF_PAGE_SIZE);
   if (len == NVF_PAGE_SIZE)
-    assert(0 == ((addr<<4)&0xFF));
+    assert(0 == ((addr<<ITEM_ADDR_SHIFT)&0xFF));
   _selected = 0;
 
   nvfCommand(SPIFLASH_ARRAYREAD, false);
+  assert(4 == ITEM_ADDR_SHIFT); /* else the below logic doesn't work */
   /* coded for 8Mbyte device, address[23] is don't care */
   spiTransmit(addr>>12);  /* addr[23:16] */
   spiTransmit(addr>>4);   /* addr[15:8] */
@@ -307,10 +308,11 @@ item_write_bytes(uint16_t addr, uint8_t* buf, uint16_t len)
   assert(len > 0);
   assert(len <= NVF_PAGE_SIZE);
   if (len == NVF_PAGE_SIZE)
-    assert(0 == ((addr<<4)&0xFF));
+    assert(0 == ((addr<<ITEM_ADDR_SHIFT)&0xFF));
   _selected = 0;
 
   /* coded for 8Mbyte device where address[23] is don't care */
+  assert(4 == ITEM_ADDR_SHIFT); /* else the below logic doesn't work */
   nvfCommand(SPIFLASH_BYTEPAGEPROGRAM, true);  // Byte/Page Program
   spiTransmit(addr>>12);  /* addr[23:16] */
   spiTransmit(addr>>4);   /* addr[15:8] */

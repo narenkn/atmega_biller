@@ -184,6 +184,7 @@ make_item(struct item *ri1, uint8_t rand_save)
 
   /* should have saved */
   item_read_bytes(itemAddr(ui1+1), (void *)ri1, ITEM_SIZEOF);
+  printf("ri1->id:%d == (ui1+1):%d\n", ri1->id, (ui1+1));
   assert(ri1->id == (ui1+1));
   assert((uint16_t)-1 == test_key_idx);
   assert(0 == strncmp(lcd_buf[0], "Success!        ", LCD_MAX_COL));
@@ -514,6 +515,7 @@ main(int argc, char *argv[])
 #define NUM_ITEMS2TEST  ITEM_MAX
   /* Test to check the number of items that could be stored */
   for (ui1=0; ui1<NUM_ITEMS2TEST; ui1++) {
+    printf("items created:%d\n", ui1);
     make_item(all_items+ui1, 0);
   }
 

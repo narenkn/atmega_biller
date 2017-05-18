@@ -1656,7 +1656,8 @@ menuAddItem(uint8_t mode)
       ui16_2++; ui16_2 = (ui16_2<=ITEM_MAX) ? ui16_2 : 1; /* next id */
       if (0xFF == itIdxs[ui16_2-1].crc_name3) {
 	ui16_1 = itemAddr(ui16_2);
-	item_read_bytes(ui16_1+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+	printf("ui16_1:%d  (ITEM_SIZEOF>>ITEM_ADDR_SHIFT):%d\n", ui16_1, (ITEM_SIZEOF>>ITEM_ADDR_SHIFT));
+	item_read_bytes(ui16_1+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-(1<<ITEM_ADDR_SHIFT), 1<<ITEM_ADDR_SHIFT);
 	if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
 	  /* found space */
 	  it->id = ui16_2;
@@ -1669,6 +1670,8 @@ menuAddItem(uint8_t mode)
       return MENU_RET_NOTAGAIN;
     }
   }
+  if (0x13c == it->id)
+    printf("Here\n");
   ui16_2 = it->id;
   ui16_1 = itemAddr(it->id);
   item_read_bytes(ui16_1, (void *)it, ITEM_SIZEOF);
@@ -1831,12 +1834,13 @@ menuAddItem(uint8_t mode)
    2. replace the target location with new data
    3. write the 256 byte page
    */
-  item_read_bytes(ui16_1&(~0x003F), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
-  for (ui8_1=0, ui16_3=ITEM_SIZEOF+(ui16_1&0x3F);
+  item_read_bytes(ui16_1&(~((NVF_PAGE_SIZE>>ITEM_ADDR_SHIFT)-1)), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
+  printf("it->id:0x%x ui16_3:%d\n", it->id, ITEM_SIZEOF*(((it->id-1) & (ITEM_ADDR_SHIFT-1))+1));
+  for (ui8_1=0, ui16_3=ITEM_SIZEOF*(((it->id-1) & (ITEM_ADDR_SHIFT-1))+1);
        ui8_1<ITEM_SIZEOF; ui8_1++) {
     bufSS_ptr[ui16_3+ui8_1] = bufSS_ptr[ui8_1];
   }
-  item_write_bytes(ui16_1&(~0x003F), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
+  item_write_bytes(ui16_1&(~((NVF_PAGE_SIZE>>ITEM_ADDR_SHIFT)-1)), bufSS_ptr+ITEM_SIZEOF, NVF_PAGE_SIZE);
 
   /* only valid items needs to be buffered */
   menuIndexItem(it);
@@ -1978,7 +1982,7 @@ menuDelItem(uint8_t mode)
   /* find address for the id */
   ui16_1 = arg1.value.integer.i16;
   ui16_2 = itemAddr(ui16_1);
-  item_read_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-4, 4);
+  item_read_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, ((uint8_t *)it)+ITEM_SIZEOF-(1<<ITEM_ADDR_SHIFT), (1<<ITEM_ADDR_SHIFT));
   if (0xFF != (it->unused_crc ^ it->unused_crc_invert))
     return MENU_RET_NOTAGAIN;
 
@@ -1987,7 +1991,7 @@ menuDelItem(uint8_t mode)
   itIdxs[ui16_1-1].crc_name3 = 0xFF;
   //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1-1, 0xFF);
   //  eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1-1, 0xFF);
-  item_write_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, NULL, 4);
+  item_write_bytes(ui16_2+(ITEM_SIZEOF>>ITEM_ADDR_SHIFT)-1, NULL, (1<<ITEM_ADDR_SHIFT));
   numValidItems--;
 
   return MENU_RET_NOTAGAIN;
