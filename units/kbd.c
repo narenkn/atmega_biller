@@ -264,6 +264,16 @@ KbdScan(void)
     /*printw("kbd raw2:0x%x    ", keyHitData.KbdData);*/		\
   } while (0 == keyHitData.KbdDataAvail)
 
+#undef KBD_ANY_EVENT
+#define KBD_ANY_EVENT	do {						\
+    uint16_t  t_data;							\
+    keyHitData.KbdDataAvail = 0;					\
+    t_data = getch();							\
+    assert(t_data < sizeof(cursesKbdFixes));				\
+    keyHitData.KbdData = cursesKbdFixes[t_data];			\
+    keyHitData.KbdDataAvail = 1;					\
+  } while (0)
+
 uint8_t
 KbdIsShiftPressed(void)
 {
