@@ -241,8 +241,11 @@ volatile uint8_t menuPendActs;
 uint16_t diagStatus;
 
 /* Indexing:
- * Max items : 40K
- * Flash supports only 256 byte pages, buffer flash pages
+ * Max items : 40K (40K * 64) = 2560K ~(approx) 2^8 * 2^3 * 2^10 = 2^21
+ * To index, we need 40K * 2 = 80k bytes
+ * So, last # pages needs to be reserved for indexing.
+ *   80K bytes can be allocated in RAM.
+ *   We can do the following... Have a copy of index in RAM
  *   RAM : 1 pages (512 bytes)
  *   EEPROM : 8 pages (2048 bytes)
  */
