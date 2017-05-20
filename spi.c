@@ -8,21 +8,18 @@ void
 spiInit(void)
 {
   DDRB |=  (1<<0) | (1<<1) | (1<<2);
-  DDRB &=  ~_BV(3);
-  PORTB |=  (1<<0);
-  PORTB &= ~((1<<1) | (1<<2));
-  PORTB |=  _BV(3);
+  DDRB &=  ~(_BV(3) | _BV(4));
+  PORTB |=  (1<<0) | (1<<1) | (1<<2);
+  PORTB &=  ~(_BV(3) | _BV(4));
 
   /* setup SPI: Master mode, MSB first,
      SCK phase low, SCK idle low, 2xSPI */
-  SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
+  SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR1);
   SPSR = 0x0;
 
-#if NVFLASH_EN
   /* */
   PORTF |= 0xF;
   DDRF |= 0xF;
-#endif
 }
 
 #if 1

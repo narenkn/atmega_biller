@@ -301,7 +301,6 @@ DSTATUS disk_inserted()
 
   /* drive PA5 */
   DDRA  |= _BV(5); PORTA |= _BV(5);
-  DDRB  &= ~_BV(4);
 
   /* tiny delay */
   _delay_us(1);
