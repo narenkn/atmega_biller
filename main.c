@@ -73,7 +73,7 @@ ISR(TIMER2_COMP_vect)
 {
   timer2_beats++;
 
-#if !UNIT_TEST
+#if !UNIT_TEST && FF_ENABLE
   /* FF */
   disk_timerproc();
 #endif
@@ -86,9 +86,12 @@ main(void)
 {
   /* select power down option */
 #if defined (__AVR_ATmega32__)
+  #error "Atmega32 device..."
+#elif defined (__AVR_ATmega128__)
 #elif defined (__AVR_ATxmega64A1__) || defined (__AVR_ATxmega64A3__) || defined (__AVR_ATxmega64D3__)
   #error "Unknown device"
 #elif defined (__AVR_ATxmega128A1__) || defined (__AVR_ATxmega128A3__) || defined (__AVR_ATxmega128D3__) || defined (__AVR_ATmega1284P__)
+  #error "not supported now"
   PRR0 = 0xFF;
   PRR1 = 0xFF;
 #elif defined (__AVR_ATxmega256A3__) || defined (__AVR_ATxmega256A3B__) || defined (__AVR_ATxmega256D3__)
@@ -96,37 +99,48 @@ main(void)
 #endif
 
   /* */
-  wdt_disable();
-
   LCD_init();
-
-  /* Welcome screen */
   LCD_bl_on;
   LCD_CLRSCR;
+
+  /* Welcome screen */
   LCD_WR_NP((const char *)PSTR("Welcome..."), 10);
   LCD_CLRLINE(LCD_MAX_ROW-1);
   LCD_WR_NP((const char *)PSTR("  Initializing.."), 16);
   LCD_refresh();
   _delay_ms(500);
+  wdt_disable();
 
   /* All other devices */
+  LCD_CLRLINE(1); LCD_WR_P((const char *)PSTR("Init:"));
+  LCD_PUTCH('.');
   kbdInit();
+  LCD_PUTCH('.');
   ep_store_init();
+  LCD_PUTCH('.');
   i2c_init();
+  LCD_PUTCH('.');
+  spiInit();
 #if NVFLASH_EN
+  uint8_t devStatus;/* FIXME: remove this line */
   devStatus |= nvfInit() ? 0 : DS_NO_NVF;
 #endif
+  LCD_PUTCH('.');
   uartInit();
+  LCD_PUTCH('.');
   printerInit();
+  LCD_PUTCH('.');
   main_init();
+  LCD_PUTCH('.');
   billingInit();
+  LCD_PUTCH(':');
+  _delay_ms(500);
   menuInit();
 
   /* Check if all devices are ready to go, else give
      error and exit */
   if (0 == (devStatus&DS_DEV_ERROR)) {
     sei();   /* Enable Global Interrupts */
-
     LCD_cmd(LCD_CMD_CUR_20);
     LCD_WR_NP((const char *)PSTR("   Initialized!"), 15);
     LCD_refresh();

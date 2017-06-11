@@ -217,6 +217,7 @@ uint8_t twst;
 
 #endif
 
+extern volatile uint8_t kbdIdleDelay;
 uint32_t get_fattime(void);
 
 #endif

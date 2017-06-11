@@ -233,6 +233,10 @@ struct {
 #define FS    sFs.fs
 #define Fil   sFs.fil
 #define SIZEOF_SFS sizeof(sFs)
+#else
+struct {
+  uint8_t b[512];
+} sFs;
 #endif
 
 /* Pending actions */
@@ -580,6 +584,7 @@ eeprom_update_byte_NP(uint16_t addr, const char *pstr, uint8_t size)
 static void
 menuSdSaveBillDat(uint16_t ui16_2)
 {
+#if FF_ENABLE
   uint16_t ui16_1, ui16_4;
   struct sale *sl = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
@@ -648,6 +653,7 @@ menuSdSaveBillDat(uint16_t ui16_2)
   ui16_2 = eeprom_read_word((uint16_t *)(offsetof(struct ep_store_layout, unused_nextBillAddr)));
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_todayStartAddr)), ui16_2);
   eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_LastBillId)), 0);
+#endif
 }
 
 /* Load in the factory settings */
@@ -800,7 +806,7 @@ menuInit()
     if (ui16_2 == ui16_1) {
       ui8_1 = eeprom_read_byte((uint8_t *)offsetof(struct ep_store_layout, unused_serial_no)+SERIAL_NO_MAX-3);
       devStatus = ('1' == ui8_1) ? DS_DEV_1K : ('5' == ui8_1) ? DS_DEV_5K :
-        ('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
+	('2' == ui8_1) ? DS_DEV_20K : DS_DEV_INVALID;
     } else {
       devStatus = DS_DEV_INVALID;
     }
@@ -824,6 +830,7 @@ menuInit()
     assert(0 == WDT_RESET_WAKEUP);
     MenuMode = MENU_MSUPER;
     menuFactorySettings(MenuMode | MENU_NOCONFIRM);
+    eeprom_update_word((uint16_t *)(offsetof(struct ep_store_layout, unused_FactRst)+2), 0x1A05);
   }
 
 #if DS1307
@@ -861,11 +868,18 @@ menuInit()
 #endif
 
   /* Re-scan and index all items */
-  if (WDT_RESET_WAKEUP) goto menuInitSkipItemIdxing;
+  LCD_CLRLINE(0);
+  LCD_WR_P((const char *)PSTR("Indexing Items"));
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+  LCD_refresh();
   struct item *it = (void *)bufSS;
   numValidItems = 0;
   for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
 	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
+    item_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)bufSS)+ITEM_SIZEOF-4, 4);
+    if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
+      continue;
+    }
     item_read_bytes(ui16_2, bufSS, ITEM_SIZEOF);
     for (ui8_1=0, ui8_2=0; ui8_1<(ITEM_SIZEOF-2); ui8_1++)
       ui8_2 = _crc_ibutton_update(ui8_2, bufSS[ui8_1]);
@@ -888,7 +902,10 @@ menuInit()
 	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
     }
   }
-  LCD_ALERT_N((const char *)PSTR("#Items:"), numValidItems);
+  LCD_CLRLINE(LCD_MAX_ROW-1);
+  LCD_WR_P((const char *)PSTR("#Items:"));
+  LCD_PUT_UINT(numValidItems);
+  _delay_ms(500);
  menuInitSkipItemIdxing:
 
   MenuMode = MENU_MRESET;
@@ -2017,19 +2034,23 @@ menuPrnF(uint32_t var, uint8_t charsPrinted)
 static void
 menuSdD(uint32_t var)
 {
+#if FF_ENABLE
   if (var>9)
     menuSdD(var/10);
   f_putc('0'+(var%10), &Fil);
+#endif
 }
 
 static void
 menuSdF(uint32_t var)
 {
+#if FF_ENABLE
   menuSdD(var/100);
   f_putc('.', &Fil);
   var %= 100;
   if (var < 10) f_putc('0', &Fil);
   menuSdD(var%100);
+#endif
 }
 
 static uint8_t
@@ -2056,10 +2077,12 @@ menuSdSCheckFix(uint8_t *s, uint8_t size)
 static uint8_t
 menuSdSwallowComma()
 {
-  FSIZE_t loc;
   UINT ret_size;
   uint8_t ui8_a[8];
   uint8_t commaSeen = 0;
+
+#if FF_ENABLE
+  FSIZE_t loc;
 
   while (1) {
     loc = f_tell(&Fil);
@@ -2073,6 +2096,7 @@ menuSdSwallowComma()
       break;
     }
   }
+#endif
 
   return commaSeen ? 0 : 1;
 }
@@ -2080,10 +2104,12 @@ menuSdSwallowComma()
 static uint8_t
 menuSdSwallowUntilNL()
 {
-  FSIZE_t loc;
   UINT ret_size;
   uint8_t ui8_a[8];
   uint8_t nlSeen = 0;
+
+#if FF_ENABLE
+  FSIZE_t loc;
 
   while (1) {
     loc = f_tell(&Fil);
@@ -2096,6 +2122,7 @@ menuSdSwallowUntilNL()
       break;
     }
   }
+#endif
 
   return 0;
 }
@@ -2103,6 +2130,7 @@ menuSdSwallowUntilNL()
 static uint8_t
 menuSdScanD(uint32_t *d, uint8_t *s)
 {
+#if FF_ENABLE
   FSIZE_t loc;
   UINT  ret_size;
 
@@ -2118,6 +2146,7 @@ menuSdScanD(uint32_t *d, uint8_t *s)
     *d *= 10;
     *d += s[0] - '0';
   } while (1);
+#endif
 
   return 2;
 }
@@ -2125,6 +2154,7 @@ menuSdScanD(uint32_t *d, uint8_t *s)
 static uint8_t
 menuSdScanF(uint32_t *f, uint8_t *s)
 {
+#if FF_ENABLE
   FSIZE_t loc;
   UINT ret_size;
 
@@ -2149,6 +2179,7 @@ menuSdScanF(uint32_t *f, uint8_t *s)
     }
     *f += s[0] - '0';
   }
+#endif
   return 0;
 }
 
@@ -3093,9 +3124,9 @@ menuCheckDateFromTo(uint8_t mode)
 uint8_t
 menuDelAllBill(uint8_t mode)
 {
-#if FF_ENABLE
   date_t date_i, date_l;
 
+#if FF_ENABLE
   if (RES_OK != disk_inserted()) {
     LCD_ALERT(PSTR_NO_SD);
     return MENU_RET_NOTAGAIN;
@@ -3832,7 +3863,7 @@ f_puts_p (const uint8_t* str, FIL* fp)
 
   return len;
 }
-#else
+#elif FF_ENABLE
 static int
 f_puts_p (const char* str, FIL* fp)
 {
@@ -3950,7 +3981,7 @@ menuSdIterItem(uint8_t mode)
   uint8_t ui8_1 = 0;
   struct item *it = (void *)(bufSS+LCD_MAX_COL+LCD_MAX_COL);
 
-
+#if FF_ENABLE
   if (RES_OK != disk_inserted()) {
     LCD_ALERT(PSTR_SKIPOP);
     return DS_DEV_INVALID;
@@ -4028,6 +4059,7 @@ menuSdIterItem(uint8_t mode)
     LCD_PUT_UINT(error);
     KBD_GETCH;
   }
+#endif
 
   return MENU_RET_NOERROR;
 }

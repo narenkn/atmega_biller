@@ -21,16 +21,6 @@
 
 struct ep_store_layout EEMEM ep_store;
 
-//#if 0 != (ITEM_SIZEOF&3)
-//#error "should be multiple of 4"
-//#endif
-//#if 0 != (EP_STORE_LAYOUT_SIZEOF&3)
-//#error "should be multiple of 4"
-//#endif
-//#if 0 != (EEPROM_MAX_DEVICES&3)
-//#error "should be multiple of 4"
-//#endif
-
 /*
  * Do all the startup-time peripheral initializations: TWI clock.
  */

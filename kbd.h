@@ -17,7 +17,7 @@
 # define KBD_INT_PIN_VAL			\
   (PINE & 0x10)
 # define KBD_NODRIVE				\
-  PORTC &= ~0xF0;  /* drive 0 */			\
+  PORTC &= ~0xF0;  /* drive 0 */		\
   PORTC |= 0x0F; /* pullup */			\
   PORTE |= 0x10;  /* pullup */			\
   DDRC |= 0xF0;  /* out */			\
@@ -150,13 +150,11 @@ extern const uint8_t keyMapR[] PROGMEM;
     /* some event has to occur to come here */	\
     sleep_disable();				\
     /* schedule regular code-check here */	\
-    if (/*0 == (timer2_beats%1000)*/0) {		\
-    }						\
-    if (/*menuPendActs & MENU_PEND_LCD_REFRESH*/0) {	\
-      LCD_init();				\
+    if (/*0 == (timer2_beats%1000)*/0) {	\
     }						\
   }						\
-  LCD_bl_on
+  LCD_bl_on;					\
+  kbdIdleDelay=0
 # define KBD_ANY_EVENT				\
   do {						\
     /* put the device to sleep */		\

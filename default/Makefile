@@ -80,7 +80,8 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 VPATH := ..
-SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c menu.c ff.c main.c
+#SRC = flash.c lcd.c kbd.c ep_store.c i2c.c uart.c a1micro2mm.c billing.c spi.c mmc_avr.c adc.c menu.c ff.c main.c
+SRC = menu.c billing.c spi.c flash.c a1micro2mm.c uart.c i2c.c ep_store.c kbd.c lcd.c main.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -174,7 +175,7 @@ BUILD_FLAGS += -DMENU_SDSAVE_EN=1             # Save/restore from/to SD
 BUILD_FLAGS += -DMENU_DELBILL=1               # Delete bill
 BUILD_FLAGS += -DMENU_ITEM_FUNC=1             # Add,Del item
 BUILD_FLAGS += -DMENU_DIAG_FUNC=1             # Diagnosis utils
-BUILD_FLAGS += -DFF_ENABLE=1                  # Enable SD file system
+BUILD_FLAGS += -DFF_ENABLE=0                  # Enable SD file system
 BUILD_FLAGS += -DMENU_BILL_STORE_ITEM_DESCR=0 # Store item with bill
 BUILD_FLAGS += -DMENU_PRINTER_ENABLE=1        # Enable printing routines
 BUILD_FLAGS += -DUNICODE_ENABLE=0             # Unicode in device
@@ -289,13 +290,13 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 # Type: avrdude -c ?
 # to get a full listing.
 #
-AVRDUDE_PROGRAMMER = stk500v2
+AVRDUDE_PROGRAMMER = usbasp
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = com1    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
-#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
 
 
 # Uncomment the following if you want avrdude's erase cycle counter.
@@ -305,17 +306,17 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 
 # Uncomment the following if you do /not/ wish a verification to be
 # performed after programming the device.
-#AVRDUDE_NO_VERIFY = -V
+AVRDUDE_NO_VERIFY = -V
 
 # Increase verbosity level.  Please use this when submitting bug
 # reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude> 
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p $(MCU) -c $(AVRDUDE_PROGRAMMER)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
-AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
-AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
+#AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
+#AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
 
 
 
@@ -359,7 +360,7 @@ OBJDUMP = avr-objdump
 SIZE = avr-size
 AR = avr-ar rcs
 NM = avr-nm
-AVRDUDE = avrdude
+AVRDUDE = "C:\Users\naren\Downloads\AVR DUDE\SINAPROG HEX DOWNLOADER\avrdude.exe"
 REMOVE = rm -f
 REMOVEDIR = rm -rf
 COPY = cp
