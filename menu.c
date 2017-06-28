@@ -3535,11 +3535,16 @@ menuMainStart:
 #else
 	if (0 == (devStatus & DS_DEV_INVALID)) {
 	  //printf("call 0x%x\n", pgm_read_dword(menu_handlers+menu_selected));
+	  uint8_t mm = MenuMode;
 #if UNIT_TEST
 	  menuRet |= (menu_handlers[menu_selected])(pgm_read_byte(menu_mode+menu_selected));
 #else
 	  menuRet |= ((menu_func_t)(uint16_t)pgm_read_dword((void *)(menu_handlers+menu_selected)))(pgm_read_byte(menu_mode+menu_selected));
 #endif
+	  if (mm != MenuMode) {
+	    menu_selected = 0;
+	    menu_selhier = 0;
+	  }
 	} else {
 	  printf("devStatus:%x\n", devStatus);
 	  LCD_ALERT(PSTR("Invalid Device"));

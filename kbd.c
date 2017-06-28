@@ -146,18 +146,20 @@ kbd2SendByte(uint8_t b)
   /* 3)   Release the Clock line.  */
   KBD2_PS2_CLK_Z;
   _delay_us(5);
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
     _delay_us(5);
   }
+  if (0 == ui8_3) return;
 
   uint8_t parity = 1;
   for (uint8_t ui8_2=9; ui8_2; ui8_2--) {
     /* 4)   Wait for the device to bring the Clock line low.  */
-    for (uint8_t ui8_1=0; ui8_1<3; ) {
+    for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
       ui8_1 = (0 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
       _delay_us(5);
     }
+    if (0 == ui8_3) return;
     /* 5)   Set/reset the Data line to send the first data bit  */
     /* 6)   Wait for the device to bring Clock high.  */
     /* 7)   Wait for the device to bring Clock low.  */
@@ -172,42 +174,48 @@ kbd2SendByte(uint8_t b)
       KBD2_PS2_DATA_0;
 
     /* Wait for the device to bring the Clock line high.  */
-    for (uint8_t ui8_1=0; ui8_1<3; ) {
+    for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
       ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
       _delay_us(5);
     }
+    if (0 == ui8_3) return;
   }
 
   /* 9)   Release the Data line.  */
   KBD2_PS2_DATA_Z;
   _delay_us(5);
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (1 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
     _delay_us(5);
   }
+  if (0 == ui8_3) return;
 
   /* 10) Wait for the device to bring Data low.  */
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (0 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
     _delay_us(5);
   }
+  if (0 == ui8_3) return;
 
   /* 11) Wait for the device to bring Clock  low.  */
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (0 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
     _delay_us(5);
   }
+  if (0 == ui8_3) return;
   _delay_us(50);
 
   /* 12) Wait for the device to release Data and Clock */
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (1 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
     _delay_us(5);
   }
-  for (uint8_t ui8_1=0; ui8_1<3; ) {
+  if (0 == ui8_3) return;
+  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
     _delay_us(5);
   }
+  if (0 == ui8_3) return;
 }
 
 void
