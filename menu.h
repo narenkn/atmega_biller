@@ -198,7 +198,7 @@ extern uint8_t menu_error;
 extern uint8_t bufSS[BUFSS_SIZE];
 
 /* Device status */
-extern uint8_t devStatus;
+extern volatile uint8_t devStatus;
 #define DS_DEV_1K   (1<<0)
 #define DS_DEV_5K   (1<<1)
 #define DS_DEV_20K  (1<<2)
@@ -273,7 +273,7 @@ uint8_t menuUpdateFirmware(uint8_t mode); // Unverified
 uint8_t menuRunDiag(uint8_t mode); // Unverified
 void menuMain(void);
 
-extern  uint16_t         diagStatus;
+extern volatile uint16_t diagStatus;
 #define DIAG_LCD              (1<<0)
 #define DIAG_DISP_BRIGHT      (1<<1)
 #define DIAG_PRINTER          (1<<2)

@@ -90,6 +90,8 @@ volatile ps2LineStat_t kbd0, kbd1, kbd2;
 void
 kbdInit(void)
 {
+  kbdPs2Init();
+
   /* Reset state
      Port C[7:4]   : output  (drive 0)
      Port C[3:0]   : input   (pull high)
@@ -128,6 +130,141 @@ kbdInit(void)
   kbd1.kbdStatus = 0, kbd1.kbdTransL = 1;
   kbd2.KeyData = 0, kbd2.bitC = 0, kbd2.drC = 0;
   kbd2.kbdStatus = 0, kbd2.kbdTransL = 1;
+}
+
+void
+kbd2SendByte(uint8_t b)
+{
+  /* 1)   Bring the Clock line low for at least 100 microseconds.  */
+  KBD2_PS2_CLK_0;
+  _delay_us(200);
+
+  /* 2)   Bring the Data line low.  */
+  KBD2_PS2_DATA_0;
+  _delay_us(50);
+
+  /* 3)   Release the Clock line.  */
+  KBD2_PS2_CLK_Z;
+  _delay_us(5);
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+
+  uint8_t parity = 1;
+  for (uint8_t ui8_2=9; ui8_2; ui8_2--) {
+    /* 4)   Wait for the device to bring the Clock line low.  */
+    for (uint8_t ui8_1=0; ui8_1<3; ) {
+      ui8_1 = (0 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
+      _delay_us(5);
+    }
+    /* 5)   Set/reset the Data line to send the first data bit  */
+    /* 6)   Wait for the device to bring Clock high.  */
+    /* 7)   Wait for the device to bring Clock low.  */
+    /* 8)   Repeat steps 5-7 for the other seven data bits and the parity bit  */
+    if (ui8_2 > 1) {
+      parity ^= b&1;
+      b >>= 1;
+    } else b = parity;
+    if (b&1)
+      KBD2_PS2_DATA_Z;
+    else
+      KBD2_PS2_DATA_0;
+
+    /* Wait for the device to bring the Clock line high.  */
+    for (uint8_t ui8_1=0; ui8_1<3; ) {
+      ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
+      _delay_us(5);
+    }
+  }
+
+  /* 9)   Release the Data line.  */
+  KBD2_PS2_DATA_Z;
+  _delay_us(5);
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (1 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+
+  /* 10) Wait for the device to bring Data low.  */
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (0 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+
+  /* 11) Wait for the device to bring Clock  low.  */
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (0 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+  _delay_us(50);
+
+  /* 12) Wait for the device to release Data and Clock */
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (1 == KBD2_PS2_DATA) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+  for (uint8_t ui8_1=0; ui8_1<3; ) {
+    ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
+    _delay_us(5);
+  }
+}
+
+void
+kbdPs2Init(void)
+{
+  /* init */
+  KBD_PS2_0DRIVE;
+
+  // Host:     ED  Set/Reset Status Indicators
+  //kbd0SendByte(0xED);
+  //kbd1SendByte(0xED);
+  kbd2SendByte(0xED);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge 
+  // Host:     00  Turn off all LEDs
+  //kbd0SendByte(0x00);
+  //kbd1SendByte(0x00);
+  kbd2SendByte(0x00);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge
+  // Host:     F2  Read ID
+  // Keyboard: FA  Acknowledge
+  // Keyboard: AB  First byte of ID
+  // Host:     ED  Set/Reset Status Indicators     ;BIOS init
+  //kbd0SendByte(0xED);
+  //kbd1SendByte(0xED);
+  kbd2SendByte(0xED);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge
+  // Host:     02  Turn on Num Lock LED
+  //kbd0SendByte(0x02);
+  //kbd1SendByte(0x02);
+  kbd2SendByte(0x02);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge
+  // Host:     F3  Set Typematic Rate/Delay        ;Windows init
+  //kbd0SendByte(0xF3);
+  //kbd1SendByte(0xF3);
+  kbd2SendByte(0xF3);
+  _delay_ms(500);
+  // Keyboard: FA  Acknowledge
+  // Host:     20  500 ms / 30.0 reports/sec
+  //kbd0SendByte(0x20);
+  //kbd1SendByte(0x20);
+  kbd2SendByte(0x20);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge
+  // Host:     F4  Enable
+  //kbd0SendByte(0xF4);
+  //kbd1SendByte(0xF4);
+  kbd2SendByte(0xF4);
+  _delay_ms(100);
+  // Keyboard: FA  Acknowledge
+  // Host:     F3  Set Typematic Rate/delay
+  // Keyboard: FA  Acknowledge
+  // Host:     00  250 ms / 30.0 reports/sec
+  // Keyboard: FA  Acknowledge
 }
 
 void

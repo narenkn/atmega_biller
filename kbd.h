@@ -8,6 +8,24 @@
 #define KBD1_PS2_DATA     ((PINE >> 3)&1)
 #define KBD2_PS2_CLK      ((PINE >> 7)&1)
 #define KBD2_PS2_DATA     ((PINA >> 6)&1)
+
+#define KBD_PS2_0DRIVE				\
+  PORTE &= ~0xEC;				\
+  PORTA &= ~0x40;				\
+  DDRE &= ~0xEC;				\
+  DDRA &= ~0x40
+#define KBD0_PS2_CLK_0    DDRE |= (1<<5)
+#define KBD0_PS2_DATA_0   DDRE |= (1<<2)
+#define KBD1_PS2_CLK_0    DDRE |= (1<<6)
+#define KBD1_PS2_DATA_0   DDRE |= (1<<3)
+#define KBD2_PS2_CLK_0    DDRE |= (1<<7)
+#define KBD2_PS2_DATA_0   DDRA |= (1<<6)
+#define KBD0_PS2_CLK_Z    DDRE &= ~(1<<5)
+#define KBD0_PS2_DATA_Z   DDRE &= ~(1<<2)
+#define KBD1_PS2_CLK_Z    DDRE &= ~(1<<6)
+#define KBD1_PS2_DATA_Z   DDRE &= ~(1<<3)
+#define KBD2_PS2_CLK_Z    DDRE &= ~(1<<7)
+#define KBD2_PS2_DATA_Z   DDRA &= ~(1<<6)
 #if defined (__AVR_ATmega128__)
 # define KBD_IO_INIT						\
   DDRE &= ~((1<<PE2)|(1<<PE5)|(1<<PE3)|(1<<PE6)|(1<<PE7));	\
@@ -22,6 +40,9 @@
   PORTE |= 0x10;  /* pullup */			\
   DDRC |= 0xF0;  /* out */			\
   DDRC &= ~0x0F;   /* in */			\
+  DDRE &= ~0x10   /* in */
+# define KBD_PS2MSTR				\
+  PORTE |= 0x10;  /* pullup */			\
   DDRE &= ~0x10   /* in */
 # define KBD_IPIN_PHI				\
   DDRC  &= ~0x0F; /* input */			\
@@ -188,6 +209,7 @@ extern volatile keyHitData_t keyHitData;
 extern volatile uint8_t keypadMultiKeyModeOff;
 
 void    kbdInit(void);
+void    kbdPs2Init(void);
 void    kbdScan(void);
 extern const uint8_t ps2code2ascii[] PROGMEM;
 extern const uint8_t ps2code2asciiE0[] PROGMEM;

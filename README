@@ -171,31 +171,38 @@ Timer Allocations:
 To Test:
 3. FatFs
 4. PS2
-5. SPI Flash
+##5. SPI Flash
 6. Lazer barcode scanner
 ##8. LCD Bright/dim
 10. test sw2, sw3 switches
 11. Test current through UV led's & change resistor value
 
 Fixes Required:
-1. PS2 needs rotation
-2. uSD reader can be pushed out a bit
+##1. PS2 needs rotation
+##2. uSD reader can be pushed out a bit
 ##3. Oscillator on LED's Back light : Options PE3, PE4, PE5, PB4, PB5, PB6, PB7
-4. LED for plug power ON
-5. PS2 : Power & Gnd wrongly connected
-6. Flash chip : Pin 3 : NC
+##4. LED for plug power ON
+##5. PS2 : Power & Gnd wrongly connected
+##6. Flash chip : Pin 3 : NC
 ## NO ##7. 5v->3.3v : Increase resistor 10k+20k
-8. 10u cap on SPI Flash Pin 8
-9. Battery terminals are for LIPO, so that connector is required
-10. Remove Debug Port
-11. Change {Q1}, {Q2} -> 2N7002x
-12. SW20 switch was shorting
-13. Remove J7
-14. uUSB interface for power input
-15. Remove extra switches??
+##8. 10u cap on SPI Flash Pin 8
+##9. Battery terminals are for LIPO, so that connector is required
+##10. Remove Debug Port
+##11. Change {Q1}, {Q2} -> 2N7002x
+##12. SW20 switch was shorting
+##13. Remove J7
+##14. uUSB interface for power input
+##15. Remove extra switches??
 16. Remove 24c512??
-17. Power LED with 330ohm resistor, parallel 10uF 6.3V
-18. Add inductor to circuit.
-19. Battery voltage divided to a pin
+##17. Power LED with 330ohm resistor, parallel 10uF 6.3V
+##18. Add inductor to circuit.
+##19. Battery voltage divided to a pin
 20. Use different pins for flash & uSD ?
 21. Resistor changes in spi bus??
+
+Productisation Fixes
+####################
+1. Once login, should not see "Login menu opt"
+2. PS2 Keyboard has to be initialized on powerup
+3. PS2: Implement Caps Lock, Num Lock
+4. 

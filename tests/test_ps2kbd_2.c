@@ -37,7 +37,6 @@ main(void)
   uint8_t ui1;
 
   LCD_init();
-  kbdInit();
 
   /* Enable Global Interrupts */
   sei();
@@ -48,6 +47,7 @@ main(void)
   _delay_ms(500);
   BUZZER_OFF;
 
+  kbdInit();
   for (ui1=0; ; ui1++) {
     KBD_RESET_KEY;
     KBD_GETCH;

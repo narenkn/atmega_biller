@@ -220,9 +220,9 @@ const char PSTR_NO_SD[] PROGMEM = "No SD";
 const char PSTR_SKIPOP[] PROGMEM = "Skip Operation";
 
 /* */
-static uint8_t MenuMode = MENU_MRESET;
-static uint8_t LoginUserId = 0; /* 0 is invalid */
-uint8_t devStatus;   /* 0 is no err */
+volatile static uint8_t MenuMode = MENU_MRESET;
+volatile static uint8_t LoginUserId = 0; /* 0 is invalid */
+volatile uint8_t devStatus;   /* 0 is no err */
 
 /* data struct for FF */
 #if FF_ENABLE
@@ -243,7 +243,7 @@ struct {
 volatile uint8_t menuPendActs;
 
 /* Diagnosis */
-uint16_t diagStatus;
+volatile uint16_t diagStatus;
 
 /* indexing */
 #define ITEM_SUBIDX_NAME 2
@@ -2251,7 +2251,7 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
   menuPrnHeader();
 
   /* Caption, Date */
-  PRINTER_FONT_ENLARGE(PRINTER_FONT_2);
+  PRINTER_FONT_ENLARGE(PRINTER_FONT_1);
   PRINTER_JUSTIFY(PRINTER_JCENTER);
   for (ui8_1=0; ui8_1<EPS_CAPTION_SZ_MAX; ui8_1++) {
     ui8_3 = eeprom_read_byte((uint8_t *)(offsetof(struct ep_store_layout, Caption)+ui8_1));
@@ -2362,6 +2362,10 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 
   menuPrnFooter();
 
+  /* notify end of bill */
+  BUZZER_ON;
+  _delay_ms(500);
+  BUZZER_OFF;
   firstTimePrnHeader = true;
   menuPrnHeader();
 #endif
