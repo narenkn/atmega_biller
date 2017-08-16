@@ -877,6 +877,11 @@ menuInit()
   for ( ui16_1=0, ui16_2=0; ui16_1 < ITEM_MAX;
 	ui16_1++, ui16_2 += (ITEM_SIZEOF>>2) ) {
     item_read_bytes(ui16_2+(ITEM_SIZEOF>>2)-1, ((uint8_t *)bufSS)+ITEM_SIZEOF-4, 4);
+    /* assume location has no item */
+    itIdxs[ui16_1].crc_name3 = 0xFF;
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1, 0xFF);
+    eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
+    /* fast path */
     if (0xFF != (it->unused_crc ^ it->unused_crc_invert)) {
       continue;
     }
@@ -896,10 +901,6 @@ menuInit()
 	ui8_2 = _crc_ibutton_update(ui8_2, it->prod_code[ui8_1]);
       eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code)), ui8_2);
       numValidItems++;
-    } else {
-	itIdxs[ui16_1].crc_name3 = 0xFF;
-	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_itIdxName))+ui16_1, 0xFF);
-	eeprom_update_byte((uint8_t *)(offsetof(struct ep_store_layout, unused_crc_prod_code))+ui16_1, 0xFF);
     }
   }
   LCD_CLRLINE(LCD_MAX_ROW-1);

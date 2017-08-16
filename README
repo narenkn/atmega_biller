@@ -157,7 +157,7 @@ test_sdsettings.c
 units : test kbd/keypress pipeline logic
 
 Programming Commands:
-avrdude.exe -c usbasp -p atmega128 -u -V -U flash:w:test_lcd.hex
+avrdude.exe -c usbasp -p atmega128 -u -V -U flash:w:billmc.hex -U eeprom:w:device.hex
 
 avrdude.exe -c usbasp -p atmega128 -u -U lfuse:w:0xff:m
 avrdude.exe -c usbasp -p atmega128 -u -U hfuse:w:0x89:m
@@ -206,3 +206,8 @@ Productisation Fixes
 2. PS2 Keyboard has to be initialized on powerup
 3. PS2: Implement Caps Lock, Num Lock
 4. 
+
+test_BillReports : FAILED
+test_IterBills : FAILED
+test_IterItem : FAILED
+test_menu_5 : FAILED

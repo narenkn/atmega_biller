@@ -146,7 +146,8 @@ kbd2SendByte(uint8_t b)
   /* 3)   Release the Clock line.  */
   KBD2_PS2_CLK_Z;
   _delay_us(5);
-  for (uint8_t ui8_1=0, ui8_3=0xFF; (ui8_3>0) && (ui8_1<3); ui8_3--) {
+  uint8_t ui8_3 = 0xFF;
+  for (uint8_t ui8_1=0; (ui8_3>0) && (ui8_1<3); ui8_3--) {
     ui8_1 = (1 == KBD2_PS2_CLK) ? ui8_1+1 : 0;
     _delay_us(5);
   }
@@ -456,7 +457,7 @@ const uint8_t
 ps2code2ascii[] PROGMEM = {
   ASCII_UNDEF, ASCII_F9, ASCII_UNDEF, ASCII_F5, ASCII_F3, ASCII_F1, ASCII_F2, ASCII_F12, ASCII_UNDEF, ASCII_F10, ASCII_F8, ASCII_F6, ASCII_F4, ASCII_UNDEF, '`', ASCII_UNDEF, /* 0-15 */
   ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'q', '1', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'z', 's', 'a', 'w', '2', ASCII_UNDEF, /* 16-31 */
-  ASCII_UNDEF, 'c', 'x', 'd', 'e', '4', '3', ASCII_UNDEF, ' ', ASCII_UNDEF, 'v', 'f', 't', 'r', '5', ASCII_UNDEF, /* 32-47 */
+  ASCII_UNDEF, 'c', 'x', 'd', 'e', '4', '3', ASCII_UNDEF, ASCII_UNDEF, ' ', 'v', 'f', 't', 'r', '5', ASCII_UNDEF, /* 32-47 */
   ASCII_UNDEF, 'n', 'b', 'h', 'g', 'y', '6', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, 'm', 'j', 'u', '7', '8', ASCII_UNDEF, /* 48-63 */
   ASCII_UNDEF, ',', 'k', 'i', 'o', '0', '9', ASCII_UNDEF, ASCII_UNDEF, '.', '/', 'l', ';', 'p', '-', ASCII_UNDEF, /* 64-79 */
   ASCII_UNDEF, ASCII_UNDEF, '\'', ASCII_UNDEF, '[', '=', ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_UNDEF, ASCII_ENTER, ']', ASCII_UNDEF, '\\', ASCII_UNDEF, ASCII_UNDEF, /* 80-95 */
