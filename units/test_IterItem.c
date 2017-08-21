@@ -369,6 +369,7 @@ main(int argc, char *argv[])
   printerInit();
   menuSdIterItem(MENU_ITEM_REPORT);
 
+#if FF_ENABLE
   /* */
   for (ui2=0; ui2<10; ui2++) {
     /* save items to file */
@@ -406,4 +407,5 @@ main(int argc, char *argv[])
     }
 #endif
   }
+#endif
 }

@@ -202,7 +202,7 @@ Fixes Required:
 
 Productisation Fixes
 ####################
-1. Once login, should not see "Login menu opt"
-2. PS2 Keyboard has to be initialized on powerup
+##1. Once login, should not see "Login menu opt"
+##2. PS2 Keyboard has to be initialized on powerup
 3. PS2: Implement Caps Lock, Num Lock
 4. 
