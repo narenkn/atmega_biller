@@ -526,6 +526,7 @@ main(int argc, char *argv[])
     ui1 = time(NULL);
   else
     ui1 = atoi(argv[1]);
+  ui1 = 1503298178;
   printf("seed : %d\n", ui1);
   srand(ui1);
 
@@ -554,7 +555,6 @@ main(int argc, char *argv[])
   }
 
   /* Create 10 days of bills */
-  #define TEST_LOOP 10
   uint16_t billsInDay = rand() & 0xF;
   uint16_t billsInMonth = rand() & 0xF;
   uint16_t billYears = rand() & 0xF;
@@ -591,32 +591,43 @@ main(int argc, char *argv[])
      MENU_REPO_BWISE, MENU_REPO_VOID, MENU_REPO_DUP,
      MENU_REPO_ITWISE, MENU_REPO_TAX
   */
+  #define TEST_LOOP 10
   date.day = tm.tm_mday, date.month=tm.tm_mon+1, date.year = 1900+tm.tm_year;
   timerDateSet(date);
-  RESET_TEST_KEYS;
-
-  /* */
   arg1.valid = arg2.valid = MENU_ITEM_DATE;
   arg1.value.date = (date_t){28, 11, 2016};
   arg2.value.date = (date_t){31, 12, 2029};
   arg2.value.date = (date_t){28, 11, 2017};
+  for (uint16_t loop=TEST_LOOP; loop; loop--) {
+    RESET_TEST_KEYS;
 
-  /* twise option */
-  inp2[0] = ASCII_RIGHT;
-  inp2[1] = ASCII_RIGHT;
-  inp2[2] = ASCII_RIGHT;
-  inp2[3] = 0;
-  INIT_TEST_KEYS(inp2);
+    /* twise option */
+    uint16_t opt = rand() & 0xF;
+    inp2[0] = (opt&0x7) ? ASCII_RIGHT : 0;
+    inp2[1] = (opt&0x3) ? ASCII_RIGHT : 0;
+    inp2[2] = (opt&0x1) ? ASCII_RIGHT : 0;
+    inp2[3] = 0;
 
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
-  add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
+    add_expect_assert("lcd_y <= LCD_MAX_COL, lcd.c");
 
-  menuBillReports(MENU_REPO_TALLY);
-  menuBillReports(MENU_REPO_TAX);
-  menuBillReports(MENU_REPO_DUP);
-  menuBillReports(MENU_REPO_VOID);
-  menuBillReports(MENU_REPO_VALID);
+    INIT_TEST_KEYS(inp2);
+    menuBillReports(MENU_REPO_TALLY);
+    INIT_TEST_KEYS(inp2);
+    menuBillReports(MENU_REPO_TAX);
+    INIT_TEST_KEYS(inp2);
+    menuBillReports(MENU_REPO_DUP);
+    INIT_TEST_KEYS(inp2);
+    menuBillReports(MENU_REPO_VOID);
+    INIT_TEST_KEYS(inp2);
+    menuBillReports(MENU_REPO_VALID);
+  }
 }

@@ -613,7 +613,7 @@ ISR(TIMER0_COMP_vect)
   if ( (0 == keyHitData.hbCnt) && (0 == keyHitData.count) && (0 == keyHitData.KbdDataAvail) && (kbdIdleDelay < 0x3F) )
     kbdIdleDelay++;
   if ((kbdIdleDelay > 5) && (LCD_IS_ON)) {
-    LCD_bl_off;
+    //    LCD_bl_off; /* FIXME: enable this to turn off LCD */
     TIMSK &= ~(1 << TOIE1); /* disable Timer1 overflow */
   }
   

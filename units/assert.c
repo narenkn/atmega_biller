@@ -2,7 +2,7 @@
 #include "string.h"
 #include "ctype.h"
 
-#define  EXPECT_FIFO_SZ  8
+#define  EXPECT_FIFO_SZ  512
 char* expect_assert[EXPECT_FIFO_SZ];
 
 void

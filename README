@@ -206,8 +206,3 @@ Productisation Fixes
 2. PS2 Keyboard has to be initialized on powerup
 3. PS2: Implement Caps Lock, Num Lock
 4. 
-
-test_BillReports : FAILED
-test_IterBills : FAILED
-test_IterItem : FAILED
-test_menu_5 : FAILED

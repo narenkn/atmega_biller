@@ -695,7 +695,7 @@ menuFactorySettings(uint8_t mode)
 
   /* */
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, ShopName),
-			PSTR("Sri Ganapathy Medicals"), SHOP_NAME_SZ_MAX);
+			PSTR("Sri Ganapathy Stores"), SHOP_NAME_SZ_MAX);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, BillHeader),
 			PSTR("12 Agraharam street, New Tippasandara,\n Bangalore - 52\n TIN:299007249"), HEADER_SZ_MAX);
   eeprom_update_byte_NP(offsetof(struct ep_store_layout, BillFooter),
@@ -3131,12 +3131,6 @@ menuDelAllBill(uint8_t mode)
 {
   date_t date_i, date_l;
 
-#if FF_ENABLE
-  if (RES_OK != disk_inserted()) {
-    LCD_ALERT(PSTR_NO_SD);
-    return MENU_RET_NOTAGAIN;
-  }
-
   if (0 == menuCheckDateFromTo(mode))
     return 0;
   date_i=arg1.value.date, date_l=arg2.value.date;
@@ -3144,6 +3138,12 @@ menuDelAllBill(uint8_t mode)
   if (MENU_NOCONFIRM != (mode & ~MENU_MODEMASK)) {
     if (0 != menuGetYesNo((const uint8_t *)menu_str1+(MENU_STR1_IDX_DELETE*MENU_PROMPT_LEN), MENU_PROMPT_LEN, 0))
       return 0;
+  }
+
+#if FF_ENABLE
+  if (RES_OK != disk_inserted()) {
+    LCD_ALERT(PSTR_NO_SD);
+    return MENU_RET_NOTAGAIN;
   }
 
   menuMemset(&FS, 0, sizeof(FS));
