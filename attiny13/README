@@ -1,0 +1,5 @@
+To Do
+1. Fuse values : Self prog enable, External reset disable, CKSEL
+   FLB = 0xB8
+   FHB = 0xEE
+2. 
