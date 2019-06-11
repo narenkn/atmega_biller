@@ -1,5 +1,5 @@
 #include "lcd.h"
-#include <ncurses/ncurses.h>
+#include <ncurses.h>
 
 static uint8_t lcd_x, lcd_y;
 static uint8_t lcd_buf[LCD_MAX_ROW][LCD_MAX_COL];

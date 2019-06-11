@@ -130,7 +130,7 @@ KbdIsShiftPressed(void)
 
 #ifdef  INCL_UNITS_KBD_NCURSES_C
 
-#include <ncurses/ncurses.h>
+#include <ncurses.h>
 #include "kbd.h"
 
 keyHitData_t keyHitData;
