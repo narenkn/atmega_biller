@@ -4,7 +4,7 @@ Documentation at [website](https://narenkn.com/works/embedded/at128_biller/).
 Check the branch _atmega128_no_eeprom_ where both items and bills are stored in Non-Volatile Flash.
 
 ## Installation
-1. sudo apt-get install gcc-avr
+1. sudo apt-get install gcc-avr binutils-avr avr-libc
 1. sudo apt install libncurses5-dev
 
 ## Run Unit tests
