@@ -16,6 +16,7 @@ SOURCE = $(wildcard test_*.c)
 SOURCE_EXCLUDES = test_common # not a test
 SOURCE_EXCLUDES	+= test_menu_i test_menu_setting_i # interactive
 SOURCE_EXCLUDES += test_menu_3 # users, passwd
+SOURCE_EXCLUDES += test_menubilling test_bill test_sdsettings # temporary since they were using menuSD* functions
 TESTS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, $(EXEEXT), $(SOURCE)))
 TESTSEXE = $(TESTS:.c=)
 

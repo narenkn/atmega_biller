@@ -9,6 +9,8 @@ uint8_t i2c_bytes[EEPROM_SIZE];
 #define I2C_EEPROM_DIRECT_ASSIGN(addr, val) \
   i2c_bytes[addr] = val
 
+extern void LCD_end(void);
+
 void
 i2c_init(void)
 {

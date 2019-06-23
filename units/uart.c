@@ -7,6 +7,12 @@
 
 static uint8_t uart_device;
 
+uint32_t uartWeight;
+uint8_t  uartDecimalPlace;
+uint8_t uart0_func;
+uint8_t pcPassword[PCPASS_SIZE];
+uint8_t pcPassIdx;
+
 void
 uartInit(void)
 {

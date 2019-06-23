@@ -60,7 +60,7 @@ main()
     }
   }
 
-  uint ui1;
+  uint32_t ui1;
 
   /* Keep finding the same bill */
   ui16_2 = (rand() % MAX_VALID_BILLS)+1;

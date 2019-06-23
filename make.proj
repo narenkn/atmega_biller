@@ -4,7 +4,7 @@ CFLAGS += -DLCD_DPORT_SIZE=4
 PYTHON := python
 
 ../version.h : ../utils/csv2dat.py
-	@echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
+	@/bin/echo -e "#ifndef VERSION_H\n#define VERSION_H" > $@
 	git log --pretty=format:"%h %an %s" ../utils/csv2dat.py | wc -l | xargs expr 1 + | xargs echo "#define SW_VERSION " >> $@
 	@echo "#define GIT_HASH_SMALL_LEN 7" >> $@
 	@echo -n "#define GIT_HASH_SMALL " >> $@
