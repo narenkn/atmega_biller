@@ -1,0 +1,208 @@
+FIXME:
+3. Choice to print words of total bill
+4. Print duplicate bill
+5. Item, tax total
+##7. Add version string in all dat files & check compatible in menu.c
+##  7.a Settings file
+##  7.b dat file
+##  7.c Sale csv
+  7.d purchase csv
+##8. When start, check billing.csv for proper version and move it to _x.old files if wrong version
+9. user wise report
+10. Track purchase bills (K20)
+11. Seperate purchase reports (K20)
+12. Take care of disk full and abort saves.
+13. Modify bills easily
+##14. CAPITALIZE product code & item name, so to make search ignore case
+15. Refund item
+16. Limit max items for different versions of product
+  a. Product 1K
+    1,000 items : EEPROM  56K
+    Indexing    : (4*2*1K) 8K
+    Total       :         64K (1 EEPROM)
+  b. Product 5K
+    5,000 items : EEPROM 280K
+    Indexing    :(4*2*5K) 40K
+    Total       :        320K (5 EEPROM)
+  c. Product 30K
+    30,000 items : EEPROM 1680K (20 EEPROM)
+    Indexing    :(4*2*30K) 240K
+    Total       :         1920K (20 EEPROM)
+##17. Super user name should be admin & can't be overrided
+18. Show stock status (medical)
+19. Provision for batch name (all other parameters may change as well)
+20. Check all main routines for enable of interrupts/keyboard interrupts.
+##21. Check user name is unique before accepting
+22. Print result of self diagnosis/tests
+23. Show print configurations
+   Max Items, Max Bills, version string, device serial number
+##24. have serial number for devices
+##25. Identify capability of devices from serial number
+26. Self Program via SD card
+27. EEPROM status for cold-reset-initialized or not
+##28. Configuration bit to buzz on keypress : default ON
+29. Support 3" printer for 20K product
+30. Use EEPROM to store recent bills (or have a copy of last bill)
+31. Ability to generate serial number and program it to chip
+##32. Before doing any disk operations, make sure disk is present..
+##    if (DS_DEV_INVALID != (devStatus & DS_DEV_INVALID))
+--33. Mark certain bills invalid (choose invalid mode)
+--34. Mark previous bill invalid
+35. Have short cuts for menu actions (make previous bill invalid)
+##36. Code weighing machine isr routine
+37. Send sale data through serial/USB port
+38. Store default bill in EEPROM, print in diagnosis.
+##39. Check for name/ prod-code in item before accepting it
+40. Make sure no two items have same name & prod-code : is this required?
+41. Show bill : Need to provide facility to enter bill id
+42. LEFT takes back. We introduced ESCAPE, so that needs to be factored in!
+43. Number of bill should be rechecked on every bill item. On reset, it needs to be initialized.
+44. In Atmega128p device use CLKPR register to scale down clock frequency if necessary
+
+Atmega32 Product:
+##1. Change to storing bill in EEPROM
+##2. When bill read from memory, check both CRC & (CRC==~INVERT_CRC) for checking validity.
+##3. menuDelAllBill : implement optional date & id
+4. Make items download from computer
+5. Make self diagnosis program
+##6. If reached all items in continuous search, break and report no items
+##7. Check for serial # at destination before overwriting it. Never should serial # be erased from system: even on a factory reset
+8. CPU operations
+   * Read/Write EEPROM (??) - low priority
+   * Read/Write 24CXX (Items) : CSV to image & send it
+   * Validate Device serial # before giving control
+   * Validate software revision before taking control
+   * Take control of Device: Reset on exit
+##9. Use as a printer (??): No
+10. Fix units/test_menu_2 (few loops 0)
+11. Have soft-reset key combination. : Make hardware reset switch
+##12. LCD Brightness control
+13. Check Control, CapsLock, Alt, Shift behaviour from Keyboard
+##14. Who will keep time when device is turned OFF?? : DS1307 is implemented.
+15. Keep buzzing while waiting for PC programming.
+
+Atmega128 Product:
++1. Upload data from file
++2. Save data to file
++3. Billwise sales report
++4. Daywise sales report
+--5. itemwise sales report : do it for 1500 items first, then fix for 3000 items
++6. void bill report
++7. monthly sales report
++8. yearly bill report
++9. Duplicate bill report
++10. VAT & Tax report
++11. item in bill report
+##12. stock report
+##13. UDF item report
+##14. returned item report
+##15. hourly sales report
+##16. rate wise report
+##17. UDF wise report
+##18. user wise report
+##19. KOT pending report
+##20. Department report
+##21. Delete KOT report
++22. Tally cash @ end-of-day
+++23. Weighing scale connectivity
+++24. 2000 items : 1500 items now, 3000 items later
+++25. billing through item code or alpha search
+++26. Discount option
++27. 1 VAT, 3 Tax
+++28. Price change
+++29. No. of Cashiers : 4 + 1 admin
+--30. 3 Rates for each item
++31. 5000 bills / day
++32. Reverse vat calculation
+++33. Timer routines and allocations
+++34. Uart1 TX callback
+++35. disk_timerproc of mmc_avr needs to be called back
++36. flash.c : test routines
++37. poweron testing needs to be updated
++38. User tests to be updated
++39. flash : erase 4k page
++40. firmware update routine to be updated
++41. 250 items / bill -- 75 items good for now
++42. KOT option
++43. Calculator
++44. Refund option
++45. Admin 1, Cashier 4
++46. Set hotkey option for items
++47. Duplicate Bill (of any day)
++48. Copy of current bill
++49. Payment by cash/ card/ cash+card
++50. Shortcuts for items : User created
+--51. Name in unicode for printing
+--52. Give hotkey for LCD refresh
+++53. Floating point input
++54. Paper Feed
++55. At end of billing, ask for 1 more copy to be printed
++56. Save and Edit bill further
++57. day-change Reset should only be hit on certain places in sleep
++58. Software patch for restaurant, clothing, vehicle parking
++59. Table wise report, user wise report
++60. Testing : for all f_open modes
++61. i2c.c (get_fattime) FIXME: Year is offset by 1900 or 2000 ??
+62. Disable printing of reports with user setting.
+
+
++ : header enabled
+++ : software coded
++++ : unit tests written
+++++ : unit tests passing
+
+Failing :
+test_sdsettings.c
+
+units : test kbd/keypress pipeline logic
+
+Programming Commands:
+avrdude.exe -c usbasp -p atmega128 -u -V -U flash:w:billmc.hex -U eeprom:w:device.hex
+
+avrdude.exe -c usbasp -p atmega128 -u -U lfuse:w:0xff:m
+avrdude.exe -c usbasp -p atmega128 -u -U hfuse:w:0x89:m
+avrdude.exe -c usbasp -p atmega128 -u -U efuse:w:0xff:m
+
+Timer Allocations:
+1. Timer0 : RTC
+2. Timer1 : KBD
+3. Timer2 : 10ms callback
+
+To Test:
+3. FatFs
+4. PS2
+##5. SPI Flash
+6. Lazer barcode scanner
+##8. LCD Bright/dim
+10. test sw2, sw3 switches
+11. Test current through UV led's & change resistor value
+
+Fixes Required:
+##1. PS2 needs rotation
+##2. uSD reader can be pushed out a bit
+##3. Oscillator on LED's Back light : Options PE3, PE4, PE5, PB4, PB5, PB6, PB7
+##4. LED for plug power ON
+##5. PS2 : Power & Gnd wrongly connected
+##6. Flash chip : Pin 3 : NC
+## NO ##7. 5v->3.3v : Increase resistor 10k+20k
+##8. 10u cap on SPI Flash Pin 8
+##9. Battery terminals are for LIPO, so that connector is required
+##10. Remove Debug Port
+##11. Change {Q1}, {Q2} -> 2N7002x
+##12. SW20 switch was shorting
+##13. Remove J7
+##14. uUSB interface for power input
+##15. Remove extra switches??
+16. Remove 24c512??
+##17. Power LED with 330ohm resistor, parallel 10uF 6.3V
+##18. Add inductor to circuit.
+##19. Battery voltage divided to a pin
+20. Use different pins for flash & uSD ?
+21. Resistor changes in spi bus??
+
+Productisation Fixes
+####################
+##1. Once login, should not see "Login menu opt"
+##2. PS2 Keyboard has to be initialized on powerup
+3. PS2: Implement Caps Lock, Num Lock
+4. 
