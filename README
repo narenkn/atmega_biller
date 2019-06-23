@@ -1,4 +1,0 @@
-# ATMEGA128 Billing Machine
-Documentation at [website](https://narenkn.com/works/embedded/at128_biller/).
-
-Check the branch _atmega128_no_eeprom_ where both items and bills are stored in Non-Volatile Flash.
