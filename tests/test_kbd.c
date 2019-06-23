@@ -4,6 +4,11 @@
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 
+uint8_t uart0_func = -1;
+void menuPcUtil()
+{
+}
+
 #include "lcd.c"
 #include "i2c.c"
 #include "kbd.c"

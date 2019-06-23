@@ -2431,7 +2431,7 @@ menuRunDiag(uint8_t mode)
 #define MENU_FUNC(A) A
 #define ARG1(A, B)
 #define ARG2(A, B)
-menu_func_t menu_handlers[] PROGMEM = {
+const menu_func_t menu_handlers[] PROGMEM = {
   MENU_ITEMS
 };
 #undef  ARG2

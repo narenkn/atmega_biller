@@ -2,7 +2,7 @@
 Documentation at [website](https://narenkn.com/works/embedded/at32_biller/).
 
 ## Installation
-1. sudo apt-get install gcc-avr
+1. sudo apt-get install gcc-avr binutils-avr avr-libc
 1. sudo apt install libncurses5-dev
 
 ## Run Unit tests
