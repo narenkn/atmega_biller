@@ -27,8 +27,6 @@
 #include "ep_store.c"
 #include "i2c.c"
 #include "uart.c"
-//#include "mmc_avr.c"
-//#include "ff.c"
 #include "a1micro2mm.c"
 //#include "menu.c"
 //#include "main.c"

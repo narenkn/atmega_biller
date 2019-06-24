@@ -20,12 +20,10 @@
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"
-#include "item.h"
 #include "billing.h"
 #include "i2c.h"
 #include "uart.h"
 #include "a1micro2mm.h"
-#include "integer.h"
 #if FF_ENABLE
 #include "ff.h"
 #endif

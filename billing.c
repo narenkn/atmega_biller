@@ -25,7 +25,6 @@
 #include "lcd.h"
 #include "kbd.h"
 #include "ep_store.h"
-#include "item.h"
 #include "billing.h"
 
 /* Save, restore bill */
