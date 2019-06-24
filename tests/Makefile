@@ -2,7 +2,7 @@
 # Makefile for the individual test programs
 ###############################################################################
 
-.PHONY: clean size all headers
+.PHONY: clean all headers
 
 ## General Flags
 PROJECT = 
@@ -37,7 +37,6 @@ ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 ## Linker flags
 BOOTLOAD = 0x7E00
 LDFLAGS = $(COMMON)
-LDFLAGS +=  -Wl,-Map=$(SOURCE:.c=.map)
 LDFLAGS += -Wl,--section-start=.bootloader=$(BOOTLOAD)
 
 ## Intel Hex file production flags
@@ -49,18 +48,12 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 ## Files
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_common
-TARGETS =  $(filter-out $(SOURCE_EXCLUDES), $(subst .c, , $(SOURCE)))
-TARGET = $(word 1, $(TARGETS))
-
-## Objects that must be built in order to link
-OBJECTS = $(SOURCE:.c=.o)
-
-## Objects explicitly added by the user
-LINKONLYOBJECTS =
+SOURCE_EXCLUDES = test_printer_1.c test_bill.c test_menu_1.c
+TARGET_SOURCES =  $(filter-out $(SOURCE_EXCLUDES), $(SOURCE))
+TARGETS =  $(TARGET_SOURCES:.c=.hex) $(TARGET_SOURCES:.c=.eep) $(TARGET_SOURCES:.c=.lss)
 
 ## Build
-all: $(TARGET).elf $(TARGET).hex $(TARGET).eep $(TARGET).lss size
+all: $(TARGETS)
 
 ##
 include ../make.proj
@@ -75,7 +68,8 @@ VPATH := ..
 
 ##Link
 %.elf: %.o
-	 $(CC) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $@
+	 $(CC) -Wl,-Map=$(@:.elf=.map) $(LDFLAGS) $< $(LIBDIRS) $(LIBS) -o $@
+	@avr-size -C --mcu=$(MCU) $@
 
 %.hex: %.elf
 	avr-objcopy -O ihex $(HEX_FLASH_FLAGS)  $< $@
@@ -85,10 +79,6 @@ VPATH := ..
 
 %.lss: %.elf
 	avr-objdump -h -S $< > $@
-
-size: $(TARGET).elf
-	@echo
-	@avr-size -C --mcu=$(MCU) $(TARGET).elf
 
 ## Clean target
 clean:

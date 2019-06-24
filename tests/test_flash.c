@@ -24,7 +24,7 @@ get_fattime(void)
 }
 
 uint16_t testBuf[SPM_PAGESIZE/sizeof(uint16_t)];
-uint16_t testLoc[SPM_PAGESIZE] PROGMEM =
+const uint16_t testLoc[SPM_PAGESIZE] PROGMEM =
   { [ 0 ... (SPM_PAGESIZE - 1) ] = 0 };
 
 void boot_program_page() BOOTLOADER_SECTION;
