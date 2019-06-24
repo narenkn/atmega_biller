@@ -48,7 +48,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 ## Files
 SOURCE = $(wildcard test_*.c)
-SOURCE_EXCLUDES = test_printer_1.c test_bill.c test_menu_1.c
+SOURCE_EXCLUDES = test_printer_1.c test_menu_1.c
 TARGET_SOURCES =  $(filter-out $(SOURCE_EXCLUDES), $(SOURCE))
 TARGETS =  $(TARGET_SOURCES:.c=.hex) $(TARGET_SOURCES:.c=.eep) $(TARGET_SOURCES:.c=.lss)
 

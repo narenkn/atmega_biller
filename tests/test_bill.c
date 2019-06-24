@@ -57,10 +57,25 @@ menuPrnBillEE24xxHelper(uint16_t item_id, struct item *it, uint16_t it_index)
 }
 
 void
+menuPrnD(uint32_t var)
+{
+  if (var>9)
+    menuPrnD(var/10);
+  PRINTER_PRINT('0'+(var%10));
+}
+
+void
+menuPrnF(uint32_t var)
+{
+  menuPrnD(var/100);
+  PRINTER_PRINT('.');
+  menuPrnD(var%100);
+}
+
+void
 menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
 {
   uint8_t ui8_1, ui8_2, ui8_3;
-  uint8_t prnBuf[256];
 
   /* Shop name */
   PRINTER_FONT_ENLARGE(2);
@@ -95,18 +110,14 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
   PRINTER_PRINT('u'); PRINTER_PRINT('s'); PRINTER_PRINT('e');
   PRINTER_PRINT('r'); PRINTER_PRINT(':');
-  for (ui8_1=0; ui8_1<EPS_MAX_UNAME; ui8_1++) {
-    ui8_3 = sl->info.user[ui8_1];
-    assert ('\n' != ui8_3);
-    PRINTER_PRINT(ui8_3);
-  }
+  PRINTER_PRINT('a'); PRINTER_PRINT('d'); PRINTER_PRINT('m'); PRINTER_PRINT('i'); PRINTER_PRINT('n');
   PRINTER_PRINT(' '); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_dd); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(prnBuf, "%2d", 1+sl->info.date_mm); PRINTER_PRINT('/');
-  PRINTER_SPRINTF(prnBuf, "%4d", 1980+sl->info.date_yy); PRINTER_PRINT(' ');
-  PRINTER_SPRINTF(prnBuf, "%2d", sl->info.time_hh); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_mm); PRINTER_PRINT(':');
-  PRINTER_SPRINTF(prnBuf, "%02d", sl->info.time_ss); PRINTER_PRINT('\n');
+  PRINTER_PRINT_D(1+sl->info.date_dd); PRINTER_PRINT('/');
+  PRINTER_PRINT_D(1+sl->info.date_mm); PRINTER_PRINT('/');
+  PRINTER_PRINT_D(1980+sl->info.date_yy); PRINTER_PRINT(' ');
+  PRINTER_PRINT_D(sl->info.time_hh); PRINTER_PRINT(':');
+  PRINTER_PRINT_D(sl->info.time_mm); PRINTER_PRINT(':');
+  PRINTER_PRINT_D(sl->info.time_ss); PRINTER_PRINT('\n');
 
   /* Items */
   for (ui8_1=0; ui8_1<sl->info.n_items; ui8_1++) {
@@ -118,21 +129,34 @@ menuPrnBill(struct sale *sl, menuPrnBillItemHelper nitem)
     }
     PRINTER_PSTR(PSTR("Sl. Item  Nos  Price Disc Tax \n"));
     PRINTER_PSTR(PSTR("------------------------------\n"));
-    PRINTER_SPRINTF(prnBuf, "%2u. ", (unsigned int)(ui8_1+1));
+    PRINTER_PRINT_D((unsigned int)(ui8_1+1));
     for (ui8_3=0; ui8_3<ITEM_NAME_BYTEL; ui8_3++)
       PRINTER_PRINT(sl->it[0].name[ui8_3]);
-    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].cost);
-    PRINTER_SPRINTF(prnBuf, "(-%4u)", (unsigned int)sl->items[ui8_1].discount);
-    PRINTER_SPRINTF(prnBuf, " %4u", (unsigned int)sl->items[ui8_1].quantity);
-    PRINTER_SPRINTF(prnBuf, " %6u\n", (unsigned int)sl->items[ui8_1].cost * sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].cost);
+    PRINTER_PRINT('('); PRINTER_PRINT('-');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].discount);
+    PRINTER_PRINT(')'); PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
+    PRINTER_PRINT_D((unsigned int)sl->items[ui8_1].cost * sl->items[ui8_1].quantity);
+    PRINTER_PRINT(' ');
   }
 
   /* Total */
   PRINTER_FONT_ENLARGE(2);
-  PRINTER_SPRINTF(prnBuf, "Total Discount : %.2f\n", (double)sl->t_discount);
-  PRINTER_SPRINTF(prnBuf, "Total VAT      : %.2f\n", (double)sl->t_vat);
-  PRINTER_SPRINTF(prnBuf, "Total Serv Tax : %.2f\n", (double)sl->t_stax);
-  PRINTER_SPRINTF(prnBuf, "Bill Total (Rs): %.2f\n", (double)sl->total);
+  PRINTER_PSTR(PSTR("Total Discount : "));
+  PRINTER_PRINT_F(sl->t_discount);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Total VAT      : "));
+  PRINTER_PRINT_F(sl->t_vat);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Total Serv Tax : "));
+  PRINTER_PRINT_F(sl->t_stax);
+  PRINTER_PRINT('\n');
+  PRINTER_PSTR(PSTR("Bill Total (Rs): "));
+  PRINTER_PRINT_F(sl->total);
+  PRINTER_PRINT('\n');
 
   /* Footer */
   ui8_2 = 0;
@@ -206,7 +230,6 @@ main(void)
 
   struct sale *sl = (void *) bufSS;
   sl->info.n_items = 1;
-  strncpy_P((char *)sl->info.user, PSTR("naren"), 5);
   sl->info.date_yy = 44;
   sl->info.date_mm = 9;
   sl->info.date_dd = 4;
